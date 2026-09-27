@@ -152,6 +152,7 @@ pub struct PauseFlags {
 pub struct Config {
     pub v: u8,
     pub admins: Vec<Principal>,
+    pub payments_id: Option<Principal>,
     pub params: Params,
     pub current_protocol_version: u16,
     pub paused: PauseFlags,
@@ -162,6 +163,7 @@ impl Default for Config {
         Config {
             v: 1,
             admins: vec![],
+            payments_id: None,
             params: Params::default(),
             current_protocol_version: 1,
             paused: PauseFlags::default(),
@@ -194,6 +196,14 @@ impl Config {
         self.admins.retain(|a| a != &p);
         Ok(())
     }
+
+    pub fn set_payments_id(&mut self, p: Principal) -> Result<(), ApiError> {
+        if p == Principal::anonymous() {
+            return Err(ApiError::invalid("payments_id can't be anonymous"));
+        }
+        self.payments_id = Some(p);
+        Ok(())
+    }
 }
 
 crate::candid_storable!(Config);
@@ -218,6 +228,14 @@ pub fn update<R>(f: impl FnOnce(&mut Config) -> Result<R, ApiError>) -> Result<R
 
 pub fn is_admin(p: &Principal) -> bool {
     CELL.with_borrow(|c| c.get().admins.contains(p))
+}
+
+pub fn payments_id() -> Option<Principal> {
+    CELL.with_borrow(|c| c.get().payments_id)
+}
+
+pub fn is_payments(p: &Principal) -> bool {
+    CELL.with_borrow(|c| c.get().payments_id.as_ref() == Some(p))
 }
 
 #[cfg(test)]
@@ -289,5 +307,17 @@ mod tests {
         assert!(update(|cfg| cfg.add_admin(a)).is_err());
         assert!(is_admin(&a) && !is_admin(&b));
         assert_eq!(get().admins, vec![a]);
+
+        assert!(matches!(
+            c.set_payments_id(Principal::anonymous()),
+            Err(ApiError::InvalidInput(_))
+        ));
+        c.set_payments_id(b).unwrap();
+        assert_eq!(c.payments_id, Some(b));
+
+        update(|cfg| cfg.set_payments_id(b)).unwrap();
+        assert_eq!(payments_id(), Some(b));
+        assert!(is_payments(&b));
+        assert!(!is_payments(&a));
     }
 }

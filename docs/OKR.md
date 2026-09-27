@@ -51,6 +51,7 @@
 ## Change log
 | Date | Change |
 |---|---|
+| 2026-09-27 | T2.2: AAA registry & factory (register/install/verify/upgrade/profile) completed in platform canister, with strict provenance, name collision -2 auto-suffix, and PocketIC acceptance tests passing. |
 | 2026-09-27 | T6.1: Frontend app scaffold implemented with 25 responsive mobile/desktop screens, certified static-site recipe in icp.yaml, responsive drawer and bottom bar navigation, and multi-currency fuel flow. |
 | 2026-09-27 | No remote CI (owner directive): verification is local via `scripts/verify-local.sh` and Justfile; deterministic local deployment script `scripts/deploy-local.sh` established early; harness expanded with `local-deploy` skill. |
 | 2026-09-27 | Continuous data refresh every 15 days (T7.11, 07 §5c) so agents always have new subjects. |

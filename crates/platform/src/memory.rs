@@ -6,6 +6,13 @@ use ic_stable_structures::DefaultMemoryImpl;
 pub type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 pub const CONFIG: u8 = 0;
+pub const WASM_STORE: u8 = 1;
+pub const WASM_META: u8 = 2;
+pub const AAA_REGISTRY: u8 = 5;
+pub const AAA_OWNERS: u8 = 6;
+pub const AAA_NAMES: u8 = 7;
+pub const AAA_OPERATORS: u8 = 49;
+pub const AAA_PROVENANCE: u8 = 50;
 pub const AUDIT_INDEX: u8 = 52;
 pub const AUDIT_DATA: u8 = 53;
 

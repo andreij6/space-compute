@@ -2,6 +2,7 @@ pub mod api;
 pub mod audit;
 pub mod config;
 mod memory;
+pub mod registry;
 mod rng;
 mod timers;
 
@@ -9,6 +10,10 @@ use api::Overview;
 use audit::AuditEntry;
 use candid::Principal;
 use config::{Params, PauseFlags};
+use registry::{
+    AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput, RegisterArgs,
+    UpdateAaaProfileArgs, WasmMeta,
+};
 use sc_types::ApiError;
 
 #[ic_cdk::init]

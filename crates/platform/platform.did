@@ -1,3 +1,29 @@
+type AaaRecord = record {
+  v : nat8;
+  status : AaaStatus;
+  owner : principal;
+  last_seen_at : nat64;
+  name : text;
+  wasm_version : nat32;
+  platform_is_controller : bool;
+  created_at : nat64;
+  verified_at : nat64;
+  avatar_seed : nat64;
+  install_attempts : nat8;
+  last_cycles : nat;
+};
+type AaaStatus = variant {
+  Installing;
+  Active;
+  SelfManaged;
+  Suspended;
+  Deleted;
+};
+type AdminListAaasFilter = record {
+  status : opt AaaStatus;
+  owner : opt principal;
+  name_prefix : opt text;
+};
 type ApiError = variant {
   Internal : text;
   NotRegistered;
@@ -20,11 +46,17 @@ type AuditEntry = record {
   args_digest : blob;
   summary : text;
 };
+type CheckNameResult = variant { Ok; Invalid; Taken };
+type Heartbeat = record { wasm_version : nat32; cycles : nat };
+type OperatorSetInput = record {
+  operators : vec record { principal; opt nat64 };
+};
 type Overview = record {
   current_protocol_version : nat16;
   cycles : nat;
   admins : vec principal;
   rng_seeded_at : opt nat64;
+  payments_id : opt principal;
   params : Params;
   paused : PauseFlags;
   audit_entries : nat64;
@@ -54,18 +86,55 @@ type Params = record {
   fee_get_task : nat;
 };
 type PauseFlags = record { tasks : bool; reviews : bool; spawns : bool };
+type RegisterArgs = record {
+  owner : principal;
+  name : text;
+  canister_id : principal;
+  avatar_seed : nat64;
+};
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : vec AuditEntry; Err : ApiError };
-type Result_2 = variant { Ok : vec principal; Err : ApiError };
-type Result_3 = variant { Ok : Overview; Err : ApiError };
+type Result_2 = variant { Ok : AaaRecord; Err : ApiError };
+type Result_3 = variant { Ok : vec AaaRecord; Err : ApiError };
+type Result_4 = variant { Ok : vec principal; Err : ApiError };
+type Result_5 = variant { Ok : vec record { nat32; WasmMeta }; Err : ApiError };
+type Result_6 = variant { Ok : Overview; Err : ApiError };
+type UpdateAaaProfileArgs = record { name : opt text; avatar_seed : opt nat64 };
+type WasmMeta = record {
+  sha256 : blob;
+  size : nat64;
+  approved : bool;
+  released_at : nat64;
+};
 service : () -> {
+  aaa_by_owner : (principal) -> (opt principal) query;
+  aaa_owner : (principal) -> (opt principal) query;
   admin_add_admin : (principal) -> (Result);
+  admin_approve_wasm : (nat32) -> (Result);
   admin_audit_log : (opt nat64, nat32) -> (Result_1) query;
-  admin_list_admins : () -> (Result_2) query;
-  admin_overview : () -> (Result_3) query;
+  admin_get_aaa : (principal) -> (Result_2) query;
+  admin_list_aaas : (AdminListAaasFilter, opt nat64, nat32) -> (Result_3) query;
+  admin_list_admins : () -> (Result_4) query;
+  admin_list_wasms : () -> (Result_5) query;
+  admin_overview : () -> (Result_6) query;
   admin_pause : (PauseFlags) -> (Result);
   admin_remove_admin : (principal) -> (Result);
+  admin_rename_aaa : (principal, text, text) -> (Result);
+  admin_retry_install : (principal) -> (Result);
   admin_set_params : (Params) -> (Result);
+  admin_set_payments_id : (principal) -> (Result);
+  admin_suspend_aaa : (principal, text) -> (Result);
+  admin_unsuspend_aaa : (principal) -> (Result);
+  admin_upload_wasm : (nat32, blob, blob) -> (Result);
+  check_name : (text) -> (CheckNameResult) query;
+  get_aaa : (principal) -> (opt AaaRecord) query;
+  get_aaa_by_name : (text) -> (opt AaaRecord) query;
   get_params : () -> (Params) query;
+  heartbeat : (Heartbeat) -> (Result);
+  register_aaa : (RegisterArgs) -> (Result);
+  sync_operators : (OperatorSetInput) -> (Result);
+  update_aaa_profile : (UpdateAaaProfileArgs) -> (Result);
+  upgrade_aaa : (principal) -> (Result);
+  verify : (principal) -> (Result);
   version : () -> (text) query;
 }

@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T2.2 Registry & factory (done)
+- Full AAA registry, wasm upload/approval, spawn registration, upgrade, verify, heartbeat, sync_operators, profile rename in platform canister (mem 1, 2, 5, 6, 7, 49, 50).
+- Idempotent register_aaa with name collision auto-suffix (-2), one live AAA per owner constraint, provenance tracking with module hash and controller verification.
+- PocketIC acceptance test t2_2_spawned_aaa_verified_and_upgrade_works + 10 unit tests pass; platform coverage 92.8% (min 90%).
+
 ## 2026-09-27 — T5.1 payments skeleton (done, Sonnet lane) + no Stripe code
 - Journal Pending→Pulled→Credited→TreasuryPaid→Notified→Registered→Done (+Failed/Refunded), validated transitions; per-key CallerGuard; config/params/features/pause; audit log (mem 60/61).
 - PocketIC proves the journal write before an await survives a trap after it. Coverage 96.1%. Commit 08d322b.

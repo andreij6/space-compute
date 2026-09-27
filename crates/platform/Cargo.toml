@@ -16,3 +16,4 @@ ic-cdk-timers.workspace = true
 ic-stable-structures.workspace = true
 rand_chacha.workspace = true
 sha2.workspace = true
+flate2.workspace = true

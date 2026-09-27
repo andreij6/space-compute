@@ -1151,6 +1151,7 @@ dependencies = [
  "pocket-ic",
  "sc-types",
  "serde",
+ "sha2",
 ]
 
 [[package]]
@@ -1495,6 +1496,7 @@ name = "platform"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "flate2",
  "ic-cdk 0.20.3",
  "ic-cdk-timers",
  "ic-stable-structures",
