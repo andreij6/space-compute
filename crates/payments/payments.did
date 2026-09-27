@@ -1,1 +1,122 @@
-service : () -> { version : () -> (text) query }
+type Account = record { owner : principal; subaccount : opt blob };
+type ApiError = variant {
+  Internal : text;
+  NotRegistered;
+  InvalidInput : text;
+  InsufficientFee : record { required : nat };
+  NotFound;
+  Suspended;
+  LeaseExpired;
+  LeaseNotFound;
+  Unauthorized;
+  RateLimited : record { retry_after_secs : nat32 };
+  NotEligible : text;
+  Conflict : text;
+};
+type AuditEntry = record {
+  v : nat8;
+  at : nat64;
+  method : text;
+  admin : principal;
+  args_digest : blob;
+  summary : text;
+};
+type Features = record {
+  btc : bool;
+  eth : bool;
+  sponsored_spawn : bool;
+  card : bool;
+};
+type FuelSource = variant {
+  Btc : record { sats : nat64 };
+  Eth : record { wei : nat };
+  Card : record { stripe_ref : text };
+};
+type JournalDemoArg = record { aaa : principal; trap_after_await : bool };
+type NotifiedInfo = variant { Canister : principal; Cycles : nat };
+type Op = record {
+  v : nat8;
+  id : nat64;
+  updated_at : nat64;
+  kind : OpKind;
+  path : PayPath;
+  attempts : nat8;
+  created_at : nat64;
+  created_by : principal;
+  amount_e8s : nat64;
+  state : OpState;
+};
+type OpKind = variant {
+  Spawn : record { owner : principal; name : text; avatar_seed : nat64 };
+  FuelPack : record {
+    aaa : principal;
+    source : FuelSource;
+    usd_cents : nat32;
+    packs : nat8;
+  };
+  AutoTopUp : record { aaa : principal };
+  TopUp : record { aaa : principal };
+};
+type OpState = variant {
+  Failed : record { reason : text };
+  Refunded : record { block : nat64 };
+  Done;
+  Notified : record { canister_or_cycles : NotifiedInfo };
+  Pulled : record { block : nat64 };
+  Credited : record { usd_cents : nat32 };
+  TreasuryPaid : record { block : nat64 };
+  Registered;
+  Pending;
+};
+type Overview = record {
+  features : Features;
+  cycles : nat;
+  admins : vec principal;
+  params : Params;
+  paused : PauseFlags;
+  audit_entries : nat64;
+};
+type Params = record {
+  rate_max_age_secs : nat64;
+  intake_min_runway_days : nat32;
+  stripe_daily_usd_cap : nat32;
+  fuel_pack_usd_cents : nat32;
+  treasury_daily_cap_e8s : nat64;
+  treasury_reserve_floor_e8s : nat64;
+  auto_topup_min_interval_secs : nat64;
+  margin_bp : nat16;
+  per_aaa_daily_packs : nat16;
+};
+type PauseFlags = record {
+  topup : bool;
+  auto_topup : bool;
+  spawn : bool;
+  non_icp : bool;
+};
+type PayPath = variant {
+  Deposit;
+  Treasury;
+  Wallet : record { payer : Account };
+};
+type Result = variant { Ok; Err : ApiError };
+type Result_1 = variant { Ok : vec AuditEntry; Err : ApiError };
+type Result_2 = variant { Ok : nat64; Err : ApiError };
+type Result_3 = variant { Ok : vec principal; Err : ApiError };
+type Result_4 = variant { Ok : vec Op; Err : ApiError };
+type Result_5 = variant { Ok : Overview; Err : ApiError };
+service : () -> {
+  admin_add_admin : (principal) -> (Result);
+  admin_audit_log : (opt nat64, nat32) -> (Result_1) query;
+  admin_journal_demo : (JournalDemoArg) -> (Result_2);
+  admin_list_admins : () -> (Result_3) query;
+  admin_list_ops : (opt nat64, nat32) -> (Result_4) query;
+  admin_overview : () -> (Result_5) query;
+  admin_pause : (PauseFlags) -> (Result);
+  admin_remove_admin : (principal) -> (Result);
+  admin_set_features : (Features) -> (Result);
+  admin_set_params : (Params) -> (Result);
+  get_features : () -> (Features) query;
+  get_op : (nat64) -> (opt Op) query;
+  get_params : () -> (Params) query;
+  version : () -> (text) query;
+}

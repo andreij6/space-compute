@@ -13,4 +13,5 @@ pocket-ic = "16"
 serde = { workspace = true, features = ["derive"] }
 platform = { path = "../platform" }
 aaa = { path = "../aaa" }
+payments = { path = "../payments" }
 sc-types.workspace = true
