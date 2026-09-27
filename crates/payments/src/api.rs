@@ -8,6 +8,7 @@ use crate::cmc;
 use crate::config::{self, Features, Params, PauseFlags};
 use crate::deposit::{self, Purpose};
 use crate::guard::{self, CallerGuard};
+use crate::invites;
 use crate::journal::{self, Account, NotifiedInfo, Op, OpKind, OpState, PayPath};
 use crate::ledger;
 use crate::mandate::{self, MandateView};
@@ -93,11 +94,47 @@ fn admin_set_features(features: Features) -> Result<(), ApiError> {
         "admin_set_features",
         &features,
         format!(
-            "btc={} eth={} sponsored_spawn={}",
-            features.btc, features.eth, features.sponsored_spawn
+            "card={} btc={} eth={} sponsored_spawn={}",
+            features.card, features.btc, features.eth, features.sponsored_spawn
         ),
     );
     Ok(())
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct MintInvitesArgs {
+    pub count: u32,
+    pub sponsor_cycles: u128,
+    pub expires_at: u64,
+}
+
+#[ic_cdk::update]
+async fn admin_mint_invites(args: MintInvitesArgs) -> Result<Vec<String>, ApiError> {
+    let caller = require_admin()?;
+    let seed = raw_rand().await?;
+    let now_secs = ic_cdk::api::time() / 1_000_000_000;
+    let codes = invites::mint(
+        args.count,
+        args.sponsor_cycles,
+        args.expires_at,
+        &seed,
+        now_secs,
+    )?;
+    audit(
+        caller,
+        "admin_mint_invites",
+        &(args.count, args.sponsor_cycles, args.expires_at),
+        format!(
+            "minted {} invite(s), sponsor_cycles={} expires_at={}",
+            args.count, args.sponsor_cycles, args.expires_at
+        ),
+    );
+    Ok(codes)
+}
+
+#[ic_cdk::query]
+fn get_treasury_account() -> (String, Account) {
+    deposit::treasury_account(ic_cdk::api::canister_self())
 }
 
 #[ic_cdk::update]
@@ -838,7 +875,19 @@ async fn pull_or_sweep_spawn(op: &Op) -> Result<u64, ApiError> {
             )
             .await
         }
-        PayPath::Treasury | PayPath::Invite { .. } => Err(ApiError::Internal(
+        PayPath::Invite { .. } => {
+            let sub = deposit::treasury_subaccount();
+            ledger_transfer(
+                Some(sub),
+                to,
+                op.amount_e8s,
+                params.icp_ledger_fee_e8s,
+                memo,
+                now,
+            )
+            .await
+        }
+        PayPath::Treasury => Err(ApiError::Internal(
             "spawn does not support this path here".into(),
         )),
     }
@@ -922,16 +971,34 @@ pub struct SpawnArgs {
     pub path: PayPath,
 }
 
+fn deposit_e8s_for_invite(
+    params: &crate::config::Params,
+    code: &str,
+    caller: Principal,
+    now: u64,
+    now_secs: u64,
+) -> Result<u64, ApiError> {
+    if !config::get().features.sponsored_spawn {
+        return Err(ApiError::FeatureDisabled);
+    }
+    if invites::has_sponsored(caller) {
+        return Err(ApiError::Conflict(
+            "this owner already has a sponsored AAA".into(),
+        ));
+    }
+    let invite = invites::redeem(code, caller, now_secs)?;
+    let total_cycles = params.spawn_creation_fee_cycles + invite.sponsor_cycles;
+    let deposit_e8s = quote::cycles_to_e8s(total_cycles, rate::get().xdr_permyriad_per_icp)?;
+    invites::reserve_daily_budget(now_secs, deposit_e8s, params.sponsor_daily_cap_e8s)?;
+    invites::mark_sponsored(caller, now);
+    Ok(deposit_e8s)
+}
+
 #[ic_cdk::update]
 async fn spawn_aaa(args: SpawnArgs) -> Result<u64, ApiError> {
     let caller = ic_cdk::api::msg_caller();
     if caller == Principal::anonymous() {
         return Err(ApiError::Unauthorized);
-    }
-    if let PayPath::Invite { .. } = args.path {
-        return Err(ApiError::Internal(
-            "the invite spawn path is not implemented yet (T5.16)".into(),
-        ));
     }
     let _guard = CallerGuard::acquire(guard::key("spawn", caller))?;
     let platform = config::platform_id()?;
@@ -943,7 +1010,12 @@ async fn spawn_aaa(args: SpawnArgs) -> Result<u64, ApiError> {
 
     let params = config::get().params;
     let now = ic_cdk::api::time();
-    let quote = quote::quote_spawn(&params, &rate::get(), now / 1_000_000_000)?;
+    let now_secs = now / 1_000_000_000;
+
+    let deposit_e8s = match &args.path {
+        PayPath::Invite { code } => deposit_e8s_for_invite(&params, code, caller, now, now_secs)?,
+        _ => quote::quote_spawn(&params, &rate::get(), now_secs)?.deposit_e8s,
+    };
 
     let op = journal::create(
         OpKind::Spawn {
@@ -952,7 +1024,7 @@ async fn spawn_aaa(args: SpawnArgs) -> Result<u64, ApiError> {
             avatar_seed: args.avatar_seed,
         },
         args.path,
-        quote.deposit_e8s,
+        deposit_e8s,
         caller,
         now,
     );

@@ -24,6 +24,7 @@ pub struct Params {
     pub spawn_creation_fee_cycles: u128,
     pub spawn_quote_buffer_bp: u16,
     pub icp_ledger_fee_e8s: u64,
+    pub sponsor_daily_cap_e8s: u64,
 }
 
 impl Default for Params {
@@ -41,6 +42,7 @@ impl Default for Params {
             spawn_creation_fee_cycles: 100_000_000_000,
             spawn_quote_buffer_bp: 200,
             icp_ledger_fee_e8s: 10_000,
+            sponsor_daily_cap_e8s: 5 * 100_000_000,
         }
     }
 }
@@ -93,6 +95,12 @@ impl Params {
                 BP as u64,
             ),
             ("icp_ledger_fee_e8s", self.icp_ledger_fee_e8s, 1, u64::MAX),
+            (
+                "sponsor_daily_cap_e8s",
+                self.sponsor_daily_cap_e8s,
+                0,
+                u64::MAX,
+            ),
         ];
         if let Some((name, _, lo, hi)) = ranges.iter().find(|(_, v, lo, hi)| v < lo || v > hi) {
             return Err(ApiError::invalid(format!("{name} must be in {lo}..={hi}")));
@@ -103,6 +111,7 @@ impl Params {
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Features {
+    pub card: bool,
     pub btc: bool,
     pub eth: bool,
     pub sponsored_spawn: bool,
@@ -111,6 +120,7 @@ pub struct Features {
 impl Default for Features {
     fn default() -> Self {
         Features {
+            card: false,
             btc: false,
             eth: false,
             sponsored_spawn: true,
@@ -226,7 +236,15 @@ mod tests {
         assert_eq!(p.treasury_reserve_floor_e8s, 5_000_000_000);
         p.validate().unwrap();
         let f = Features::default();
-        assert!(!f.btc && !f.eth && f.sponsored_spawn);
+        assert!(!f.card && !f.btc && !f.eth && f.sponsored_spawn);
+    }
+
+    #[test]
+    fn t5_16_features_card_btc_eth_default_off() {
+        let f = Features::default();
+        assert!(!f.card);
+        assert!(!f.btc);
+        assert!(!f.eth);
     }
 
     #[test]

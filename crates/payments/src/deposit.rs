@@ -55,6 +55,22 @@ pub fn deposit_account(
     )
 }
 
+pub fn treasury_subaccount() -> [u8; 32] {
+    Sha256::digest(b"sc-treasury-account").into()
+}
+
+pub fn treasury_account(self_id: Principal) -> (String, Account) {
+    let sub = treasury_subaccount();
+    let text = AccountIdentifier::new(&self_id, &Subaccount(sub)).to_string();
+    (
+        text,
+        Account {
+            owner: self_id,
+            subaccount: Some(sub),
+        },
+    )
+}
+
 pub fn sweep_amount(balance: u64, min_required_e8s: u64, fee_e8s: u64) -> Result<u64, ApiError> {
     if balance < min_required_e8s {
         return Err(ApiError::invalid(
@@ -119,6 +135,20 @@ mod tests {
             deposit_subaccount(Purpose::Auto, p(1)),
             spender_subaccount(Purpose::Auto, p(1))
         );
+    }
+
+    #[test]
+    fn t5_16_treasury_account_is_fixed_and_distinct_from_deposit_accounts() {
+        let payments = p(9);
+        let (text, account) = treasury_account(payments);
+        assert_eq!(text.len(), 64);
+        assert_eq!(account.owner, payments);
+        assert_eq!(account.subaccount, Some(treasury_subaccount()));
+        assert_ne!(
+            treasury_subaccount(),
+            deposit_subaccount(Purpose::Spawn, payments)
+        );
+        assert_eq!(treasury_account(payments), treasury_account(payments));
     }
 
     #[test]

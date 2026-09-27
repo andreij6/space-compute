@@ -13,6 +13,9 @@ pub const AUTO_TOPUP_HISTORY: u8 = 4;
 pub const XDR_RATE: u8 = 5;
 #[allow(dead_code)]
 pub const BTC_ADDR_CACHE: u8 = 7;
+pub const INVITES: u8 = 8;
+pub const SPONSORED_OWNERS: u8 = 9;
+pub const SPONSOR_DAILY: u8 = 10;
 pub const AUDIT_INDEX: u8 = 60;
 pub const AUDIT_DATA: u8 = 61;
 

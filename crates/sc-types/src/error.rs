@@ -15,6 +15,7 @@ pub enum ApiError {
     NotEligible(String),
     Conflict(String),
     Internal(String),
+    FeatureDisabled,
 }
 
 impl ApiError {
@@ -42,6 +43,7 @@ impl std::fmt::Display for ApiError {
             ApiError::NotEligible(m) => write!(f, "not eligible: {m}"),
             ApiError::Conflict(m) => write!(f, "conflict: {m}"),
             ApiError::Internal(m) => write!(f, "internal error: {m}"),
+            ApiError::FeatureDisabled => write!(f, "feature disabled"),
         }
     }
 }

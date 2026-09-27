@@ -69,6 +69,7 @@ type ApiError = variant {
   Unauthorized;
   RateLimited : record { retry_after_secs : nat32 };
   NotEligible : text;
+  FeatureDisabled;
   Conflict : text;
 };
 type AuditEntry = record {

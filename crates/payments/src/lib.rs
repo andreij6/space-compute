@@ -4,6 +4,7 @@ pub mod cmc;
 pub mod config;
 pub mod deposit;
 pub mod guard;
+pub mod invites;
 pub mod journal;
 pub mod ledger;
 pub mod mandate;
@@ -14,7 +15,7 @@ pub mod quote;
 pub mod rate;
 mod timers;
 
-use api::{JournalDemoArg, Overview, SetMandateArgs, SpawnArgs, TopUpArgs};
+use api::{JournalDemoArg, MintInvitesArgs, Overview, SetMandateArgs, SpawnArgs, TopUpArgs};
 use audit::AuditEntry;
 use candid::Principal;
 use config::{Features, Params, PauseFlags};

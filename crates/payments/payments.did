@@ -11,6 +11,7 @@ type ApiError = variant {
   Unauthorized;
   RateLimited : record { retry_after_secs : nat32 };
   NotEligible : text;
+  FeatureDisabled;
   Conflict : text;
 };
 type AuditEntry = record {
@@ -21,7 +22,12 @@ type AuditEntry = record {
   args_digest : blob;
   summary : text;
 };
-type Features = record { btc : bool; eth : bool; sponsored_spawn : bool };
+type Features = record {
+  btc : bool;
+  eth : bool;
+  sponsored_spawn : bool;
+  card : bool;
+};
 type FuelSource = variant {
   Btc : record { sats : nat64 };
   Eth : record { wei : nat };
@@ -37,6 +43,11 @@ type MandateView = record {
   payer : Account;
   remaining_30d_e8s : nat64;
   needs_attention : bool;
+};
+type MintInvitesArgs = record {
+  sponsor_cycles : nat;
+  count : nat32;
+  expires_at : nat64;
 };
 type NotifiedInfo = variant { Canister : principal; Cycles : nat };
 type Op = record {
@@ -90,6 +101,7 @@ type Params = record {
   aaa_initial_cycles : nat;
   spawn_quote_buffer_bp : nat16;
   treasury_daily_cap_e8s : nat64;
+  sponsor_daily_cap_e8s : nat64;
   treasury_reserve_floor_e8s : nat64;
   auto_topup_min_interval_secs : nat64;
   margin_bp : nat16;
@@ -127,9 +139,10 @@ type Result_1 = variant { Ok : vec AuditEntry; Err : ApiError };
 type Result_2 = variant { Ok : nat64; Err : ApiError };
 type Result_3 = variant { Ok : vec principal; Err : ApiError };
 type Result_4 = variant { Ok : vec Op; Err : ApiError };
-type Result_5 = variant { Ok : Overview; Err : ApiError };
-type Result_6 = variant { Ok : RateCache; Err : ApiError };
-type Result_7 = variant { Ok : Quote; Err : ApiError };
+type Result_5 = variant { Ok : vec text; Err : ApiError };
+type Result_6 = variant { Ok : Overview; Err : ApiError };
+type Result_7 = variant { Ok : RateCache; Err : ApiError };
+type Result_8 = variant { Ok : Quote; Err : ApiError };
 type SetMandateArgs = record {
   aaa : principal;
   topup_e8s : nat64;
@@ -145,9 +158,10 @@ service : () -> {
   admin_journal_demo : (JournalDemoArg) -> (Result_2);
   admin_list_admins : () -> (Result_3) query;
   admin_list_ops : (opt nat64, nat32) -> (Result_4) query;
-  admin_overview : () -> (Result_5) query;
+  admin_mint_invites : (MintInvitesArgs) -> (Result_5);
+  admin_overview : () -> (Result_6) query;
   admin_pause : (PauseFlags) -> (Result);
-  admin_refresh_rate : () -> (Result_6);
+  admin_refresh_rate : () -> (Result_7);
   admin_remove_admin : (principal) -> (Result);
   admin_set_features : (Features) -> (Result);
   admin_set_params : (Params) -> (Result);
@@ -157,9 +171,10 @@ service : () -> {
   get_mandate : (principal) -> (opt MandateView) query;
   get_op : (nat64) -> (opt Op) query;
   get_params : () -> (Params) query;
-  get_quote_spawn : () -> (Result_7) query;
-  get_quote_topup : (nat) -> (Result_7) query;
+  get_quote_spawn : () -> (Result_8) query;
+  get_quote_topup : (nat) -> (Result_8) query;
   get_rate : () -> (RateCache) query;
+  get_treasury_account : () -> (text, Account) query;
   request_auto_topup : () -> (Result_2);
   resume : (nat64) -> (Result);
   set_mandate : (SetMandateArgs) -> (Result);
