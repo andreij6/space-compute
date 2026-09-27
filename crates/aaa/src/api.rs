@@ -580,3 +580,8 @@ fn sync_credit_copy(credit: CreditCopy) -> Result<(), ApiError> {
     repository::upsert_credit(credit);
     Ok(())
 }
+
+#[ic_cdk::query]
+fn get_api_doc() -> String {
+    crate::doc::get_api_doc().to_string()
+}

@@ -188,6 +188,7 @@ type Task = record {
 type Vote = variant { Disagree; Agree };
 service : (AaaInit) -> {
   add_operator : (principal, text, opt nat64) -> (Result);
+  get_api_doc : () -> (text) query;
   get_record : (nat64) -> (opt Record) query;
   get_review_assignment : () -> (Result_1);
   get_task : () -> (Result_2);

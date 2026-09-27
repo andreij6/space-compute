@@ -49,3 +49,4 @@
 | 5th classification retires subject; seen-set never reissues | T2.7 | t2_7_fifth_classification_retires_and_seen_set_never_reissues |
 | One record per task under SYS_UNKNOWN | T3.2 | t3_2_one_record_per_task_under_sys_unknown |
 | Records survive upgrade | T3.3 | t3_3_records_and_credits_survive_canister_upgrade |
+| get_api_doc documents every public method; wasm ≤ 1.5 MiB gz (verify gate) | T3.5 | t3_5_api_doc_lists_every_public_method_in_the_candid |

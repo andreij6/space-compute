@@ -1,5 +1,6 @@
 pub mod api;
 pub mod config;
+pub mod doc;
 pub mod forwarding;
 mod memory;
 pub mod operators;

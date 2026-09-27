@@ -24,6 +24,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T2.1 | 48c589a | platform skeleton (Opus review applied) |
 | T3.1 | fdf33c1 | AAA skeleton — written by a Sonnet sub-agent of the lead, spot-checked by the lead |
 | T5.1 | 08d322b, aef2b5b | payments skeleton — Sonnet sub-agent; Stripe removed by the lead |
+| T3.5 | (see commit) | started by the other agent (stopped mid-task); lead fixed the doc (wrong `icp identity get-principal`, 7 undocumented methods) and added a Candid-drift test |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
@@ -39,7 +40,9 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T2.6 | other agent (no Agent trailer) | 907a945 | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
 | T2.8 | other agent (no Agent trailer) | 1f15e0c | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
 | T2.7 | other agent (no Agent trailer) | ad9b922 | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
-| docs/board, docs/guide | other agent | uncommitted | pending |
+| T3.2 | other agent | 2ad559e | **pending lead review** — note: ships owner-only test hook `simulate_sys_unknown_once` in the prod interface |
+| T3.3 | other agent | a002eff | **pending lead review** — note: `sync_credit_copy` lets the owner write arbitrary credits into its copy (spec: platform-pulled) |
+| docs/board, docs/guide | other agent | d767278 | pending |
 
 ## How to tell from git
 `git log --format='%h %s | %(trailers:key=Co-Authored-By,valueonly)%(trailers:key=Agent,valueonly)'` — lead commits carry `Co-Authored-By: Claude Opus 5.5`; anything else goes in "Other agents" and gets reviewed.
