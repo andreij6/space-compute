@@ -69,6 +69,12 @@
 | Idempotency keys are independent for tasks and reviews sharing a numeric id | T3.4 | t3_4_idempotency_is_independent_for_tasks_and_reviews |
 | Credit copies are matched by public_id, never by subject_id-as-task-id | T3.4 | t3_4_upsert_credit_updates_the_correct_record_by_public_id_not_subject_id |
 | sync_credit_copy and simulate_sys_unknown_once removed from the production interface | T3.4 | t3_4_burn_ema_heartbeat_credits_and_auto_topup_timers |
+| 03 §8.1: non-operator ingress to get_task rejected; operator succeeds and the fee is deducted | T3.6 | t3_2_one_record_per_task_under_retry |
+| 03 §8.2: owner adds/removes operators; a removed operator is rejected immediately | T3.6 | t3_2_one_record_per_task_under_retry |
+| 03 §8.3: a submit retried after a real SYS_UNKNOWN reject (platform stopped, not a debug backdoor) produces exactly one platform classification and one local record | T3.6 | t3_6_submit_retried_after_sys_unknown_produces_one_classification_and_one_record |
+| 03 §8.4: records survive an upgrade (credits half depends on platform.list_aaa_credits being wired to real consensus, tracked separately) | T3.6 | t3_3_records_and_credits_survive_canister_upgrade |
+| 03 §8.5: below threshold, the 6h timer calls payments.request_auto_topup exactly once per elapsed interval | T3.6 | t3_6_below_threshold_the_6h_timer_calls_request_auto_topup_exactly_once_per_interval |
+| 03 §8.6: aaa wasm is <= 1.5 MiB after a real ic-wasm shrink + gzip | T3.6 | t3_6_aaa_wasm_shrunk_and_gzipped_is_at_most_1_5_mib |
 | One command seeds local net (protocol v1, 500 subjects across 6 fields, AAA wasm); re-seeding is idempotent | T3.8 | t3_8_seed_args_load_into_platform_and_reseeding_is_idempotent |
 | Existing wasm version is immutable; identical re-upload is a no-op | T3.8 | t3_8_existing_wasm_version_is_immutable_and_identical_reupload_is_a_no_op |
 | Keeper tops up low canisters via ledger→CMC, skips healthy ones; reserve floor stops top-ups and flags health() | T5.17 | t5_17_keeper_tops_up_low_canisters_and_health_flags_the_reserve |
