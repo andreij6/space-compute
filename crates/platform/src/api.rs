@@ -7,6 +7,7 @@ use crate::audit::{self, AuditEntry};
 use crate::catalog::{self, AdminListSubjectsFilter, Lease, Subject, SubjectInput};
 use crate::config::{self, Params, PauseFlags};
 use crate::events;
+use crate::guard::CallerGuard;
 use crate::progression;
 use crate::registry::{
     self, AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput,
@@ -93,6 +94,10 @@ fn require_admin() -> Result<Principal, ApiError> {
         return Err(ApiError::Unauthorized);
     }
     Ok(caller)
+}
+
+fn caller_is_admin() -> bool {
+    config::is_admin(&ic_cdk::api::msg_caller())
 }
 
 fn audit<A: CandidType>(admin: Principal, method: &str, args: &A, summary: String) {
@@ -298,83 +303,89 @@ fn get_params() -> Params {
     config::get().params
 }
 
+async fn canister_info(canister_id: Principal) -> Result<CanisterInfoResult, ApiError> {
+    Call::bounded_wait(Principal::management_canister(), "canister_info")
+        .with_arg(CanisterInfoArgs {
+            canister_id,
+            num_requested_changes: Some(1),
+        })
+        .await
+        .map_err(|e| ApiError::Internal(format!("canister_info failed: {e:?}")))?
+        .candid()
+        .map_err(|e| ApiError::Internal(format!("canister_info decode: {e:?}")))
+}
+
 async fn execute_install_and_verify(
     canister_id: Principal,
     owner: Principal,
     name: String,
     avatar_seed: u64,
     wasm_blob: Vec<u8>,
-    wasm_version: u32,
-    caller: Principal,
 ) -> Result<(), ApiError> {
-    let init_arg = AaaInitArg {
-        owner,
-        platform_id: ic_cdk::api::canister_self(),
-        payments_id: caller,
-        name,
-        avatar_seed,
+    let payments_id = config::payments_id()
+        .ok_or_else(|| ApiError::Internal("payments_id is not configured".into()))?;
+    let before = canister_info(canister_id).await?;
+    let already_installed = before
+        .module_hash
+        .as_deref()
+        .is_some_and(registry::is_approved_module_hash);
+    let info = if already_installed {
+        before
+    } else {
+        let init_arg = AaaInitArg {
+            owner,
+            platform_id: ic_cdk::api::canister_self(),
+            payments_id,
+            name,
+            avatar_seed,
+        };
+        let arg = candid::encode_one(init_arg).map_err(|e| ApiError::Internal(e.to_string()))?;
+        Call::bounded_wait(Principal::management_canister(), "install_code")
+            .with_arg(InstallCodeArgs {
+                mode: CanisterInstallMode::Install,
+                canister_id,
+                wasm_module: wasm_blob,
+                arg,
+                sender_canister_version: None,
+            })
+            .await
+            .map_err(|e| ApiError::Internal(format!("install_code failed: {e:?}")))?;
+        canister_info(canister_id).await?
     };
-    let install_arg =
-        candid::encode_one(init_arg).map_err(|e| ApiError::Internal(e.to_string()))?;
-    let install_call = Call::bounded_wait(Principal::management_canister(), "install_code")
-        .with_arg(InstallCodeArgs {
-            mode: CanisterInstallMode::Install,
-            canister_id,
-            wasm_module: wasm_blob,
-            arg: install_arg,
-            sender_canister_version: None,
-        })
-        .await;
-    install_call.map_err(|e| ApiError::Internal(format!("install_code failed: {e:?}")))?;
-
-    let info_call = Call::bounded_wait(Principal::management_canister(), "canister_info")
-        .with_arg(CanisterInfoArgs {
-            canister_id,
-            num_requested_changes: Some(1),
-        })
-        .await
-        .map_err(|e| ApiError::Internal(format!("canister_info failed: {e:?}")))?;
-    let info: CanisterInfoResult = info_call
-        .candid()
-        .map_err(|e| ApiError::Internal(format!("canister_info decode: {e:?}")))?;
     let module_hash = info
         .module_hash
         .ok_or_else(|| ApiError::Internal("canister has no module".into()))?;
-
     registry::complete_register_aaa(
         canister_id,
-        wasm_version,
         module_hash,
+        info.total_num_changes,
         &info.controllers,
         ic_cdk::api::canister_self(),
         ic_cdk::api::time(),
-    )?;
-    Ok(())
+    )
 }
 
 #[ic_cdk::update]
 async fn register_aaa(args: RegisterArgs) -> Result<(), ApiError> {
     let caller = ic_cdk::api::msg_caller();
-    if !config::is_payments(&caller) && !config::is_admin(&caller) {
+    if !config::is_payments(&caller) {
         return Err(ApiError::Unauthorized);
     }
     if config::get().paused.spawns {
         return Err(ApiError::invalid("spawns are paused"));
     }
-    let (resolved_name, version, wasm_blob, is_active) =
+    let _guard = CallerGuard::acquire(args.canister_id)?;
+    let (resolved_name, _, wasm_blob, is_active) =
         registry::pre_register_aaa(&args, ic_cdk::api::time())?;
     if is_active {
         return Ok(());
     }
-
     execute_install_and_verify(
         args.canister_id,
         args.owner,
         resolved_name,
         args.avatar_seed,
         wasm_blob,
-        version,
-        caller,
     )
     .await
 }
@@ -382,22 +393,20 @@ async fn register_aaa(args: RegisterArgs) -> Result<(), ApiError> {
 #[ic_cdk::update]
 async fn admin_retry_install(canister_id: Principal) -> Result<(), ApiError> {
     let caller = require_admin()?;
+    let _guard = CallerGuard::acquire(canister_id)?;
     let attempts = registry::increment_install_attempts(&canister_id)?;
     if attempts > 6 {
         return Err(ApiError::invalid("install attempts exceeded limit of 6"));
     }
     let record = registry::get_aaa(&canister_id).ok_or(ApiError::NotFound)?;
-    let (version, _, wasm_blob) = registry::latest_approved_wasm()
+    let (_, _, wasm_blob) = registry::latest_approved_wasm()
         .ok_or_else(|| ApiError::Internal("no approved wasm available".into()))?;
-
     let res = execute_install_and_verify(
         canister_id,
         record.owner,
         record.name,
         record.avatar_seed,
         wasm_blob,
-        version,
-        caller,
     )
     .await;
     audit(
@@ -409,14 +418,25 @@ async fn admin_retry_install(canister_id: Principal) -> Result<(), ApiError> {
     res
 }
 
+async fn start_canister(canister_id: Principal) {
+    let _ = Call::bounded_wait(Principal::management_canister(), "start_canister")
+        .with_arg(CanisterIdRecord { canister_id })
+        .await;
+}
+
 #[ic_cdk::update]
 async fn upgrade_aaa(aaa: Principal) -> Result<(), ApiError> {
     let caller = ic_cdk::api::msg_caller();
-    let (record, version, wasm_blob) = registry::pre_upgrade_aaa(aaa, caller)?;
+    let _guard = CallerGuard::acquire(aaa)?;
+    let (_, _, wasm_blob) = registry::pre_upgrade_aaa(aaa, caller)?;
 
-    let _ = Call::bounded_wait(Principal::management_canister(), "stop_canister")
+    let stopped = Call::bounded_wait(Principal::management_canister(), "stop_canister")
         .with_arg(CanisterIdRecord { canister_id: aaa })
         .await;
+    if let Err(e) = stopped {
+        start_canister(aaa).await;
+        return Err(ApiError::Internal(format!("stop_canister failed: {e:?}")));
+    }
 
     let install_call = Call::bounded_wait(Principal::management_canister(), "install_code")
         .with_arg(InstallCodeArgs {
@@ -427,50 +447,23 @@ async fn upgrade_aaa(aaa: Principal) -> Result<(), ApiError> {
             sender_canister_version: None,
         })
         .await;
-
-    let _ = Call::bounded_wait(Principal::management_canister(), "start_canister")
-        .with_arg(CanisterIdRecord { canister_id: aaa })
-        .await;
-
+    start_canister(aaa).await;
     install_call.map_err(|e| ApiError::Internal(format!("install_code failed: {e:?}")))?;
 
-    let info_call = Call::bounded_wait(Principal::management_canister(), "canister_info")
-        .with_arg(CanisterInfoArgs {
-            canister_id: aaa,
-            num_requested_changes: Some(1),
-        })
-        .await
-        .map_err(|e| ApiError::Internal(format!("canister_info failed: {e:?}")))?;
-    let info: CanisterInfoResult = info_call
-        .candid()
-        .map_err(|e| ApiError::Internal(format!("canister_info decode: {e:?}")))?;
+    let info = canister_info(aaa).await?;
     let module_hash = info
         .module_hash
         .ok_or_else(|| ApiError::Internal("canister has no module".into()))?;
-
     registry::complete_upgrade_aaa(
         aaa,
-        version,
         module_hash,
         info.total_num_changes,
         ic_cdk::api::time(),
-    )?;
-    let _ = record;
-    Ok(())
+    )
 }
 
-#[ic_cdk::update]
 async fn verify(aaa: Principal) -> Result<(), ApiError> {
-    let info_call = Call::bounded_wait(Principal::management_canister(), "canister_info")
-        .with_arg(CanisterInfoArgs {
-            canister_id: aaa,
-            num_requested_changes: Some(1),
-        })
-        .await
-        .map_err(|e| ApiError::Internal(format!("canister_info failed: {e:?}")))?;
-    let info: CanisterInfoResult = info_call
-        .candid()
-        .map_err(|e| ApiError::Internal(format!("canister_info decode: {e:?}")))?;
+    let info = canister_info(aaa).await?;
     registry::verify_provenance(
         aaa,
         info.module_hash,
@@ -497,7 +490,7 @@ fn sync_operators(args: OperatorSetInput) -> Result<(), ApiError> {
 #[ic_cdk::update]
 fn update_aaa_profile(args: UpdateAaaProfileArgs) -> Result<(), ApiError> {
     let caller = ic_cdk::api::msg_caller();
-    registry::record_update_profile(caller, args)
+    registry::record_update_profile(caller, args, ic_cdk::api::time())
 }
 
 #[ic_cdk::query]
@@ -605,7 +598,9 @@ fn get_protocol(version: u16) -> Option<sc_types::Protocol> {
 
 #[ic_cdk::query]
 fn get_subject(subject_id: u32) -> Option<Subject> {
-    catalog::get_subject(subject_id)
+    caller_is_admin()
+        .then(|| catalog::get_subject(subject_id))
+        .flatten()
 }
 
 #[ic_cdk::query]
@@ -614,7 +609,7 @@ fn get_lease(task_id: u64) -> Option<Lease> {
 }
 
 #[ic_cdk::update]
-async fn get_task() -> Result<sc_types::Task, ApiError> {
+async fn get_task(submitted_by: Option<Principal>) -> Result<sc_types::Task, ApiError> {
     let cfg = config::get();
     if cfg.paused.tasks {
         return Err(ApiError::Unauthorized);
@@ -640,10 +635,14 @@ async fn get_task() -> Result<sc_types::Task, ApiError> {
         ic_cdk::api::msg_cycles_accept(fee);
     }
     let now = ic_cdk::api::time();
+    if let Some(submitter) = submitted_by {
+        registry::check_submitter(&caller, &submitter, now)?;
+    }
     if record.verified_at == 0 || now.saturating_sub(record.verified_at) >= 3_600 * 1_000_000_000 {
         verify(caller).await?;
     }
-    let classifications_count = 0;
+    let classifications_count =
+        u32::try_from(progression::get_progress(&caller).classifications).unwrap_or(u32::MAX);
     let roll = rng::next_u32();
     catalog::issue_task(
         caller,
@@ -701,7 +700,9 @@ async fn submit_classification(
 
 #[ic_cdk::query]
 fn get_classification(id: u64) -> Option<scoring::Classification> {
-    scoring::get_classification(id)
+    caller_is_admin()
+        .then(|| scoring::get_classification(id))
+        .flatten()
 }
 
 #[ic_cdk::query]
@@ -711,6 +712,9 @@ fn get_subject_consensus(subject_id: u32) -> Option<scoring::SubjectConsensus> {
 
 #[ic_cdk::query]
 fn list_subject_classifications(subject_id: u32) -> Vec<scoring::Classification> {
+    if !caller_is_admin() {
+        return vec![];
+    }
     scoring::get_subject_classifications(subject_id)
 }
 
@@ -739,6 +743,9 @@ fn get_aaa_public(aaa: Principal) -> Option<progression::AaaPublic> {
 }
 
 #[ic_cdk::query]
-fn get_leaderboard(cursor: Option<u64>, limit: u32) -> events::Page<progression::LeaderRow> {
+fn get_leaderboard(
+    cursor: Option<progression::LeaderCursor>,
+    limit: u32,
+) -> progression::LeaderPage {
     progression::get_leaderboard(cursor, limit)
 }

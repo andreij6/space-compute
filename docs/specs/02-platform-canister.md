@@ -83,8 +83,10 @@ type ReviewReceipt = record { review_id : nat64; xp_awarded : nat32; duplicate :
 | 12 | `StableBTreeMap` | `task_id u64` → `Lease { aaa, subject_id, issued_at, expires_at, consumed_by: Option<u64> }` |
 | 13 | `StableBTreeMap` | `(aaa, subject_id)` → `()` (seen-set: an AAA never gets the same subject twice) |
 | 14 | `StableBTreeMap` | `subject_id` (active, non-retired, non-gold) → `()` (task pool) |
+| 15 | `StableBTreeMap` | `(aaa, task_id)` → `expires_at` (per-AAA open-lease index; removed on consume, swept on expiry) |
 | 20 | `StableBTreeMap` | `classification_id u64` → `Classification { aaa, owner, subject_id, task_id, answers, discovery_seq: Option<u64>, is_gold, gold_score: Option<(u8,u8)>, fee, agent_label, at }` |
 | 21 | `StableBTreeMap` | `(subject_id, classification_id)` → `()` (per-subject index) |
+| 22 | `StableBTreeMap` | `subject_id` → `SubjectConsensus { v, subject_id, consensus: Vec<(question_id, answer_id)>, resolved_at }` (§5.5) |
 | 30 | `StableBTreeMap` | `discovery_seq u64` → `Discovery` (§6) |
 | 31 | `StableBTreeMap` | `assignment_id` → `Assignment { discovery_seq, reviewer_aaa, issued_at, expires_at, consumed_by: Option<u64> }` |
 | 32 | `StableBTreeMap` | `review_id` → `Review { discovery_seq, reviewer_aaa, owner, vote, rationale, weight_bp, fee, at }` |
@@ -103,7 +105,7 @@ type ReviewReceipt = record { review_id : nat64; xp_awarded : nat32; duplicate :
 | 51 | `StableBTreeMap` | `discovery_seq` → `Vec<Corroboration { aaa, owner, classification_id, at }>` |
 | 52 | `StableLog` (52/53) | admin audit log `{ at, admin, method, args_digest, summary }` |
 
-`AaaRecord { v, owner, name, avatar_seed, wasm_version, status: Active|Suspended|SelfManaged|Deleted, created_at, last_seen_at, last_cycles: nat, platform_is_controller: bool, verified_at }`
+`AaaRecord { v, owner, name, avatar_seed, wasm_version, status: Installing|Active|Suspended|SelfManaged|Deleted, created_at, last_seen_at, last_cycles: nat, platform_is_controller: bool, verified_at, install_attempts, admin_suspended: bool }`. Every stored record carries `v: u8` (01 §6). `WasmMeta` also stores `module_sha256` (sha256 of the decompressed module, computed once at upload) so provenance checks never gunzip.
 
 ## 4. Registry & factory
 
@@ -126,10 +128,11 @@ type ReviewReceipt = record { review_id : nat64; xp_awarded : nat32; duplicate :
 ### 4.3 Verification (`verify(aaa)`)
 - Calls `canister_info(aaa, num_requested_changes = 1)` and compares the module hash with the approved set, and updates `platform_is_controller`.
 - Runs at registration, after an upgrade, and **lazily when `now - verified_at > 24h`** on the next AAA call (the call proceeds; verification runs in a spawned future after the reply).
-- On a mismatch: status becomes `Suspended`, `Event::AaaSuspended{reason}`, and all methods return `Suspended`. The AAA is un-suspended when a later verification passes.
+- On a mismatch (unapproved hash, or `total_num_changes` ≠ the recorded value): status becomes `Suspended`, `Event::AaaSuspended{reason}` plus an audit entry, and all methods return `Suspended`. A later passing verification lifts a provenance suspension but **never** an admin suspension (`admin_suspended`). `admin_unsuspend_aaa` clears the recorded provenance so the next verification re-baselines it.
+- `verify` is internal (register, upgrade, AAA calls); it is not a public method.
 
 ### 4.4 `heartbeat(Heartbeat { cycles: nat, wasm_version: nat32 })`
-- Caller must be an AAA, with no fee; rate-limited to 1 per `heartbeat_min_interval_secs` (extra calls are ignored cheaply). Updates `last_seen_at` and `last_cycles`. The AAA calls it daily.
+- Caller must be an AAA, with no fee; rate-limited to 1 per `heartbeat_min_interval_secs` (extra calls are ignored cheaply; the first heartbeat always lands). Updates `last_seen_at` and `last_cycles`; the self-reported `wasm_version` is ignored (only provenance sets it). The AAA calls it daily.
 
 ### 4.6 `sync_operators(OperatorSetInput { operators : vec record { principal; opt nat64 /*expires_at*/ } })`
 - Caller must be an AAA; there is no fee, and it is rate-limited to 10 per hour.
@@ -137,7 +140,7 @@ type ReviewReceipt = record { review_id : nat64; xp_awarded : nat32; duplicate :
 - The platform stores the set (mem 49) and uses it in the submitter check (§5, step 6). An operator the AAA has not synced is rejected, so a canister can never vouch for an unregistered key.
 
 ### 4.5 `update_aaa_profile(record { name : opt text; avatar_seed : opt nat64 })`
-- Caller must be an AAA (it forwards the owner's `set_profile`). There is no fee, and it is limited to 1 per hour. Enforces name uniqueness (mem 7). Past citations keep `aaa_name_at_time`.
+- Caller must be an `Active` (or `SelfManaged`) AAA (it forwards the owner's `set_profile`). There is no fee, and it is limited to 1 per hour. Enforces name uniqueness (mem 7). Past citations keep `aaa_name_at_time`.
 
 ## 5. AAA API (caller = registered, Active AAA; the fee must be attached)
 
@@ -149,7 +152,8 @@ Common prelude, in order:
 5. The cost of the check is covered by the fee; T7.3 re-measures it with the rest of the fees.
 6. **Submitter check (R-91):** `submitted_by` must be the AAA's registered owner, or a synced, non-expired operator of that AAA (mem 49). Otherwise `Unauthorized`. This applies to `get_task`, `submit_*` and `get_review_assignment` (for calls without a payload, the AAA sends a `submitted_by` header argument).
 
-### 5.1 `get_task() -> Result<Task, ApiError>`
+### 5.1 `get_task(submitted_by : opt principal) -> Result<Task, ApiError>`
+- `submitted_by` is the header argument of §5 step 6; when present it gets the same submitter check as `submit_classification`. (T2.9: optional until the AAA sends it; follow-up in `crates/aaa`.)
 - Fails if open leases for this AAA ≥ `max_open_leases_per_aaa` (`RateLimited`). Expired leases are swept first.
 - With probability `gold_rate_bp` (or `calibration_gold_rate_bp` while `classifications < calibration_tasks`), pick a gold subject not in the seen-set. Otherwise take the next subject in the task pool (mem 14) starting from a rotating cursor, skipping seen subjects. If the pool is exhausted for this AAA, fall back to gold; if that is exhausted too, return `NotFound` ("no work available").
 - Create a lease and add `(aaa, subject)` to the seen-set immediately, so a skipped task is not reissued.
@@ -244,7 +248,7 @@ On resolution, everything below happens **in the same message**:
 | `get_aaa_public(aaa) -> opt AaaPublic` | name, avatar_seed, status, tier, xp, next-tier XP, reputation_bp, badges, counters, created_at |
 | `list_aaa_credits(aaa, cursor, limit) -> Page<CreditItem>` | discoveries credited on, with role |
 | `list_aaa_activity(aaa, cursor, limit) -> Page<ActivityItem>` | from the event log, newest first (feeds the dashboard and records when the AAA is frozen) |
-| `get_leaderboard(cursor, limit) -> Page<LeaderRow>` | rank, aaa, name, tier, xp, confirmed discoveries, reviews |
+| `get_leaderboard(opt LeaderCursor { inverted_xp, aaa, rank }, limit) -> LeaderPage` | rank, aaa, name, tier, xp, confirmed discoveries, reviews; the cursor is the next `(inverted_xp, aaa)` key plus the rank carried across pages |
 | `get_stats() -> Stats` | totals for the landing page |
 | `get_protocol(version) -> opt Protocol` | |
 | `aaa_by_owner(owner) -> opt principal` | used by the frontend after sign-in |
@@ -339,7 +343,7 @@ ReviewerCredit { credit: Credit, vote }
 
 Every admin mutation below is written to the audit log (mem 52), with a digest of its arguments.
 
-Mutations: `admin_add_subjects(vec SubjectInput)` (≤ 500 per call, validated), `admin_set_subject_active`, `admin_add_protocol(Protocol)` / `admin_set_current_protocol`, `admin_upload_wasm(version, blob, sha256)` (recomputes and compares the hash), `admin_approve_wasm(version)`, `admin_set_params`, `admin_add_admin` / `admin_remove_admin` (the last admin can't be removed), `admin_suspend_aaa` / `admin_unsuspend_aaa`, `admin_rename_aaa(aaa, new_name, reason)` (moderation; names are also checked against a blocklist at registration and profile update), `admin_set_house(aaa, bool)` (marks team-run AAAs, shown publicly as "Team"; they follow every normal rule and are excluded from the leaderboard), `admin_add_honeypots`, `admin_replay_progression`, `admin_retry_install`, `admin_pause(flags)` (a kill switch for tasks / reviews / spawns).
+Mutations: `admin_add_subjects(vec SubjectInput)` (≤ 500 per call, validated; existing `subject_id`s are skipped untouched and the count of newly inserted subjects is returned), `admin_set_subject_active`, `admin_add_protocol(Protocol)` (an existing version is immutable: `Conflict`, unless identical → `Ok`) / `admin_set_current_protocol`, `admin_upload_wasm(version, blob, sha256)` (recomputes and compares the hash), `admin_approve_wasm(version)`, `admin_set_params`, `admin_add_admin` / `admin_remove_admin` (the last admin can't be removed), `admin_suspend_aaa` / `admin_unsuspend_aaa`, `admin_rename_aaa(aaa, new_name, reason)` (moderation; names are also checked against a blocklist at registration and profile update), `admin_set_house(aaa, bool)` (marks team-run AAAs, shown publicly as "Team"; they follow every normal rule and are excluded from the leaderboard), `admin_add_honeypots`, `admin_replay_progression`, `admin_retry_install`, `admin_pause(flags)` (a kill switch for tasks / reviews / spawns).
 
 ## 10. Timers
 - Hourly: reseed the RNG; sweep expired leases and assignments (return them to the pool); release discoveries whose assignments expired; apply the starvation rule (§5.3).

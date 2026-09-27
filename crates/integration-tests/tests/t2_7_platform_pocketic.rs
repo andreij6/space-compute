@@ -296,7 +296,7 @@ fn t2_7_registered_aaa_task_receipt_and_idempotent_duplicate() {
     let dup_receipt = dup_res.expect("duplicate receipt returned");
     assert_eq!(dup_receipt.classification_id, 1);
     assert!(dup_receipt.duplicate);
-    assert_eq!(dup_receipt.xp_awarded, 0);
+    assert_eq!(dup_receipt.xp_awarded, receipt.xp_awarded);
 
     let subj_after: Option<Subject> = env.query(platform, alice, "get_subject", 301u32);
     let tally_after = subj_after.unwrap().tally_count;

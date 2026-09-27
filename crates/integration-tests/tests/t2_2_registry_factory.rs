@@ -191,9 +191,11 @@ fn t2_2_spawned_aaa_verified_and_upgrade_works() {
     );
     step("heartbeat, sync_operators and profile rename succeed; rename frees the old name");
 
-    let verify_res: Result<(), ApiError> = env.update(platform, alice, "verify", aaa_bob);
-    assert_eq!(verify_res, Ok(()));
-    step("verify endpoint passes for active AAA with approved hash and co-controller");
+    let verify_res =
+        env.pic
+            .update_call(platform, alice, "verify", encode_args((aaa_bob,)).unwrap());
+    assert!(verify_res.is_err());
+    step("verify is internal (register/upgrade/AAA calls), not a public endpoint");
 
     let wasm_v2 = canister_wasm("spike-probe");
     let hash_v2 = Sha256::digest(&wasm_v2).to_vec();
@@ -213,8 +215,5 @@ fn t2_2_spawned_aaa_verified_and_upgrade_works() {
         .unwrap();
     assert_eq!(upgraded_record.wasm_version, 2);
     assert_eq!(upgraded_record.status, AaaStatus::Active);
-
-    let verify_v2: Result<(), ApiError> = env.update(platform, alice, "verify", aaa_bob);
-    assert_eq!(verify_v2, Ok(()));
-    step("wasm v2 approved, bob upgrades AAA successfully, provenance & verify confirm v2");
+    step("wasm v2 approved, bob upgrades AAA successfully, provenance confirms v2");
 }

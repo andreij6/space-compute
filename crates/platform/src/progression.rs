@@ -4,11 +4,12 @@ use candid::{CandidType, Principal};
 use ic_stable_structures::StableBTreeMap;
 use serde::{Deserialize, Serialize};
 
-use crate::events::{Event, EventKind, Page};
+use crate::events::{Event, EventKind};
 use crate::memory::{self, Memory};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Progress {
+    pub v: u8,
     pub xp: u64,
     pub gold_tasks: u32,
     pub gold_hits: u32,
@@ -30,6 +31,7 @@ pub struct Progress {
 impl Default for Progress {
     fn default() -> Self {
         Self {
+            v: 1,
             xp: 0,
             gold_tasks: 0,
             gold_hits: 0,
@@ -93,6 +95,19 @@ pub struct LeaderRow {
     pub xp: u64,
     pub confirmed_discoveries: u64,
     pub reviews: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LeaderCursor {
+    pub inverted_xp: u64,
+    pub aaa: Principal,
+    pub rank: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct LeaderPage {
+    pub items: Vec<LeaderRow>,
+    pub next_cursor: Option<LeaderCursor>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -293,12 +308,23 @@ pub fn get_aaa_public(aaa: &Principal) -> Option<AaaPublic> {
     })
 }
 
-pub fn get_leaderboard(cursor: Option<u64>, limit: u32) -> Page<LeaderRow> {
+pub fn get_leaderboard(cursor: Option<LeaderCursor>, limit: u32) -> LeaderPage {
     let limit = sc_types::limits::page_limit(limit) as usize;
-    let start_inv_xp = cursor.unwrap_or(0);
-    let start_key = LeaderboardKey {
-        inverted_xp: start_inv_xp,
-        aaa: Principal::anonymous(),
+    let (start_key, first_rank) = match cursor {
+        Some(c) => (
+            LeaderboardKey {
+                inverted_xp: c.inverted_xp,
+                aaa: c.aaa,
+            },
+            c.rank,
+        ),
+        None => (
+            LeaderboardKey {
+                inverted_xp: 0,
+                aaa: Principal::from_slice(&[]),
+            },
+            1,
+        ),
     };
 
     let entries: Vec<LeaderboardKey> = LEADERBOARD_MAP.with_borrow(|m| {
@@ -308,16 +334,9 @@ pub fn get_leaderboard(cursor: Option<u64>, limit: u32) -> Page<LeaderRow> {
             .collect()
     });
 
-    let (batch, next_cursor) = if entries.len() > limit {
-        let next_key = entries[limit];
-        (&entries[..limit], Some(next_key.inverted_xp))
-    } else {
-        (&entries[..], None)
-    };
-
     let mut rows = Vec::new();
-    let mut rank = 1;
-    for k in batch {
+    let mut rank = first_rank;
+    for k in entries.iter().take(limit) {
         if let Some(rec) = crate::registry::get_aaa(&k.aaa) {
             let p = get_progress(&k.aaa);
             rows.push(LeaderRow {
@@ -333,9 +352,13 @@ pub fn get_leaderboard(cursor: Option<u64>, limit: u32) -> Page<LeaderRow> {
         }
     }
 
-    Page {
+    LeaderPage {
         items: rows,
-        next_cursor,
+        next_cursor: entries.get(limit).map(|k| LeaderCursor {
+            inverted_xp: k.inverted_xp,
+            aaa: k.aaa,
+            rank,
+        }),
     }
 }
 
@@ -628,5 +651,59 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(calculate_tier(&p_t4, 8500), 4);
+    }
+
+    #[test]
+    fn t2_9_leaderboard_cursor_pages_through_ties_with_continuous_rank() {
+        use sha2::Digest;
+        let aaas: Vec<Principal> = (1..=5u8)
+            .map(|i| Principal::from_slice(&[120, i]))
+            .collect();
+        let blob = vec![7, 7];
+        let _ = crate::registry::upload_wasm(1, blob.clone(), sha2::Sha256::digest(&blob).to_vec());
+        let _ = crate::registry::approve_wasm(1, 1);
+        for (i, aaa) in aaas.iter().enumerate() {
+            crate::registry::pre_register_aaa(
+                &crate::registry::RegisterArgs {
+                    canister_id: *aaa,
+                    owner: Principal::from_slice(&[121, i as u8]),
+                    name: format!("Tied-{i}"),
+                    avatar_seed: 0,
+                },
+                1,
+            )
+            .unwrap();
+            let xp = if i == 0 { 900 } else { 500 };
+            LEADERBOARD_MAP.with_borrow_mut(|m| {
+                m.insert(
+                    LeaderboardKey {
+                        inverted_xp: u64::MAX - xp,
+                        aaa: *aaa,
+                    },
+                    (),
+                )
+            });
+        }
+        let mut seen = Vec::new();
+        let mut ranks = Vec::new();
+        let mut cursor = None;
+        loop {
+            let page = get_leaderboard(cursor, 2);
+            for row in &page.items {
+                seen.push(row.aaa);
+                ranks.push(row.rank);
+            }
+            match page.next_cursor {
+                Some(c) => cursor = Some(c),
+                None => break,
+            }
+        }
+        assert_eq!(ranks, vec![1, 2, 3, 4, 5]);
+        assert_eq!(seen[0], aaas[0]);
+        let mut unique = seen.clone();
+        unique.sort();
+        unique.dedup();
+        assert_eq!(unique.len(), 5);
+        assert_eq!(get_progress(&aaas[0]).v, 1);
     }
 }

@@ -382,12 +382,27 @@ fn t2_8_foreign_expired_unsynced_submitter_rejected() {
         .pic
         .reinstall_canister(aaa_2, probe_wasm, vec![], Some(owner_2));
 
-    let verify_tampered: Result<(), ApiError> = env.update(platform, alice, "verify", aaa_2);
-    assert_eq!(verify_tampered, Err(ApiError::Suspended));
+    let tampered_submit: Result<ClassificationReceipt, ApiError> = env.update(
+        platform,
+        aaa_2,
+        "submit_classification",
+        ClassificationSubmission {
+            task_id: task2.task_id,
+            answers: vec![Answer {
+                question_id: "q1".into(),
+                answer_id: "smooth".into(),
+            }],
+            observed_image_sha256: vec![1; 32],
+            discovery: None,
+            agent_label: None,
+            submitted_by: owner_2,
+        },
+    );
+    assert_eq!(tampered_submit, Err(ApiError::Suspended));
 
     let tampered_record: Option<AaaRecord> = env.query(platform, alice, "get_aaa", aaa_2);
     assert_eq!(tampered_record.unwrap().status, AaaStatus::Suspended);
-    step("unapproved wasm module hash rejected by verify and AAA status suspended");
+    step("submit_classification re-verifies provenance: unapproved module hash suspends the AAA");
 
     let tampered_get_task = env
         .pic

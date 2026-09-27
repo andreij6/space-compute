@@ -14,7 +14,9 @@ pub const MAX_WASM_BYTES: usize = 1_887_436;
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct WasmMeta {
+    pub v: u8,
     pub sha256: Vec<u8>,
+    pub module_sha256: Vec<u8>,
     pub size: u64,
     pub approved: bool,
     pub released_at: u64,
@@ -45,12 +47,14 @@ pub struct AaaRecord {
     pub platform_is_controller: bool,
     pub verified_at: u64,
     pub install_attempts: u8,
+    pub admin_suspended: bool,
 }
 
 crate::candid_storable!(AaaRecord);
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct OperatorSet {
+    pub v: u8,
     pub owner: Principal,
     pub operators: Vec<(Principal, Option<u64>)>,
     pub synced_at: u64,
@@ -60,6 +64,7 @@ crate::candid_storable!(OperatorSet);
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Provenance {
+    pub v: u8,
     pub module_hash: Vec<u8>,
     pub total_num_changes: u64,
     pub checked_at: u64,
@@ -123,7 +128,11 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory::get(memory::AAA_PROVENANCE)));
     static SYNC_OPERATORS_RATE_LIMITS: RefCell<std::collections::HashMap<Principal, (f64, u64)>> =
         RefCell::new(std::collections::HashMap::new());
+    static PROFILE_UPDATED_AT: RefCell<std::collections::HashMap<Principal, u64>> =
+        RefCell::new(std::collections::HashMap::new());
 }
+
+const HOUR_NS: u64 = 3_600 * 1_000_000_000;
 
 fn check_sync_operators_rate_limit(aaa: Principal, now_ns: u64) -> Result<(), ApiError> {
     SYNC_OPERATORS_RATE_LIMITS.with_borrow_mut(|map| {
@@ -162,12 +171,23 @@ pub fn upload_wasm(version: u32, blob: Vec<u8>, sha256: Vec<u8>) -> Result<(), A
     if actual_hash != sha256 {
         return Err(ApiError::invalid("sha256 mismatch"));
     }
+    let module_sha256 = if blob.starts_with(&[0x1f, 0x8b]) {
+        let mut module = Vec::new();
+        GzDecoder::new(&blob[..])
+            .read_to_end(&mut module)
+            .map_err(|_| ApiError::invalid("wasm is not valid gzip"))?;
+        Sha256::digest(&module).to_vec()
+    } else {
+        actual_hash
+    };
     WASM_STORE.with_borrow_mut(|m| m.insert(version, blob.clone()));
     WASM_META.with_borrow_mut(|m| {
         m.insert(
             version,
             WasmMeta {
+                v: 1,
                 sha256,
+                module_sha256,
                 size: blob.len() as u64,
                 approved: false,
                 released_at: 0,
@@ -211,25 +231,20 @@ pub fn latest_approved_wasm() -> Option<(u32, WasmMeta, Vec<u8>)> {
     Some((v, meta, blob))
 }
 
+pub fn approved_version(target_hash: &[u8]) -> Option<u32> {
+    WASM_META.with_borrow(|m| {
+        m.iter()
+            .map(|e| (*e.key(), e.value()))
+            .filter(|(_, meta)| {
+                meta.approved && (meta.sha256 == target_hash || meta.module_sha256 == target_hash)
+            })
+            .map(|(v, _)| v)
+            .max()
+    })
+}
+
 pub fn is_approved_module_hash(target_hash: &[u8]) -> bool {
-    let metas = list_wasms();
-    for (v, meta) in metas.into_iter().filter(|(_, m)| m.approved) {
-        if meta.sha256 == target_hash {
-            return true;
-        }
-        if let Some(blob) = get_wasm(v) {
-            if blob.starts_with(&[0x1f, 0x8b]) {
-                let mut decoder = GzDecoder::new(&blob[..]);
-                let mut uncompressed = Vec::new();
-                if decoder.read_to_end(&mut uncompressed).is_ok()
-                    && Sha256::digest(&uncompressed).as_slice() == target_hash
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    false
+    approved_version(target_hash).is_some()
 }
 
 pub fn check_name(name: &str) -> CheckNameResult {
@@ -320,6 +335,7 @@ pub fn pre_register_aaa(
         platform_is_controller: true,
         verified_at: 0,
         install_attempts: 1,
+        admin_suspended: false,
     };
     AAA_REGISTRY.with_borrow_mut(|m| m.insert(args.canister_id, record));
     AAA_OWNERS.with_borrow_mut(|m| m.insert(args.owner, args.canister_id));
@@ -329,18 +345,20 @@ pub fn pre_register_aaa(
 
 pub fn complete_register_aaa(
     canister_id: Principal,
-    version: u32,
     module_hash: Vec<u8>,
+    total_num_changes: u64,
     controllers: &[Principal],
     platform_id: Principal,
     now: u64,
 ) -> Result<(), ApiError> {
-    if !controllers.contains(&platform_id) {
-        return Err(ApiError::invalid("platform is not a controller"));
+    let owner = get_aaa_owner(&canister_id).ok_or(ApiError::NotFound)?;
+    if !controllers.contains(&platform_id) || !controllers.contains(&owner) {
+        return Err(ApiError::invalid(
+            "controllers must include both the owner and the platform",
+        ));
     }
-    if !is_approved_module_hash(&module_hash) {
-        return Err(ApiError::invalid("module hash not approved"));
-    }
+    let version = approved_version(&module_hash)
+        .ok_or_else(|| ApiError::invalid("module hash not approved"))?;
     let (name, owner) = AAA_REGISTRY.with_borrow_mut(|m| match m.get(&canister_id) {
         Some(mut rec) => {
             rec.status = AaaStatus::Active;
@@ -356,8 +374,9 @@ pub fn complete_register_aaa(
         m.insert(
             canister_id,
             Provenance {
+                v: 1,
                 module_hash,
-                total_num_changes: 1,
+                total_num_changes,
                 checked_at: now,
             },
         )
@@ -394,12 +413,11 @@ pub fn pre_upgrade_aaa(
 
 pub fn complete_upgrade_aaa(
     aaa: Principal,
-    version: u32,
     module_hash: Vec<u8>,
     total_num_changes: u64,
     now: u64,
 ) -> Result<(), ApiError> {
-    if !is_approved_module_hash(&module_hash) {
+    let Some(version) = approved_version(&module_hash) else {
         AAA_REGISTRY.with_borrow_mut(|m| {
             if let Some(mut rec) = m.get(&aaa) {
                 rec.status = AaaStatus::Suspended;
@@ -407,7 +425,7 @@ pub fn complete_upgrade_aaa(
             }
         });
         return Err(ApiError::Suspended);
-    }
+    };
     AAA_REGISTRY.with_borrow_mut(|m| match m.get(&aaa) {
         Some(mut rec) => {
             rec.wasm_version = version;
@@ -421,6 +439,7 @@ pub fn complete_upgrade_aaa(
         m.insert(
             aaa,
             Provenance {
+                v: 1,
                 module_hash,
                 total_num_changes,
                 checked_at: now,
@@ -428,6 +447,34 @@ pub fn complete_upgrade_aaa(
         )
     });
     Ok(())
+}
+
+fn suspend_for_provenance(
+    aaa: Principal,
+    mut record: AaaRecord,
+    reason: String,
+    platform_id: Principal,
+    now: u64,
+) -> ApiError {
+    let owner = record.owner;
+    record.status = AaaStatus::Suspended;
+    AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
+    crate::events::record_event(
+        now,
+        aaa,
+        owner,
+        crate::events::EventKind::AaaSuspended {
+            reason: reason.clone(),
+        },
+    );
+    crate::audit::record(
+        now,
+        platform_id,
+        "verify",
+        &aaa,
+        format!("suspended {aaa}: {reason}"),
+    );
+    ApiError::Suspended
 }
 
 pub fn verify_provenance(
@@ -441,9 +488,9 @@ pub fn verify_provenance(
     let mut record = AAA_REGISTRY
         .with_borrow(|m| m.get(&aaa))
         .ok_or(ApiError::NotFound)?;
-    let owner = record.owner;
     record.platform_is_controller = controllers.contains(&platform_id);
     let Some(hash) = module_hash else {
+        let owner = record.owner;
         record.status = AaaStatus::Deleted;
         AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
         crate::events::record_event(
@@ -456,36 +503,51 @@ pub fn verify_provenance(
         );
         return Err(ApiError::Suspended);
     };
-    if is_approved_module_hash(&hash) {
-        if record.status == AaaStatus::Suspended || record.status == AaaStatus::Installing {
-            record.status = AaaStatus::Active;
-        }
-        record.verified_at = now;
-        AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
-        AAA_PROVENANCE.with_borrow_mut(|m| {
-            m.insert(
-                aaa,
-                Provenance {
-                    module_hash: hash,
-                    total_num_changes,
-                    checked_at: now,
-                },
-            )
-        });
-        Ok(())
-    } else {
-        record.status = AaaStatus::Suspended;
-        AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
-        crate::events::record_event(
-            now,
+    if !is_approved_module_hash(&hash) {
+        let reason = "strict provenance: unapproved module hash".to_string();
+        return Err(suspend_for_provenance(
             aaa,
-            owner,
-            crate::events::EventKind::AaaSuspended {
-                reason: "strict provenance: unapproved module hash".into(),
-            },
-        );
-        Err(ApiError::Suspended)
+            record,
+            reason,
+            platform_id,
+            now,
+        ));
     }
+    if let Some(recorded) = get_provenance(&aaa) {
+        if recorded.total_num_changes != total_num_changes {
+            let reason = format!(
+                "strict provenance: unrecorded install/upgrade (total_num_changes {total_num_changes} != recorded {})",
+                recorded.total_num_changes
+            );
+            return Err(suspend_for_provenance(
+                aaa,
+                record,
+                reason,
+                platform_id,
+                now,
+            ));
+        }
+    }
+    if record.status == AaaStatus::Suspended && !record.admin_suspended {
+        record.status = AaaStatus::Active;
+    }
+    if record.status == AaaStatus::Suspended {
+        return Err(ApiError::Suspended);
+    }
+    record.verified_at = now;
+    AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
+    AAA_PROVENANCE.with_borrow_mut(|m| {
+        m.insert(
+            aaa,
+            Provenance {
+                v: 1,
+                module_hash: hash,
+                total_num_changes,
+                checked_at: now,
+            },
+        )
+    });
+    Ok(())
 }
 
 pub fn record_heartbeat(
@@ -502,14 +564,12 @@ pub fn record_heartbeat(
     }
     let now_secs = now_ns / 1_000_000_000;
     let last_secs = record.last_seen_at / 1_000_000_000;
-    if now_secs.saturating_sub(last_secs) < min_interval_secs && record.last_cycles > 0 {
+    let seen_before = record.last_seen_at > record.created_at;
+    if seen_before && now_secs.saturating_sub(last_secs) < min_interval_secs {
         return Ok(());
     }
     record.last_seen_at = now_ns;
     record.last_cycles = args.cycles;
-    if args.wasm_version > 0 {
-        record.wasm_version = args.wasm_version;
-    }
     AAA_REGISTRY.with_borrow_mut(|m| m.insert(caller, record));
     Ok(())
 }
@@ -548,6 +608,7 @@ pub fn record_sync_operators(
         m.insert(
             caller,
             OperatorSet {
+                v: 1,
                 owner: record.owner,
                 operators: args.operators,
                 synced_at: now_ns,
@@ -590,6 +651,7 @@ pub fn check_submitter(
 pub fn record_update_profile(
     caller: Principal,
     args: UpdateAaaProfileArgs,
+    now_ns: u64,
 ) -> Result<(), ApiError> {
     let mut record = AAA_REGISTRY
         .with_borrow(|m| m.get(&caller))
@@ -597,15 +659,30 @@ pub fn record_update_profile(
     if record.status == AaaStatus::Suspended {
         return Err(ApiError::Suspended);
     }
-    if let Some(new_name) = args.name {
-        let valid_name = sc_types::limits::aaa_name(&new_name)?;
-        let new_key = sc_types::limits::name_key(&valid_name);
-        let existing = AAA_NAMES.with_borrow(|m| m.get(&new_key));
-        if let Some(other) = existing {
-            if other != caller {
-                return Err(ApiError::Conflict("name is taken".into()));
-            }
+    if record.status != AaaStatus::Active && record.status != AaaStatus::SelfManaged {
+        return Err(ApiError::NotRegistered);
+    }
+    let new_name = args
+        .name
+        .map(|n| sc_types::limits::aaa_name(&n))
+        .transpose()?;
+    if let Some(valid_name) = &new_name {
+        let taken_by = AAA_NAMES.with_borrow(|m| m.get(&sc_types::limits::name_key(valid_name)));
+        if taken_by.is_some_and(|other| other != caller) {
+            return Err(ApiError::Conflict("name is taken".into()));
         }
+    }
+    if let Some(last) = PROFILE_UPDATED_AT.with_borrow(|m| m.get(&caller).copied()) {
+        let elapsed = now_ns.saturating_sub(last);
+        if elapsed < HOUR_NS {
+            return Err(ApiError::RateLimited {
+                retry_after_secs: ((HOUR_NS - elapsed) / 1_000_000_000).max(1) as u32,
+            });
+        }
+    }
+    PROFILE_UPDATED_AT.with_borrow_mut(|m| m.insert(caller, now_ns));
+    if let Some(valid_name) = new_name {
+        let new_key = sc_types::limits::name_key(&valid_name);
         let old_key = sc_types::limits::name_key(&record.name);
         AAA_NAMES.with_borrow_mut(|m| {
             m.remove(&old_key);
@@ -688,6 +765,7 @@ pub fn suspend_aaa(aaa: Principal) -> Result<(), ApiError> {
     AAA_REGISTRY.with_borrow_mut(|m| match m.get(&aaa) {
         Some(mut rec) => {
             rec.status = AaaStatus::Suspended;
+            rec.admin_suspended = true;
             m.insert(aaa, rec);
             Ok(())
         }
@@ -699,11 +777,14 @@ pub fn unsuspend_aaa(aaa: Principal) -> Result<(), ApiError> {
     AAA_REGISTRY.with_borrow_mut(|m| match m.get(&aaa) {
         Some(mut rec) => {
             rec.status = AaaStatus::Active;
+            rec.admin_suspended = false;
             m.insert(aaa, rec);
             Ok(())
         }
         None => Err(ApiError::NotFound),
-    })
+    })?;
+    AAA_PROVENANCE.with_borrow_mut(|m| m.remove(&aaa));
+    Ok(())
 }
 
 pub fn rename_aaa(aaa: Principal, new_name: String) -> Result<(), ApiError> {
@@ -865,23 +946,16 @@ mod tests {
         ));
 
         assert!(matches!(
-            complete_register_aaa(canister, 10, hash.clone(), &[owner], platform, 200),
+            complete_register_aaa(canister, hash.clone(), 3, &[owner], platform, 200),
             Err(ApiError::InvalidInput(_))
         ));
         assert!(matches!(
-            complete_register_aaa(canister, 10, vec![0; 32], &[owner, platform], platform, 200),
+            complete_register_aaa(canister, vec![0; 32], 3, &[owner, platform], platform, 200),
             Err(ApiError::InvalidInput(_))
         ));
 
-        complete_register_aaa(
-            canister,
-            10,
-            hash.clone(),
-            &[owner, platform],
-            platform,
-            200,
-        )
-        .unwrap();
+        complete_register_aaa(canister, hash.clone(), 3, &[owner, platform], platform, 200)
+            .unwrap();
 
         let rec = get_aaa(&canister).unwrap();
         assert_eq!(rec.status, AaaStatus::Active);
@@ -919,8 +993,8 @@ mod tests {
         pre_register_aaa(&args, 100).unwrap();
         complete_register_aaa(
             canister,
-            1,
             hash_v1.clone(),
+            1,
             &[owner, platform],
             platform,
             105,
@@ -939,7 +1013,7 @@ mod tests {
         let (_, next_v, _) = pre_upgrade_aaa(canister, owner).unwrap();
         assert_eq!(next_v, 2);
 
-        complete_upgrade_aaa(canister, 2, hash_v2.clone(), 2, 210).unwrap();
+        complete_upgrade_aaa(canister, hash_v2.clone(), 2, 210).unwrap();
         let updated = get_aaa(&canister).unwrap();
         assert_eq!(updated.wasm_version, 2);
 
@@ -991,7 +1065,7 @@ mod tests {
             avatar_seed: 1,
         };
         pre_register_aaa(&args, 100).unwrap();
-        complete_register_aaa(canister, 3, hash, &[owner, platform], platform, 105).unwrap();
+        complete_register_aaa(canister, hash, 3, &[owner, platform], platform, 105).unwrap();
 
         assert!(matches!(
             record_heartbeat(
@@ -1045,6 +1119,7 @@ mod tests {
                 name: Some("RenamedAaa".into()),
                 avatar_seed: Some(77),
             },
+            300_000_000_000,
         )
         .unwrap();
 
@@ -1117,7 +1192,7 @@ mod tests {
             avatar_seed: 11,
         };
         pre_register_aaa(&reg, 100).unwrap();
-        verify_provenance(canister, Some(hash.clone()), 1, &[owner], p(99), 100).unwrap();
+        complete_register_aaa(canister, hash.clone(), 1, &[owner, p(99)], p(99), 100).unwrap();
 
         let reg_other = RegisterArgs {
             canister_id: other_canister,
@@ -1126,7 +1201,7 @@ mod tests {
             avatar_seed: 12,
         };
         pre_register_aaa(&reg_other, 100).unwrap();
-        verify_provenance(other_canister, Some(hash), 1, &[other_owner], p(99), 100).unwrap();
+        complete_register_aaa(other_canister, hash, 1, &[other_owner, p(99)], p(99), 100).unwrap();
 
         let sync_args = OperatorSetInput {
             operators: vec![
@@ -1196,7 +1271,7 @@ mod tests {
             avatar_seed: 21,
         };
         pre_register_aaa(&reg, 100).unwrap();
-        verify_provenance(canister, Some(hash), 1, &[owner], p(99), 100).unwrap();
+        complete_register_aaa(canister, hash, 1, &[owner, p(99)], p(99), 100).unwrap();
 
         let too_many = OperatorSetInput {
             operators: vec![
@@ -1291,5 +1366,202 @@ mod tests {
             check_submitter(&canister, &owner, 300),
             Err(ApiError::Suspended)
         );
+    }
+
+    fn registered(owner: Principal, canister: Principal, name: &str, changes: u64) -> Vec<u8> {
+        let blob = vec![9, 9, 9];
+        let hash = Sha256::digest(&blob).to_vec();
+        upload_wasm(7, blob, hash.clone()).unwrap();
+        approve_wasm(7, 1).unwrap();
+        pre_register_aaa(
+            &RegisterArgs {
+                canister_id: canister,
+                owner,
+                name: name.into(),
+                avatar_seed: 1,
+            },
+            1_000,
+        )
+        .unwrap();
+        complete_register_aaa(
+            canister,
+            hash.clone(),
+            changes,
+            &[owner, p(200)],
+            p(200),
+            2_000,
+        )
+        .unwrap();
+        hash
+    }
+
+    #[test]
+    fn t2_9_register_requires_owner_and_platform_and_records_real_changes() {
+        let (owner, canister, platform) = (p(40), p(41), p(200));
+        let blob = vec![9, 9, 9];
+        let hash = Sha256::digest(&blob).to_vec();
+        upload_wasm(7, blob, hash.clone()).unwrap();
+        approve_wasm(7, 1).unwrap();
+        let args = RegisterArgs {
+            canister_id: canister,
+            owner,
+            name: "CtrlAaa".into(),
+            avatar_seed: 1,
+        };
+        pre_register_aaa(&args, 1_000).unwrap();
+        assert!(matches!(
+            complete_register_aaa(canister, hash.clone(), 4, &[platform], platform, 2_000),
+            Err(ApiError::InvalidInput(_))
+        ));
+        assert_eq!(get_aaa(&canister).unwrap().status, AaaStatus::Installing);
+        assert_eq!(
+            complete_register_aaa(p(49), hash.clone(), 4, &[owner, platform], platform, 2_000),
+            Err(ApiError::NotFound)
+        );
+        complete_register_aaa(canister, hash, 4, &[owner, platform], platform, 2_000).unwrap();
+        assert_eq!(get_provenance(&canister).unwrap().total_num_changes, 4);
+        assert_eq!(get_provenance(&canister).unwrap().v, 1);
+    }
+
+    #[test]
+    fn t2_9_verify_never_lifts_admin_suspension_and_checks_num_changes() {
+        let (owner, canister, platform) = (p(50), p(51), p(200));
+        let hash = registered(owner, canister, "ProvAaa", 5);
+
+        suspend_aaa(canister).unwrap();
+        assert_eq!(
+            verify_provenance(
+                canister,
+                Some(hash.clone()),
+                5,
+                &[owner, platform],
+                platform,
+                3_000
+            ),
+            Err(ApiError::Suspended)
+        );
+        assert_eq!(get_aaa(&canister).unwrap().status, AaaStatus::Suspended);
+
+        unsuspend_aaa(canister).unwrap();
+        assert!(get_provenance(&canister).is_none());
+        verify_provenance(
+            canister,
+            Some(hash.clone()),
+            7,
+            &[owner, platform],
+            platform,
+            4_000,
+        )
+        .unwrap();
+        assert_eq!(get_provenance(&canister).unwrap().total_num_changes, 7);
+
+        let audits = crate::audit::len();
+        assert_eq!(
+            verify_provenance(
+                canister,
+                Some(hash.clone()),
+                8,
+                &[owner, platform],
+                platform,
+                5_000
+            ),
+            Err(ApiError::Suspended)
+        );
+        let rec = get_aaa(&canister).unwrap();
+        assert_eq!(rec.status, AaaStatus::Suspended);
+        assert!(!rec.admin_suspended);
+        assert_eq!(crate::audit::len(), audits + 1);
+        assert_eq!(get_provenance(&canister).unwrap().total_num_changes, 7);
+
+        verify_provenance(canister, Some(hash), 7, &[owner, platform], platform, 6_000).unwrap();
+        assert_eq!(get_aaa(&canister).unwrap().status, AaaStatus::Active);
+    }
+
+    #[test]
+    fn t2_9_heartbeat_rate_limited_even_with_zero_cycles_and_ignores_version() {
+        let (owner, canister) = (p(60), p(61));
+        registered(owner, canister, "BeatAaa", 3);
+        let hb = |cycles, wasm_version, at| {
+            record_heartbeat(
+                canister,
+                Heartbeat {
+                    cycles,
+                    wasm_version,
+                },
+                3_600,
+                at,
+            )
+        };
+        hb(0, 999, 10_000_000_000).unwrap();
+        let rec = get_aaa(&canister).unwrap();
+        assert_eq!(rec.last_seen_at, 10_000_000_000);
+        assert_eq!(rec.wasm_version, 7);
+        hb(0, 999, 11_000_000_000).unwrap();
+        assert_eq!(get_aaa(&canister).unwrap().last_seen_at, 10_000_000_000);
+        hb(5, 999, 10_000_000_000 + HOUR_NS).unwrap();
+        let rec = get_aaa(&canister).unwrap();
+        assert_eq!(rec.last_cycles, 5);
+        assert_eq!(rec.wasm_version, 7);
+    }
+
+    #[test]
+    fn t2_9_profile_update_requires_active_and_is_hourly() {
+        let (owner, canister) = (p(70), p(71));
+        let hash = registered(owner, canister, "ProfAaa", 3);
+        let installing = p(72);
+        pre_register_aaa(
+            &RegisterArgs {
+                canister_id: installing,
+                owner: p(73),
+                name: "Installing1".into(),
+                avatar_seed: 1,
+            },
+            1_000,
+        )
+        .unwrap();
+        let args = |name: &str| UpdateAaaProfileArgs {
+            name: Some(name.into()),
+            avatar_seed: None,
+        };
+        assert_eq!(
+            record_update_profile(installing, args("Sneaky"), 1),
+            Err(ApiError::NotRegistered)
+        );
+        assert!(matches!(
+            record_update_profile(canister, args("Installing1"), 1),
+            Err(ApiError::Conflict(_))
+        ));
+        record_update_profile(canister, args("ProfAaa2"), 1).unwrap();
+        assert!(matches!(
+            record_update_profile(canister, args("ProfAaa3"), 2),
+            Err(ApiError::RateLimited { .. })
+        ));
+        record_update_profile(canister, args("ProfAaa3"), 1 + HOUR_NS).unwrap();
+        assert_eq!(get_aaa(&canister).unwrap().name, "ProfAaa3");
+        assert!(is_approved_module_hash(&hash));
+    }
+
+    #[test]
+    fn t2_9_gzipped_wasm_matches_uncompressed_module_hash_without_gunzip_per_check() {
+        use flate2::write::GzEncoder;
+        use std::io::Write;
+        let module = vec![0, 97, 115, 109, 1, 0, 0, 0];
+        let mut enc = GzEncoder::new(Vec::new(), flate2::Compression::default());
+        enc.write_all(&module).unwrap();
+        let gz = enc.finish().unwrap();
+        let gz_hash = Sha256::digest(&gz).to_vec();
+        upload_wasm(3, gz.clone(), gz_hash.clone()).unwrap();
+        let module_hash = Sha256::digest(&module).to_vec();
+        assert_eq!(get_wasm_meta(3).unwrap().module_sha256, module_hash);
+        assert_eq!(approved_version(&module_hash), None);
+        approve_wasm(3, 1).unwrap();
+        assert_eq!(approved_version(&module_hash), Some(3));
+        assert_eq!(approved_version(&gz_hash), Some(3));
+
+        let bad = vec![0x1f, 0x8b, 1, 2, 3];
+        assert!(matches!(
+            upload_wasm(4, bad.clone(), Sha256::digest(&bad).to_vec()),
+            Err(ApiError::InvalidInput(_))
+        ));
     }
 }

@@ -3,6 +3,7 @@ pub mod audit;
 pub mod catalog;
 pub mod config;
 pub mod events;
+mod guard;
 mod memory;
 pub mod progression;
 pub mod registry;

@@ -40,11 +40,24 @@
 | Role matrix enforced (owner, operator, expired operator, platform, anonymous, stranger) | T3.1 | t3_1_aaa_role_matrix_owner_operator_platform_anon_stranger |
 | Spawned AAA verified; upgrade works; name unique with -2 suffix | T2.2 | t2_2_spawned_aaa_verified_and_upgrade_works |
 | Journal persisted pre-await (a trap after the await rolls back only the post-await transition; the pre-await entry survives) | T5.1 | t5_1_payments_skeleton_config_journal_guard_admin |
+| Quotes within 2% of what the real CMC mints; XDR cache primed on install and refreshable on demand; per-purpose deposit accounts derive distinct subaccounts | T5.2 | t5_2_quotes_are_within_2_percent_of_what_the_cmc_actually_mints |
 | Catalog dispatch: subjects, protocol, leases, seen-set (never same subject twice) | T2.3 | t2_3_never_same_subject_twice_and_pool_dispatch |
 | Retire at K=5; idempotent submit | T2.4 | t2_4_retire_at_k5_and_idempotent_submit |
 | Events append; paged activity | T2.5 | t2_5_events_append_and_paged_activity |
 | Queries paged ≤100 | T2.6 | t2_6_public_queries_paged_limit_100 |
 | Foreign/expired/unsynced submitter rejected | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |
+| Gold/answers admin-only; get_task submitter check; calibration gold ends; verify internal; admin suspension sticks; payments-only register | T2.9 | t2_9_gold_hidden_submitter_checked_calibration_ends_verify_internal |
+| Retry skips install when approved module present; unrecorded total_num_changes suspends + audit; duplicate returns original receipt | T2.9 | t2_9_retry_skips_existing_module_and_unrecorded_change_suspends |
+| Controllers ⊇ {owner, platform}; real total_num_changes recorded | T2.9 | t2_9_register_requires_owner_and_platform_and_records_real_changes |
+| verify never lifts admin suspension; num_changes mismatch suspends | T2.9 | t2_9_verify_never_lifts_admin_suspension_and_checks_num_changes |
+| Heartbeat limited even at 0 cycles; self-reported version ignored | T2.9 | t2_9_heartbeat_rate_limited_even_with_zero_cycles_and_ignores_version |
+| Profile update: Active only, 1/hour | T2.9 | t2_9_profile_update_requires_active_and_is_hourly |
+| Per-AAA open-lease index (mem 15) | T2.9 | t2_9_open_lease_index_tracks_consumption_and_sweeps_expiry |
+| Task pool cursor range iteration wraps | T2.9 | t2_9_pool_cursor_rotates_and_wraps |
+| Submission limits (08 §3) at the boundary | T2.9 | t2_9_submission_limits_enforced_at_boundary |
+| Leaderboard cursor (inverted_xp, aaa) with carried rank | T2.9 | t2_9_leaderboard_cursor_pages_through_ties_with_continuous_rank |
+| Re-adding subjects keeps progress; published protocols immutable | T2.9 | t2_9_readding_subjects_keeps_progress_and_protocols_are_immutable |
+| Per-AAA CallerGuard for awaiting mutations | T2.9 | t2_9_guard_blocks_same_aaa_until_dropped |
 | Registered AAA task receipt, fees, and duplicate idempotency | T2.7 | t2_7_registered_aaa_task_receipt_and_idempotent_duplicate |
 | 5th classification retires subject; seen-set never reissues | T2.7 | t2_7_fifth_classification_retires_and_seen_set_never_reissues |
 | One record per task under SYS_UNKNOWN | T3.2 | t3_2_one_record_per_task_under_sys_unknown |

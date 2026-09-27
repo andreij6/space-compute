@@ -12,6 +12,7 @@ use crate::memory::{self, Memory};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Classification {
+    pub v: u8,
     pub classification_id: u64,
     pub aaa: Principal,
     pub owner: Principal,
@@ -34,6 +35,7 @@ crate::candid_storable!(Classification);
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct SubjectConsensus {
+    pub v: u8,
     pub subject_id: u32,
     pub consensus: Vec<(String, String)>,
     pub resolved_at: u64,
@@ -249,6 +251,7 @@ pub fn evaluate_consensus(subject_id: u32, retired_at: u64) -> Option<SubjectCon
     }
 
     let sub_cons = SubjectConsensus {
+        v: 1,
         subject_id,
         consensus: consensus.clone(),
         resolved_at: retired_at,
@@ -287,6 +290,16 @@ pub fn evaluate_consensus(subject_id: u32, retired_at: u64) -> Option<SubjectCon
     Some(sub_cons)
 }
 
+pub fn validate_submission_limits(submission: &ClassificationSubmission) -> Result<(), ApiError> {
+    sc_types::limits::answers(&submission.answers)?;
+    sc_types::limits::agent_label(&submission.agent_label)?;
+    sc_types::limits::sha256(&submission.observed_image_sha256)?;
+    submission
+        .discovery
+        .as_ref()
+        .map_or(Ok(()), sc_types::limits::discovery_flag)
+}
+
 pub fn process_submission(
     caller: Principal,
     owner: Principal,
@@ -296,15 +309,18 @@ pub fn process_submission(
     now: u64,
     fee: u128,
 ) -> Result<ClassificationReceipt, ApiError> {
+    validate_submission_limits(&submission)?;
     let mut lease = catalog::get_lease(submission.task_id).ok_or(ApiError::LeaseNotFound)?;
     if lease.aaa != caller {
         return Err(ApiError::Unauthorized);
     }
     if let Some(cid) = lease.consumed_by {
+        let original = get_classification(cid)
+            .ok_or_else(|| ApiError::Internal("consumed lease without classification".into()))?;
         return Ok(ClassificationReceipt {
             classification_id: cid,
             discovery_id: None,
-            xp_awarded: 0,
+            xp_awarded: original.xp_awarded,
             duplicate: true,
             claim: None,
         });
@@ -361,6 +377,7 @@ pub fn process_submission(
     catalog::update_lease(submission.task_id, lease);
 
     let classification = Classification {
+        v: 1,
         classification_id,
         aaa: caller,
         owner,
@@ -774,7 +791,7 @@ mod tests {
 
         assert!(dup.duplicate);
         assert_eq!(dup.classification_id, res5.classification_id);
-        assert_eq!(dup.xp_awarded, 0);
+        assert_eq!(dup.xp_awarded, res5.xp_awarded);
 
         let cons = get_subject_consensus(s_id).expect("consensus resolved");
         assert_eq!(cons.consensus.len(), 1);
@@ -782,5 +799,54 @@ mod tests {
 
         let c1 = get_classification(1).unwrap();
         assert_eq!(c1.consensus_score, Some((1, 1)));
+    }
+
+    #[test]
+    fn t2_9_submission_limits_enforced_at_boundary() {
+        let ok = ClassificationSubmission {
+            task_id: 1,
+            answers: vec![Answer {
+                question_id: "q1".into(),
+                answer_id: "smooth".into(),
+            }],
+            observed_image_sha256: vec![1; 32],
+            discovery: None,
+            agent_label: Some("agent".into()),
+            submitted_by: p(1),
+        };
+        assert_eq!(validate_submission_limits(&ok), Ok(()));
+        let bad = [
+            ClassificationSubmission {
+                answers: vec![ok.answers[0].clone(); 17],
+                ..ok.clone()
+            },
+            ClassificationSubmission {
+                agent_label: Some("x".repeat(65)),
+                ..ok.clone()
+            },
+            ClassificationSubmission {
+                observed_image_sha256: vec![1; 16],
+                ..ok.clone()
+            },
+            ClassificationSubmission {
+                discovery: Some(sc_types::DiscoveryFlag {
+                    category: "lens".into(),
+                    rationale: "short".into(),
+                    confidence: 50,
+                    claim_position: None,
+                }),
+                ..ok.clone()
+            },
+        ];
+        for b in bad {
+            assert!(matches!(
+                validate_submission_limits(&b),
+                Err(ApiError::InvalidInput(_))
+            ));
+            assert!(matches!(
+                process_submission(p(1), p(2), b, &Params::default(), 1, 0, 0),
+                Err(ApiError::InvalidInput(_))
+            ));
+        }
     }
 }

@@ -16,6 +16,7 @@ pub const PROTOCOLS: u8 = 11;
 pub const LEASES: u8 = 12;
 pub const SEEN_SET: u8 = 13;
 pub const TASK_POOL: u8 = 14;
+pub const OPEN_LEASES: u8 = 15;
 pub const CLASSIFICATIONS: u8 = 20;
 pub const SUBJECT_CLASSIFICATIONS: u8 = 21;
 pub const CONSENSUS: u8 = 22;

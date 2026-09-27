@@ -276,7 +276,7 @@ fn t2_4_retire_at_k5_and_idempotent_submit() {
     let d1 = dup_1.expect("duplicate receipt");
     assert!(d1.duplicate);
     assert_eq!(d1.classification_id, r1.classification_id);
-    assert_eq!(d1.xp_awarded, 0);
+    assert_eq!(d1.xp_awarded, r1.xp_awarded);
     let s_tally1_again: Option<Subject> = env.query(platform, alice, "get_subject", 501u32);
     assert_eq!(s_tally1_again.unwrap().tally_count, 1);
     step("idempotent resubmit: returned duplicate=true, same id, 0 xp, tally unchanged");
