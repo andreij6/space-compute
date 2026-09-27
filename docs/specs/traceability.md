@@ -86,3 +86,5 @@
 | 02 §8.2: admin_replay_progression rebuilds Progress + leaderboard from event 0 in batches, driven by a timer to completion | T4.3 | t4_3_replay_from_event_0_reproduces_identical_progress |
 | 02 §11 #8: replay from event 0 reproduces an identical Progress (PocketIC, get_aaa_public + get_leaderboard before/after) | T4.3 | t4_3_new_aaa_reaches_tier2_in_60_tasks_and_replay_matches_incremental |
 | 02 §8: list_aaa_credits(aaa, cursor) paginated by discovery_seq (mem 45 credit index), matching the AAA's daily pull | T4.3 | t4_3_list_aaa_credits_pages_by_discovery_seq_per_aaa |
+| 04 §5 #2: Deposit spawn reaches Done, platform shows the AAA registered, and the deposit account is swept to zero | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
+| 04 §5 #4: platform can't register mid-saga → op stays Notified with no double charge; resume completes it; a duplicate resume on a Done op is a no-op | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |

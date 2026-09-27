@@ -1,15 +1,19 @@
 pub mod api;
 pub mod audit;
+pub mod cmc;
 pub mod config;
 pub mod deposit;
 pub mod guard;
 pub mod journal;
+pub mod ledger;
 mod memory;
+pub mod owners;
+pub mod platform_client;
 pub mod quote;
 pub mod rate;
 mod timers;
 
-use api::{JournalDemoArg, Overview};
+use api::{JournalDemoArg, Overview, SpawnArgs};
 use audit::AuditEntry;
 use candid::Principal;
 use config::{Features, Params, PauseFlags};

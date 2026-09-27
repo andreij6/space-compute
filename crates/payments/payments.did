@@ -93,6 +93,7 @@ type PauseFlags = record {
 type PayPath = variant {
   Deposit;
   Treasury;
+  Invite : record { code : text };
   Wallet : record { payer : Account };
 };
 type Purpose = variant { Spawn; Auto; TopUp };
@@ -118,6 +119,7 @@ type Result_4 = variant { Ok : vec Op; Err : ApiError };
 type Result_5 = variant { Ok : Overview; Err : ApiError };
 type Result_6 = variant { Ok : RateCache; Err : ApiError };
 type Result_7 = variant { Ok : Quote; Err : ApiError };
+type SpawnArgs = record { name : text; path : PayPath; avatar_seed : nat64 };
 service : () -> {
   admin_add_admin : (principal) -> (Result);
   admin_audit_log : (opt nat64, nat32) -> (Result_1) query;
@@ -130,6 +132,7 @@ service : () -> {
   admin_remove_admin : (principal) -> (Result);
   admin_set_features : (Features) -> (Result);
   admin_set_params : (Params) -> (Result);
+  admin_set_platform_id : (principal) -> (Result);
   get_deposit_account : (Purpose, principal) -> (text, Account) query;
   get_features : () -> (Features) query;
   get_op : (nat64) -> (opt Op) query;
@@ -137,5 +140,7 @@ service : () -> {
   get_quote_spawn : () -> (Result_7) query;
   get_quote_topup : (nat) -> (Result_7) query;
   get_rate : () -> (RateCache) query;
+  resume : (nat64) -> (Result);
+  spawn_aaa : (SpawnArgs) -> (Result_2);
   version : () -> (text) query;
 }

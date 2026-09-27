@@ -133,6 +133,7 @@ pub struct Config {
     pub params: Params,
     pub features: Features,
     pub paused: PauseFlags,
+    pub platform_id: Option<Principal>,
 }
 
 impl Default for Config {
@@ -143,11 +144,20 @@ impl Default for Config {
             params: Params::default(),
             features: Features::default(),
             paused: PauseFlags::default(),
+            platform_id: None,
         }
     }
 }
 
 impl Config {
+    pub fn set_platform_id(&mut self, p: Principal) -> Result<(), ApiError> {
+        if p == Principal::anonymous() {
+            return Err(ApiError::invalid("platform_id can't be anonymous"));
+        }
+        self.platform_id = Some(p);
+        Ok(())
+    }
+
     pub fn add_admin(&mut self, p: Principal) -> Result<(), ApiError> {
         if p == Principal::anonymous() {
             return Err(ApiError::invalid("anonymous can't be an admin"));
@@ -196,6 +206,12 @@ pub fn update<R>(f: impl FnOnce(&mut Config) -> Result<R, ApiError>) -> Result<R
 
 pub fn is_admin(p: &Principal) -> bool {
     CELL.with_borrow(|c| c.get().admins.contains(p))
+}
+
+pub fn platform_id() -> Result<Principal, ApiError> {
+    get()
+        .platform_id
+        .ok_or_else(|| ApiError::Internal("platform_id is not configured".into()))
 }
 
 #[cfg(test)]
@@ -265,5 +281,25 @@ mod tests {
         assert!(update(|cfg| cfg.add_admin(a)).is_err());
         assert!(is_admin(&a) && !is_admin(&b));
         assert_eq!(get().admins, vec![a]);
+    }
+
+    #[test]
+    fn t5_3_platform_id_defaults_none_and_rejects_anonymous() {
+        assert_eq!(Config::default().platform_id, None);
+        let mut c = Config::default();
+        assert!(matches!(
+            c.set_platform_id(Principal::anonymous()),
+            Err(ApiError::InvalidInput(_))
+        ));
+        let p = Principal::from_slice(&[3; 29]);
+        c.set_platform_id(p).unwrap();
+        assert_eq!(c.platform_id, Some(p));
+    }
+
+    #[test]
+    fn t5_3_platform_id_accessor_errors_until_configured() {
+        assert!(matches!(platform_id(), Err(ApiError::Internal(_))));
+        update(|cfg| cfg.set_platform_id(Principal::from_slice(&[4; 29]))).unwrap();
+        assert_eq!(platform_id(), Ok(Principal::from_slice(&[4; 29])));
     }
 }

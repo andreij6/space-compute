@@ -1,5 +1,6 @@
 use candid::{CandidType, Principal};
 use ic_ledger_types::{AccountIdentifier, Subaccount};
+use sc_types::ApiError;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -54,12 +55,37 @@ pub fn deposit_account(
     )
 }
 
+pub fn sweep_amount(balance: u64, min_required_e8s: u64, fee_e8s: u64) -> Result<u64, ApiError> {
+    if balance < min_required_e8s {
+        return Err(ApiError::invalid(
+            "deposit balance is below the required amount",
+        ));
+    }
+    Ok(balance.saturating_sub(fee_e8s))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn p(n: u8) -> Principal {
         Principal::from_slice(&[n; 29])
+    }
+
+    #[test]
+    fn t5_3_sweep_amount_leaves_zero_dust_when_balance_covers_fee() {
+        assert_eq!(
+            sweep_amount(1_000_010_000, 1_000_000_000, 10_000),
+            Ok(1_000_000_000)
+        );
+    }
+
+    #[test]
+    fn t5_3_sweep_amount_rejects_balance_below_requirement() {
+        assert!(matches!(
+            sweep_amount(999, 1_000, 10),
+            Err(ApiError::InvalidInput(_))
+        ));
     }
 
     #[test]

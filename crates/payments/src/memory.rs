@@ -7,7 +7,6 @@ pub type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 pub const CONFIG: u8 = 0;
 pub const OPS: u8 = 1;
-#[allow(dead_code)]
 pub const OWNER_AAA: u8 = 2;
 #[allow(dead_code)]
 pub const MANDATE: u8 = 3;

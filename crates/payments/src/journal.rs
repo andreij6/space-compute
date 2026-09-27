@@ -45,6 +45,7 @@ pub enum PayPath {
     Wallet { payer: Account },
     Deposit,
     Treasury,
+    Invite { code: String },
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
@@ -127,6 +128,19 @@ pub struct Op {
 }
 
 crate::candid_storable!(Op);
+
+impl Op {
+    pub fn spawn_fields(&self) -> Result<(Principal, String, u64), ApiError> {
+        match &self.kind {
+            OpKind::Spawn {
+                owner,
+                name,
+                avatar_seed,
+            } => Ok((*owner, name.clone(), *avatar_seed)),
+            _ => Err(ApiError::Internal("op is not a Spawn op".into())),
+        }
+    }
+}
 
 thread_local! {
     static OPS: RefCell<StableBTreeMap<u64, Op, Memory>> =
@@ -274,6 +288,24 @@ mod tests {
     #[test]
     fn t5_1_unknown_op_is_not_found() {
         assert_eq!(advance(12345, OpState::Done, 1), Err(ApiError::NotFound));
+    }
+
+    #[test]
+    fn t5_3_spawn_fields_extracts_from_spawn_kind_only() {
+        let spawn = create(
+            OpKind::Spawn {
+                owner: p(5),
+                name: "Rover".into(),
+                avatar_seed: 7,
+            },
+            PayPath::Deposit,
+            0,
+            p(5),
+            1,
+        );
+        assert_eq!(spawn.spawn_fields(), Ok((p(5), "Rover".to_string(), 7)));
+        let topup = create(OpKind::TopUp { aaa: p(6) }, PayPath::Deposit, 0, p(6), 2);
+        assert!(matches!(topup.spawn_fields(), Err(ApiError::Internal(_))));
     }
 
     #[test]
