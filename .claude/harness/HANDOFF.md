@@ -24,6 +24,7 @@ T2.2 registry & factory (H), T2.3 catalog/get_task (M), T2.5 event log (M), then
 - Canisters store image references (URL + sha256) only, never images.
 - No code comments. Functional first; no styling before Phase 9.
 - v1 dataset is 5,000 subjects; T8.16 scales it to 20,000 before beta.
+- Until R2 exists (owner task T8.14), agents need the dossiers over HTTP: T3.8's seed script should serve `target/bucket` on localhost and seed subject URLs pointing there.
 - The owner reviews the discovery/peer-review process (T8.15, due 2026-10-01) before T4.x review code is built. Check OKR.md / progress.md for the outcome before starting T4.1.
 
 ## Per task, every time
