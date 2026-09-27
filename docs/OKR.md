@@ -51,6 +51,7 @@
 ## Change log
 | Date | Change |
 |---|---|
+| 2026-09-27 | T6.1: Frontend app scaffold implemented with 25 responsive mobile/desktop screens, certified static-site recipe in icp.yaml, responsive drawer and bottom bar navigation, and multi-currency fuel flow. |
 | 2026-09-27 | No remote CI (owner directive): verification is local via `scripts/verify-local.sh` and Justfile; deterministic local deployment script `scripts/deploy-local.sh` established early; harness expanded with `local-deploy` skill. |
 | 2026-09-27 | NNS neuron removed (owner): the treasury is owner-funded ICP, with the cycles keeper and health() unchanged; T5.17/T5.18 shrink, T8.5 = fund the prod float. Launch unchanged. |
 | 2026-09-27 | Staffing: Claude Code builds everything in 3 parallel lanes; launch 2027-02-11. |

@@ -318,8 +318,8 @@
   "demo": "test: just demo T1.8  (narrated PocketIC/pytest run)",
   "start": "2026-10-08",
   "end": "2026-10-12",
-  "status": "todo",
-  "pct": 0
+  "status": "in_progress",
+  "pct": 0.5
  },
  {
   "id": "T2.1",
@@ -1194,8 +1194,8 @@
   "demo": "shots: docs/demos/T6.1/*.png (Playwright)",
   "start": "2026-12-16",
   "end": "2026-12-18",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1.0
  },
  {
   "id": "T6.3",
