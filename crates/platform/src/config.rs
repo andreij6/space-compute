@@ -204,6 +204,14 @@ impl Config {
         self.payments_id = Some(p);
         Ok(())
     }
+
+    pub fn set_current_protocol_version(&mut self, version: u16) -> Result<(), ApiError> {
+        if version == 0 {
+            return Err(ApiError::invalid("protocol version must be > 0"));
+        }
+        self.current_protocol_version = version;
+        Ok(())
+    }
 }
 
 crate::candid_storable!(Config);
@@ -319,5 +327,12 @@ mod tests {
         assert_eq!(payments_id(), Some(b));
         assert!(is_payments(&b));
         assert!(!is_payments(&a));
+
+        assert!(matches!(
+            c.set_current_protocol_version(0),
+            Err(ApiError::InvalidInput(_))
+        ));
+        c.set_current_protocol_version(3).unwrap();
+        assert_eq!(c.current_protocol_version, 3);
     }
 }

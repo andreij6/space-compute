@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T2.3 Catalog, protocol, leases, seen-set, get_task (done)
+- Pure state logic in platform (mem 10 Subjects, 11 Protocols, 12 Leases, 13 SeenSet, 14 TaskPool) with rotating cursor dispatch.
+- Never same subject twice: seen-set tracks (aaa, subject_id); unconsumed expired leases swept before open-lease rate limit check.
+- get_task prelude verifies caller status, fee_get_task, hourly token-bucket rate limit, and cached provenance.
+- PocketIC acceptance test t2_3_never_same_subject_twice_and_pool_dispatch + 4 unit tests pass; platform coverage 92.7% (min 90%).
+
 ## 2026-09-27 — T2.2 Registry & factory (done)
 - Full AAA registry, wasm upload/approval, spawn registration, upgrade, verify, heartbeat, sync_operators, profile rename in platform canister (mem 1, 2, 5, 6, 7, 49, 50).
 - Idempotent register_aaa with name collision auto-suffix (-2), one live AAA per owner constraint, provenance tracking with module hash and controller verification.

@@ -22,6 +22,11 @@ pub fn next_u64() -> Option<u64> {
     RNG.with_borrow_mut(|r| r.as_mut().map(|r| r.next_u64()))
 }
 
+pub fn next_u32() -> u32 {
+    RNG.with_borrow_mut(|r| r.as_mut().map(|r| r.next_u32()))
+        .unwrap_or_else(|| (ic_cdk::api::time() & 0xffff_ffff) as u32)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -37,5 +42,6 @@ mod tests {
         seed([8; 32], 3);
         assert_ne!(next_u64().unwrap(), a[0]);
         assert_eq!(seeded_at(), Some(3));
+        assert!(next_u32() > 0);
     }
 }

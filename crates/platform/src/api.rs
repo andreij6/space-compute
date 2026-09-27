@@ -4,6 +4,7 @@ use sc_types::ApiError;
 use serde::Deserialize;
 
 use crate::audit::{self, AuditEntry};
+use crate::catalog::{self, AdminListSubjectsFilter, Lease, Subject, SubjectInput};
 use crate::config::{self, Params, PauseFlags};
 use crate::registry::{
     self, AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput,
@@ -501,4 +502,134 @@ fn aaa_owner(aaa: Principal) -> Option<Principal> {
 #[ic_cdk::query]
 fn get_aaa_by_name(name: String) -> Option<AaaRecord> {
     registry::get_aaa_by_name(&name)
+}
+
+#[ic_cdk::update]
+fn admin_add_subjects(batch: Vec<SubjectInput>) -> Result<u32, ApiError> {
+    let caller = require_admin()?;
+    let count = catalog::add_subjects(batch)?;
+    audit(
+        caller,
+        "admin_add_subjects",
+        &count,
+        format!("added {count} subjects"),
+    );
+    Ok(count)
+}
+
+#[ic_cdk::update]
+fn admin_set_subject_active(subject_id: u32, active: bool) -> Result<(), ApiError> {
+    let caller = require_admin()?;
+    let retire_after_k = config::get().params.retire_after_k;
+    catalog::set_subject_active(subject_id, active, retire_after_k)?;
+    audit(
+        caller,
+        "admin_set_subject_active",
+        &(subject_id, active),
+        format!("subject {subject_id} active={active}"),
+    );
+    Ok(())
+}
+
+#[ic_cdk::update]
+fn admin_add_protocol(protocol: sc_types::Protocol) -> Result<(), ApiError> {
+    let caller = require_admin()?;
+    let version = protocol.version;
+    catalog::add_protocol(protocol)?;
+    audit(
+        caller,
+        "admin_add_protocol",
+        &version,
+        format!("added protocol v{version}"),
+    );
+    Ok(())
+}
+
+#[ic_cdk::update]
+fn admin_set_current_protocol(version: u16) -> Result<(), ApiError> {
+    let caller = require_admin()?;
+    if catalog::get_protocol(version).is_none() {
+        return Err(ApiError::NotFound);
+    }
+    config::update(|c| c.set_current_protocol_version(version))?;
+    audit(
+        caller,
+        "admin_set_current_protocol",
+        &version,
+        format!("current protocol set to v{version}"),
+    );
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn admin_list_subjects(
+    filter: AdminListSubjectsFilter,
+    cursor: Option<u64>,
+    limit: u32,
+) -> Result<Vec<Subject>, ApiError> {
+    require_admin()?;
+    Ok(catalog::list_subjects(&filter, cursor, limit))
+}
+
+#[ic_cdk::query]
+fn admin_list_protocols() -> Result<Vec<sc_types::Protocol>, ApiError> {
+    require_admin()?;
+    Ok(catalog::list_protocols())
+}
+
+#[ic_cdk::query]
+fn get_protocol(version: u16) -> Option<sc_types::Protocol> {
+    catalog::get_protocol(version)
+}
+
+#[ic_cdk::query]
+fn get_subject(subject_id: u32) -> Option<Subject> {
+    catalog::get_subject(subject_id)
+}
+
+#[ic_cdk::query]
+fn get_lease(task_id: u64) -> Option<Lease> {
+    catalog::get_lease(task_id)
+}
+
+#[ic_cdk::update]
+async fn get_task() -> Result<sc_types::Task, ApiError> {
+    let cfg = config::get();
+    if cfg.paused.tasks {
+        return Err(ApiError::Unauthorized);
+    }
+    let caller = ic_cdk::api::msg_caller();
+    let record = registry::get_aaa(&caller).ok_or(ApiError::NotRegistered)?;
+    if record.status == registry::AaaStatus::Suspended {
+        return Err(ApiError::Suspended);
+    }
+    if record.status != registry::AaaStatus::Active
+        && record.status != registry::AaaStatus::SelfManaged
+    {
+        return Err(ApiError::NotRegistered);
+    }
+    let fee = cfg.params.fee_get_task;
+    if fee > 0 {
+        let available = ic_cdk::api::msg_cycles_available();
+        if available < fee {
+            return Err(ApiError::InsufficientFee {
+                required: fee.into(),
+            });
+        }
+        ic_cdk::api::msg_cycles_accept(fee);
+    }
+    let now = ic_cdk::api::time();
+    if record.verified_at == 0 || now.saturating_sub(record.verified_at) >= 3_600 * 1_000_000_000 {
+        verify(caller).await?;
+    }
+    let classifications_count = 0;
+    let roll = rng::next_u32();
+    catalog::issue_task(
+        caller,
+        classifications_count,
+        &cfg.params,
+        cfg.current_protocol_version,
+        now,
+        roll,
+    )
 }

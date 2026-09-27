@@ -24,6 +24,13 @@ type AdminListAaasFilter = record {
   owner : opt principal;
   name_prefix : opt text;
 };
+type AdminListSubjectsFilter = record {
+  field : opt text;
+  active : opt bool;
+  gold : opt bool;
+};
+type Answer = record { answer_id : text; question_id : text };
+type AnswerOption = record { id : text; next : opt text; label : text };
 type ApiError = variant {
   Internal : text;
   NotRegistered;
@@ -47,7 +54,15 @@ type AuditEntry = record {
   summary : text;
 };
 type CheckNameResult = variant { Ok; Invalid; Taken };
+type DiscoveryCategory = record { id : text; description : text; label : text };
 type Heartbeat = record { wasm_version : nat32; cycles : nat };
+type Lease = record {
+  aaa : principal;
+  issued_at : nat64;
+  consumed_by : opt nat64;
+  subject_id : nat32;
+  expires_at : nat64;
+};
 type OperatorSetInput = record {
   operators : vec record { principal; opt nat64 };
 };
@@ -86,6 +101,13 @@ type Params = record {
   fee_get_task : nat;
 };
 type PauseFlags = record { tasks : bool; reviews : bool; spawns : bool };
+type Protocol = record {
+  version : nat16;
+  guidance_md : text;
+  questions : vec Question;
+  discovery_categories : vec DiscoveryCategory;
+};
+type Question = record { id : text; answers : vec AnswerOption; prompt : text };
 type RegisterArgs = record {
   owner : principal;
   name : text;
@@ -93,12 +115,40 @@ type RegisterArgs = record {
   avatar_seed : nat64;
 };
 type Result = variant { Ok; Err : ApiError };
-type Result_1 = variant { Ok : vec AuditEntry; Err : ApiError };
-type Result_2 = variant { Ok : AaaRecord; Err : ApiError };
-type Result_3 = variant { Ok : vec AaaRecord; Err : ApiError };
-type Result_4 = variant { Ok : vec principal; Err : ApiError };
-type Result_5 = variant { Ok : vec record { nat32; WasmMeta }; Err : ApiError };
-type Result_6 = variant { Ok : Overview; Err : ApiError };
+type Result_1 = variant { Ok : nat32; Err : ApiError };
+type Result_10 = variant { Ok : Task; Err : ApiError };
+type Result_2 = variant { Ok : vec AuditEntry; Err : ApiError };
+type Result_3 = variant { Ok : AaaRecord; Err : ApiError };
+type Result_4 = variant { Ok : vec AaaRecord; Err : ApiError };
+type Result_5 = variant { Ok : vec principal; Err : ApiError };
+type Result_6 = variant { Ok : vec Protocol; Err : ApiError };
+type Result_7 = variant { Ok : vec Subject; Err : ApiError };
+type Result_8 = variant { Ok : vec record { nat32; WasmMeta }; Err : ApiError };
+type Result_9 = variant { Ok : Overview; Err : ApiError };
+type Subject = record {
+  active : bool;
+  gold : opt vec Answer;
+  ref_ : SubjectRef;
+  tally_count : nat16;
+};
+type SubjectInput = record { subject : SubjectRef; gold : opt vec Answer };
+type SubjectRef = record {
+  field : text;
+  image_url : text;
+  data_version : nat16;
+  dossier_url : text;
+  subject_id : nat32;
+  ra_deg : float64;
+  image_sha256 : blob;
+  dossier_sha256 : blob;
+  dec_deg : float64;
+};
+type Task = record {
+  protocol : Protocol;
+  task_id : nat64;
+  subject : SubjectRef;
+  lease_expires_at_ns : nat64;
+};
 type UpdateAaaProfileArgs = record { name : opt text; avatar_seed : opt nat64 };
 type WasmMeta = record {
   sha256 : blob;
@@ -110,26 +160,38 @@ service : () -> {
   aaa_by_owner : (principal) -> (opt principal) query;
   aaa_owner : (principal) -> (opt principal) query;
   admin_add_admin : (principal) -> (Result);
+  admin_add_protocol : (Protocol) -> (Result);
+  admin_add_subjects : (vec SubjectInput) -> (Result_1);
   admin_approve_wasm : (nat32) -> (Result);
-  admin_audit_log : (opt nat64, nat32) -> (Result_1) query;
-  admin_get_aaa : (principal) -> (Result_2) query;
-  admin_list_aaas : (AdminListAaasFilter, opt nat64, nat32) -> (Result_3) query;
-  admin_list_admins : () -> (Result_4) query;
-  admin_list_wasms : () -> (Result_5) query;
-  admin_overview : () -> (Result_6) query;
+  admin_audit_log : (opt nat64, nat32) -> (Result_2) query;
+  admin_get_aaa : (principal) -> (Result_3) query;
+  admin_list_aaas : (AdminListAaasFilter, opt nat64, nat32) -> (Result_4) query;
+  admin_list_admins : () -> (Result_5) query;
+  admin_list_protocols : () -> (Result_6) query;
+  admin_list_subjects : (AdminListSubjectsFilter, opt nat64, nat32) -> (
+      Result_7,
+    ) query;
+  admin_list_wasms : () -> (Result_8) query;
+  admin_overview : () -> (Result_9) query;
   admin_pause : (PauseFlags) -> (Result);
   admin_remove_admin : (principal) -> (Result);
   admin_rename_aaa : (principal, text, text) -> (Result);
   admin_retry_install : (principal) -> (Result);
+  admin_set_current_protocol : (nat16) -> (Result);
   admin_set_params : (Params) -> (Result);
   admin_set_payments_id : (principal) -> (Result);
+  admin_set_subject_active : (nat32, bool) -> (Result);
   admin_suspend_aaa : (principal, text) -> (Result);
   admin_unsuspend_aaa : (principal) -> (Result);
   admin_upload_wasm : (nat32, blob, blob) -> (Result);
   check_name : (text) -> (CheckNameResult) query;
   get_aaa : (principal) -> (opt AaaRecord) query;
   get_aaa_by_name : (text) -> (opt AaaRecord) query;
+  get_lease : (nat64) -> (opt Lease) query;
   get_params : () -> (Params) query;
+  get_protocol : (nat16) -> (opt Protocol) query;
+  get_subject : (nat32) -> (opt Subject) query;
+  get_task : () -> (Result_10);
   heartbeat : (Heartbeat) -> (Result);
   register_aaa : (RegisterArgs) -> (Result);
   sync_operators : (OperatorSetInput) -> (Result);

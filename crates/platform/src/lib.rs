@@ -1,5 +1,6 @@
 pub mod api;
 pub mod audit;
+pub mod catalog;
 pub mod config;
 mod memory;
 pub mod registry;
@@ -9,6 +10,7 @@ mod timers;
 use api::Overview;
 use audit::AuditEntry;
 use candid::Principal;
+use catalog::{AdminListSubjectsFilter, Lease, Subject, SubjectInput};
 use config::{Params, PauseFlags};
 use registry::{
     AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput, RegisterArgs,
