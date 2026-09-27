@@ -684,16 +684,7 @@ async fn submit_classification(
         ic_cdk::api::msg_cycles_accept(fee);
     }
     let now = ic_cdk::api::time();
-    let is_owner = submission.submitted_by == record.owner;
-    let is_operator = registry::get_operators(&caller).is_some_and(|op_set| {
-        op_set
-            .operators
-            .iter()
-            .any(|(op, exp)| op == &submission.submitted_by && exp.is_none_or(|e| e > now))
-    });
-    if !is_owner && !is_operator {
-        return Err(ApiError::Unauthorized);
-    }
+    registry::check_submitter(&caller, &submission.submitted_by, now)?;
 
     verify(caller).await?;
 

@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T2.8 Submitter security: strict provenance, operator sync, submitted_by (done)
+- Multi-layer submitter authentication enforcing check_submitter: owner or active, synced, non-expired operator required.
+- sync_operators rate-limited (10/hr) with strict validation: <=5 operators, non-anonymous, non-owner, no duplicates.
+- Strict provenance verification via canister_info: unapproved wasm module hash or deletion triggers suspension and AaaSuspended event.
+- PocketIC acceptance test t2_8_foreign_expired_unsynced_submitter_rejected + 3 unit tests pass; platform coverage 94.4% (min 90%).
+
 ## 2026-09-27 — T2.6 Public queries: stats, protocol, aaa_by_owner, aaa_public (done)
 - Public query endpoints get_stats (landing page totals), get_protocol(v), aaa_by_owner/aaa_owner, get_aaa_public, and get_leaderboard.
 - Progressive XP, tiers (1-5), badges, and reputation_bp with Laplace prior (5,000 baseline) tracked in stable memory (mem 43/44).

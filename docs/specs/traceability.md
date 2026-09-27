@@ -44,4 +44,5 @@
 | Retire at K=5; idempotent submit | T2.4 | t2_4_retire_at_k5_and_idempotent_submit |
 | Events append; paged activity | T2.5 | t2_5_events_append_and_paged_activity |
 | Queries paged ≤100 | T2.6 | t2_6_public_queries_paged_limit_100 |
+| Foreign/expired/unsynced submitter rejected | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |
 

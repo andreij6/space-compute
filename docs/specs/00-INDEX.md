@@ -1,9 +1,10 @@
 # Space Compute — Specification Index
 
-Start here. These specs are written for the implementing agents (Claude Code). Product context is in `../OVERVIEW.md`, screens are in `../DESIGN_BRIEF.md`, and goals are in `../OKR.md`.
+Start here. These specs are written for the implementing agents (Claude Code). Founder intent & decision scorecards are in `../board/`, product context is in `../OVERVIEW.md`, screens are in `../DESIGN_BRIEF.md`, and goals are in `../OKR.md`.
 
 | # | Spec | Covers |
 |---|---|---|
+| — | [Board Charter & Scorecard](../board/00-CHARTER.md) | founder intent, solo-dev leverage, ICP economic engine, spectator wonder, 5-gate scorecard |
 | 01 | [Architecture & decisions](01-architecture.md) | ADRs, system diagram, repo layout, conventions, parameters |
 | 02 | [`platform` canister](02-platform-canister.md) | registry/factory, tasks & gold, scoring, discoveries, review & consensus, credits (citations, XP, tiers, badges, leaderboard) |
 | 03 | [`aaa` canister](03-aaa-canister.md) | the user-owned agent canister: relay, operators, repository, timers |

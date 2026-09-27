@@ -121,6 +121,31 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory::get(memory::AAA_OPERATORS)));
     static AAA_PROVENANCE: RefCell<StableBTreeMap<Principal, Provenance, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::AAA_PROVENANCE)));
+    static SYNC_OPERATORS_RATE_LIMITS: RefCell<std::collections::HashMap<Principal, (f64, u64)>> =
+        RefCell::new(std::collections::HashMap::new());
+}
+
+fn check_sync_operators_rate_limit(aaa: Principal, now_ns: u64) -> Result<(), ApiError> {
+    SYNC_OPERATORS_RATE_LIMITS.with_borrow_mut(|map| {
+        let max_tokens = 10.0;
+        let fill_rate_per_ns = max_tokens / (3_600.0 * 1_000_000_000.0);
+        let entry = map.entry(aaa).or_insert((max_tokens, now_ns));
+        let elapsed_ns = now_ns.saturating_sub(entry.1) as f64;
+        let mut tokens = entry.0 + elapsed_ns * fill_rate_per_ns;
+        if tokens > max_tokens {
+            tokens = max_tokens;
+        }
+        if tokens < 1.0 {
+            let needed = 1.0 - tokens;
+            let wait_secs = (needed / (max_tokens / 3600.0)).ceil() as u32;
+            return Err(ApiError::RateLimited {
+                retry_after_secs: wait_secs.max(1),
+            });
+        }
+        entry.0 = tokens - 1.0;
+        entry.1 = now_ns;
+        Ok(())
+    })
 }
 
 pub fn upload_wasm(version: u32, blob: Vec<u8>, sha256: Vec<u8>) -> Result<(), ApiError> {
@@ -416,10 +441,19 @@ pub fn verify_provenance(
     let mut record = AAA_REGISTRY
         .with_borrow(|m| m.get(&aaa))
         .ok_or(ApiError::NotFound)?;
+    let owner = record.owner;
     record.platform_is_controller = controllers.contains(&platform_id);
     let Some(hash) = module_hash else {
         record.status = AaaStatus::Deleted;
         AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
+        crate::events::record_event(
+            now,
+            aaa,
+            owner,
+            crate::events::EventKind::AaaSuspended {
+                reason: "canister module deleted".into(),
+            },
+        );
         return Err(ApiError::Suspended);
     };
     if is_approved_module_hash(&hash) {
@@ -442,6 +476,14 @@ pub fn verify_provenance(
     } else {
         record.status = AaaStatus::Suspended;
         AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
+        crate::events::record_event(
+            now,
+            aaa,
+            owner,
+            crate::events::EventKind::AaaSuspended {
+                reason: "strict provenance: unapproved module hash".into(),
+            },
+        );
         Err(ApiError::Suspended)
     }
 }
@@ -483,6 +525,25 @@ pub fn record_sync_operators(
     if record.status == AaaStatus::Suspended {
         return Err(ApiError::Suspended);
     }
+    if record.status != AaaStatus::Active && record.status != AaaStatus::SelfManaged {
+        return Err(ApiError::NotRegistered);
+    }
+    if args.operators.len() > 5 {
+        return Err(ApiError::invalid("at most 5 operators"));
+    }
+    let mut seen = std::collections::HashSet::new();
+    for (op, _) in &args.operators {
+        if *op == Principal::anonymous() {
+            return Err(ApiError::invalid("operator cannot be anonymous"));
+        }
+        if *op == record.owner {
+            return Err(ApiError::invalid("the owner cannot also be an operator"));
+        }
+        if !seen.insert(*op) {
+            return Err(ApiError::invalid("duplicate operator"));
+        }
+    }
+    check_sync_operators_rate_limit(caller, now_ns)?;
     AAA_OPERATORS.with_borrow_mut(|m| {
         m.insert(
             caller,
@@ -494,6 +555,36 @@ pub fn record_sync_operators(
         )
     });
     Ok(())
+}
+
+pub fn check_submitter(
+    aaa: &Principal,
+    submitted_by: &Principal,
+    now_ns: u64,
+) -> Result<(), ApiError> {
+    let record = AAA_REGISTRY
+        .with_borrow(|m| m.get(aaa))
+        .ok_or(ApiError::NotRegistered)?;
+    if record.status == AaaStatus::Suspended {
+        return Err(ApiError::Suspended);
+    }
+    if record.status != AaaStatus::Active && record.status != AaaStatus::SelfManaged {
+        return Err(ApiError::NotRegistered);
+    }
+    if *submitted_by == record.owner {
+        return Ok(());
+    }
+    let op_set = AAA_OPERATORS.with_borrow(|m| m.get(aaa));
+    if let Some(set) = op_set {
+        let is_valid = set
+            .operators
+            .iter()
+            .any(|(op, exp)| op == submitted_by && exp.is_none_or(|e| e > now_ns));
+        if is_valid {
+            return Ok(());
+        }
+    }
+    Err(ApiError::Unauthorized)
 }
 
 pub fn record_update_profile(
@@ -1000,5 +1091,205 @@ mod tests {
         );
         assert_eq!(list.len(), 1);
         assert!(active_aaas_count() >= 1);
+    }
+
+    #[test]
+    fn t2_8_submitter_security_owner_operator_foreign_and_expiry() {
+        let blob = vec![5, 6, 7, 8];
+        let hash = Sha256::digest(&blob).to_vec();
+        let _ = upload_wasm(1, blob, hash.clone());
+        let _ = approve_wasm(1, 50);
+
+        let owner = p(101);
+        let canister = p(102);
+        let operator_valid = p(103);
+        let operator_expiring_future = p(104);
+        let operator_expired = p(105);
+        let operator_unsynced = p(106);
+        let foreign_stranger = p(107);
+        let other_owner = p(108);
+        let other_canister = p(109);
+
+        let reg = RegisterArgs {
+            canister_id: canister,
+            owner,
+            name: "SecAaa1".into(),
+            avatar_seed: 11,
+        };
+        pre_register_aaa(&reg, 100).unwrap();
+        verify_provenance(canister, Some(hash.clone()), 1, &[owner], p(99), 100).unwrap();
+
+        let reg_other = RegisterArgs {
+            canister_id: other_canister,
+            owner: other_owner,
+            name: "SecAaa2".into(),
+            avatar_seed: 12,
+        };
+        pre_register_aaa(&reg_other, 100).unwrap();
+        verify_provenance(other_canister, Some(hash), 1, &[other_owner], p(99), 100).unwrap();
+
+        let sync_args = OperatorSetInput {
+            operators: vec![
+                (operator_valid, None),
+                (operator_expiring_future, Some(500_000_000_000)),
+                (operator_expired, Some(200_000_000_000)),
+            ],
+        };
+        record_sync_operators(canister, sync_args, 150_000_000_000).unwrap();
+
+        let current_time = 300_000_000_000;
+        assert_eq!(check_submitter(&canister, &owner, current_time), Ok(()));
+        assert_eq!(
+            check_submitter(&canister, &operator_valid, current_time),
+            Ok(())
+        );
+        assert_eq!(
+            check_submitter(&canister, &operator_expiring_future, current_time),
+            Ok(())
+        );
+        assert_eq!(
+            check_submitter(&canister, &operator_expired, current_time),
+            Err(ApiError::Unauthorized)
+        );
+        assert_eq!(
+            check_submitter(&canister, &operator_unsynced, current_time),
+            Err(ApiError::Unauthorized)
+        );
+        assert_eq!(
+            check_submitter(&canister, &foreign_stranger, current_time),
+            Err(ApiError::Unauthorized)
+        );
+        assert_eq!(
+            check_submitter(&canister, &other_owner, current_time),
+            Err(ApiError::Unauthorized)
+        );
+        assert_eq!(
+            check_submitter(&other_canister, &operator_valid, current_time),
+            Err(ApiError::Unauthorized)
+        );
+        assert_eq!(
+            check_submitter(&p(250), &owner, current_time),
+            Err(ApiError::NotRegistered)
+        );
+
+        suspend_aaa(canister).unwrap();
+        assert_eq!(
+            check_submitter(&canister, &owner, current_time),
+            Err(ApiError::Suspended)
+        );
+        unsuspend_aaa(canister).unwrap();
+    }
+
+    #[test]
+    fn t2_8_sync_operators_validation_and_rate_limiting() {
+        let blob = vec![5, 6, 7, 8];
+        let hash = Sha256::digest(&blob).to_vec();
+        let _ = upload_wasm(1, blob, hash.clone());
+        let _ = approve_wasm(1, 50);
+
+        let owner = p(111);
+        let canister = p(112);
+        let reg = RegisterArgs {
+            canister_id: canister,
+            owner,
+            name: "SyncValAaa".into(),
+            avatar_seed: 21,
+        };
+        pre_register_aaa(&reg, 100).unwrap();
+        verify_provenance(canister, Some(hash), 1, &[owner], p(99), 100).unwrap();
+
+        let too_many = OperatorSetInput {
+            operators: vec![
+                (p(1), None),
+                (p(2), None),
+                (p(3), None),
+                (p(4), None),
+                (p(5), None),
+                (p(6), None),
+            ],
+        };
+        assert!(matches!(
+            record_sync_operators(canister, too_many, 1_000_000_000),
+            Err(ApiError::InvalidInput(_))
+        ));
+
+        let anon = OperatorSetInput {
+            operators: vec![(Principal::anonymous(), None)],
+        };
+        assert!(matches!(
+            record_sync_operators(canister, anon, 1_000_000_000),
+            Err(ApiError::InvalidInput(_))
+        ));
+
+        let owner_as_op = OperatorSetInput {
+            operators: vec![(owner, None)],
+        };
+        assert!(matches!(
+            record_sync_operators(canister, owner_as_op, 1_000_000_000),
+            Err(ApiError::InvalidInput(_))
+        ));
+
+        let duplicate = OperatorSetInput {
+            operators: vec![(p(1), None), (p(1), Some(999))],
+        };
+        assert!(matches!(
+            record_sync_operators(canister, duplicate, 1_000_000_000),
+            Err(ApiError::InvalidInput(_))
+        ));
+
+        for i in 0..10 {
+            let valid = OperatorSetInput {
+                operators: vec![(p(i + 1), None)],
+            };
+            assert_eq!(
+                record_sync_operators(canister, valid, 1_000_000_000 + i as u64),
+                Ok(())
+            );
+        }
+        let rate_limited = OperatorSetInput {
+            operators: vec![(p(20), None)],
+        };
+        assert!(matches!(
+            record_sync_operators(canister, rate_limited, 1_000_000_015),
+            Err(ApiError::RateLimited { .. })
+        ));
+    }
+
+    #[test]
+    fn t2_8_strict_provenance_tampered_hash_suspends_aaa() {
+        let blob = vec![5, 6, 7, 8];
+        let hash = Sha256::digest(&blob).to_vec();
+        let _ = upload_wasm(1, blob, hash);
+        let _ = approve_wasm(1, 50);
+
+        let owner = p(121);
+        let canister = p(122);
+        let reg = RegisterArgs {
+            canister_id: canister,
+            owner,
+            name: "StrictProvAaa".into(),
+            avatar_seed: 31,
+        };
+        pre_register_aaa(&reg, 100).unwrap();
+
+        assert_eq!(
+            verify_provenance(canister, None, 1, &[owner], p(99), 200),
+            Err(ApiError::Suspended)
+        );
+        let rec = get_aaa(&canister).unwrap();
+        assert_eq!(rec.status, AaaStatus::Deleted);
+
+        let unapproved_hash = vec![250u8; 32];
+        assert_eq!(
+            verify_provenance(canister, Some(unapproved_hash), 2, &[owner], p(99), 300),
+            Err(ApiError::Suspended)
+        );
+        let rec = get_aaa(&canister).unwrap();
+        assert_eq!(rec.status, AaaStatus::Suspended);
+
+        assert_eq!(
+            check_submitter(&canister, &owner, 300),
+            Err(ApiError::Suspended)
+        );
     }
 }
