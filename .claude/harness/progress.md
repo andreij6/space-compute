@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T2.7 Platform PocketIC tests (02 §11 #1-3) (done)
+- Validated criteria 1 & 2: registration enforcement, InsufficientFee with cycle requirements, task receipt, idempotent duplicate submission.
+- Validated criterion 3: subject retirement at K=5 classifications, majority consensus evaluation, never reissued to any agent.
+- Verified rotating task pool and seen-set mechanics: an AAA never sees the same subject twice across tasks.
+- PocketIC acceptance tests t2_7_registered_aaa_task_receipt_and_idempotent_duplicate and t2_7_fifth_classification_retires_and_seen_set_never_reissues pass.
+
 ## 2026-09-27 — T2.8 Submitter security: strict provenance, operator sync, submitted_by (done)
 - Multi-layer submitter authentication enforcing check_submitter: owner or active, synced, non-expired operator required.
 - sync_operators rate-limited (10/hr) with strict validation: <=5 operators, non-anonymous, non-owner, no duplicates.

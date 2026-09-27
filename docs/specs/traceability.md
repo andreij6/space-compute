@@ -45,4 +45,6 @@
 | Events append; paged activity | T2.5 | t2_5_events_append_and_paged_activity |
 | Queries paged ≤100 | T2.6 | t2_6_public_queries_paged_limit_100 |
 | Foreign/expired/unsynced submitter rejected | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |
+| Registered AAA task receipt, fees, and duplicate idempotency | T2.7 | t2_7_registered_aaa_task_receipt_and_idempotent_duplicate |
+| 5th classification retires subject; seen-set never reissues | T2.7 | t2_7_fifth_classification_retires_and_seen_set_never_reissues |
 
