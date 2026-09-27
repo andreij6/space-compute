@@ -140,6 +140,13 @@ impl Op {
             _ => Err(ApiError::Internal("op is not a Spawn op".into())),
         }
     }
+
+    pub fn topup_fields(&self) -> Result<Principal, ApiError> {
+        match &self.kind {
+            OpKind::TopUp { aaa } => Ok(*aaa),
+            _ => Err(ApiError::Internal("op is not a TopUp op".into())),
+        }
+    }
 }
 
 thread_local! {
@@ -306,6 +313,24 @@ mod tests {
         assert_eq!(spawn.spawn_fields(), Ok((p(5), "Rover".to_string(), 7)));
         let topup = create(OpKind::TopUp { aaa: p(6) }, PayPath::Deposit, 0, p(6), 2);
         assert!(matches!(topup.spawn_fields(), Err(ApiError::Internal(_))));
+    }
+
+    #[test]
+    fn t5_4_topup_fields_extracts_from_topup_kind_only() {
+        let topup = create(OpKind::TopUp { aaa: p(7) }, PayPath::Deposit, 0, p(7), 1);
+        assert_eq!(topup.topup_fields(), Ok(p(7)));
+        let spawn = create(
+            OpKind::Spawn {
+                owner: p(8),
+                name: "Rover".into(),
+                avatar_seed: 1,
+            },
+            PayPath::Deposit,
+            0,
+            p(8),
+            2,
+        );
+        assert!(matches!(spawn.topup_fields(), Err(ApiError::Internal(_))));
     }
 
     #[test]

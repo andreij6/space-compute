@@ -255,6 +255,19 @@ async fn platform_aaa_by_owner(
         .map_err(|e| ApiError::Internal(format!("aaa_by_owner decode: {e:?}")))
 }
 
+async fn platform_aaa_owner(
+    platform: Principal,
+    aaa: Principal,
+) -> Result<Option<Principal>, ApiError> {
+    let reply = Call::bounded_wait(platform, "aaa_owner")
+        .with_arg(aaa)
+        .await
+        .map_err(|e| ApiError::Internal(format!("platform.aaa_owner: {e:?}")))?;
+    reply
+        .candid()
+        .map_err(|e| ApiError::Internal(format!("aaa_owner decode: {e:?}")))
+}
+
 async fn platform_check_name(
     platform: Principal,
     name: String,
@@ -430,6 +443,17 @@ async fn ledger_transfer_from(
     }
 }
 
+async fn ledger_allowance(account: Account, spender: Account) -> Result<u64, ApiError> {
+    let reply = Call::bounded_wait(rate::ledger_id(), "icrc2_allowance")
+        .with_arg(ledger::AllowanceArg { account, spender })
+        .await
+        .map_err(|e| ApiError::Internal(format!("icrc2_allowance: {e:?}")))?;
+    let allowance: ledger::Allowance = reply
+        .candid()
+        .map_err(|e| ApiError::Internal(format!("icrc2_allowance decode: {e:?}")))?;
+    Ok(nat_u64(allowance.allowance))
+}
+
 async fn cmc_notify_create(
     block_index: u64,
     controller: Principal,
@@ -451,6 +475,147 @@ async fn cmc_notify_create(
     reply
         .candid::<Result<Principal, cmc::CmcNotifyError>>()
         .map_err(|e| ApiError::Internal(format!("notify_create_canister decode: {e:?}")))
+}
+
+async fn cmc_notify_top_up(
+    block_index: u64,
+    canister_id: Principal,
+) -> Result<Result<u128, cmc::CmcNotifyError>, ApiError> {
+    let reply = Call::bounded_wait(rate::cmc_id(), "notify_top_up")
+        .with_arg(cmc::NotifyTopUpArg {
+            block_index,
+            canister_id,
+        })
+        .await
+        .map_err(|e| ApiError::Internal(format!("notify_top_up: {e:?}")))?;
+    let decoded: Result<Nat, cmc::CmcNotifyError> = reply
+        .candid()
+        .map_err(|e| ApiError::Internal(format!("notify_top_up decode: {e:?}")))?;
+    Ok(decoded.map(|n| n.0.try_into().unwrap_or(u128::MAX)))
+}
+
+async fn pull_or_sweep_topup(aaa: Principal, path: &PayPath) -> Result<u64, ApiError> {
+    let params = config::get().params;
+    let self_id = ic_cdk::api::canister_self();
+    let to = cmc::deposit_account(rate::cmc_id(), aaa);
+    let now = ic_cdk::api::time();
+    let memo = cmc::MEMO_TOP_UP.to_le_bytes().to_vec();
+    match path {
+        PayPath::Deposit => {
+            let sub = deposit::deposit_subaccount(Purpose::TopUp, aaa);
+            let from_account = Account {
+                owner: self_id,
+                subaccount: Some(sub),
+            };
+            let balance = ledger_balance(from_account).await?;
+            let amount =
+                deposit::sweep_amount(balance, quote::MIN_TOPUP_E8S, params.icp_ledger_fee_e8s)?;
+            ledger_transfer(Some(sub), to, amount, params.icp_ledger_fee_e8s, memo, now).await
+        }
+        PayPath::Wallet { payer } => {
+            let sub = deposit::spender_subaccount(Purpose::TopUp, aaa);
+            let spender = Account {
+                owner: self_id,
+                subaccount: Some(sub),
+            };
+            let allowance = ledger_allowance(payer.clone(), spender).await?;
+            let amount =
+                deposit::sweep_amount(allowance, quote::MIN_TOPUP_E8S, params.icp_ledger_fee_e8s)?;
+            ledger_transfer_from(
+                Some(sub),
+                payer.clone(),
+                to,
+                amount,
+                params.icp_ledger_fee_e8s,
+                memo,
+                now,
+            )
+            .await
+        }
+        PayPath::Treasury | PayPath::Invite { .. } => Err(ApiError::Internal(
+            "top_up does not support this path".into(),
+        )),
+    }
+}
+
+async fn advance_topup_saga(op_id: u64) -> Result<(), ApiError> {
+    loop {
+        let op = journal::get(op_id).ok_or(ApiError::NotFound)?;
+        if op.state.is_terminal() {
+            return Ok(());
+        }
+        let aaa = op.topup_fields()?;
+        match op.state.clone() {
+            OpState::Pending => {
+                let block = pull_or_sweep_topup(aaa, &op.path).await?;
+                journal::advance(op_id, OpState::Pulled { block }, ic_cdk::api::time())?;
+            }
+            OpState::Pulled { block } => match cmc_notify_top_up(block, aaa).await? {
+                Ok(cycles) => {
+                    journal::advance(
+                        op_id,
+                        OpState::Notified {
+                            canister_or_cycles: NotifiedInfo::Cycles(cycles),
+                        },
+                        ic_cdk::api::time(),
+                    )?;
+                }
+                Err(cmc::CmcNotifyError::Refunded { block_index, .. }) => {
+                    journal::advance(
+                        op_id,
+                        OpState::Refunded {
+                            block: block_index.unwrap_or(block),
+                        },
+                        ic_cdk::api::time(),
+                    )?;
+                    return Err(ApiError::Internal(
+                        "the CMC refunded the top-up transfer".into(),
+                    ));
+                }
+                Err(e) => return Err(ApiError::Internal(format!("notify_top_up: {e}"))),
+            },
+            OpState::Notified {
+                canister_or_cycles: NotifiedInfo::Cycles(_),
+            } => {
+                journal::advance(op_id, OpState::Done, ic_cdk::api::time())?;
+            }
+            OpState::Notified { .. } => {
+                return Err(ApiError::Internal(
+                    "top-up op notified with a canister instead of cycles".into(),
+                ));
+            }
+            _ => return Err(ApiError::Internal("unexpected top-up op state".into())),
+        }
+    }
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct TopUpArgs {
+    pub aaa: Principal,
+    pub path: PayPath,
+}
+
+#[ic_cdk::update]
+async fn top_up(args: TopUpArgs) -> Result<u64, ApiError> {
+    let caller = ic_cdk::api::msg_caller();
+    if caller == Principal::anonymous() {
+        return Err(ApiError::Unauthorized);
+    }
+    if matches!(args.path, PayPath::Treasury | PayPath::Invite { .. }) {
+        return Err(ApiError::invalid(
+            "top_up only supports the Wallet or Deposit paths",
+        ));
+    }
+    let platform = config::platform_id()?;
+    let owner = platform_aaa_owner(platform, args.aaa).await?;
+    if owner.is_none() {
+        return Err(ApiError::NotFound);
+    }
+    let _guard = CallerGuard::acquire(guard::key("topup", args.aaa))?;
+    let now = ic_cdk::api::time();
+    let op = journal::create(OpKind::TopUp { aaa: args.aaa }, args.path, 0, caller, now);
+    advance_topup_saga(op.id).await?;
+    Ok(op.id)
 }
 
 async fn pull_or_sweep_spawn(op: &Op) -> Result<u64, ApiError> {
@@ -613,15 +778,20 @@ pub(crate) async fn resume(op_id: u64) -> Result<(), ApiError> {
     if op.state.is_terminal() {
         return Ok(());
     }
-    let owner = match &op.kind {
-        OpKind::Spawn { owner, .. } => *owner,
-        _ => {
-            return Err(ApiError::Internal(
-                "resume: only Spawn ops are implemented in T5.3".into(),
-            ))
+    match &op.kind {
+        OpKind::Spawn { owner, .. } => {
+            let owner = *owner;
+            let _guard = CallerGuard::acquire(guard::key("spawn", owner))?;
+            let platform = config::platform_id()?;
+            advance_spawn_saga(op_id, platform).await
         }
-    };
-    let _guard = CallerGuard::acquire(guard::key("spawn", owner))?;
-    let platform = config::platform_id()?;
-    advance_spawn_saga(op_id, platform).await
+        OpKind::TopUp { aaa } => {
+            let aaa = *aaa;
+            let _guard = CallerGuard::acquire(guard::key("topup", aaa))?;
+            advance_topup_saga(op_id).await
+        }
+        _ => Err(ApiError::Internal(
+            "resume: this op kind is not implemented yet".into(),
+        )),
+    }
 }

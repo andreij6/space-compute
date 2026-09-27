@@ -5,6 +5,8 @@ use serde::Deserialize;
 use crate::config::Params;
 use crate::rate::RateCache;
 
+pub const MIN_TOPUP_E8S: u64 = 10_000_000;
+
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
 pub struct Quote {
     pub v: u8,
@@ -120,6 +122,11 @@ mod tests {
         assert_eq!(q.cycles, buffered);
         assert_eq!(q.fee_e8s, params.icp_ledger_fee_e8s);
         assert!(e8s_to_cycles(q.deposit_e8s, 37_300) >= buffered);
+    }
+
+    #[test]
+    fn t5_4_min_topup_e8s_is_one_tenth_icp() {
+        assert_eq!(MIN_TOPUP_E8S, 10_000_000);
     }
 
     #[test]

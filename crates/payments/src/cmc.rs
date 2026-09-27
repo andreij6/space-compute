@@ -4,7 +4,14 @@ use serde::Deserialize;
 use crate::journal::Account;
 
 pub const MEMO_CREATE: u64 = 0x4145_5243;
+pub const MEMO_TOP_UP: u64 = 0x5055_5054;
 pub const SIXTY_DAYS_SECS: u64 = 60 * 86_400;
+
+#[derive(CandidType)]
+pub struct NotifyTopUpArg {
+    pub block_index: u64,
+    pub canister_id: Principal,
+}
 
 #[derive(CandidType)]
 pub struct CanisterSettingsArgs {
@@ -75,6 +82,14 @@ mod tests {
         assert_eq!(
             MEMO_CREATE.to_le_bytes(),
             [0x43, 0x52, 0x45, 0x41, 0, 0, 0, 0]
+        );
+    }
+
+    #[test]
+    fn t5_4_memo_top_up_matches_spec_bytes() {
+        assert_eq!(
+            MEMO_TOP_UP.to_le_bytes(),
+            [0x54, 0x50, 0x55, 0x50, 0, 0, 0, 0]
         );
     }
 

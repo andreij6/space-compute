@@ -13,7 +13,7 @@ pub mod quote;
 pub mod rate;
 mod timers;
 
-use api::{JournalDemoArg, Overview, SpawnArgs};
+use api::{JournalDemoArg, Overview, SpawnArgs, TopUpArgs};
 use audit::AuditEntry;
 use candid::Principal;
 use config::{Features, Params, PauseFlags};

@@ -36,6 +36,18 @@ pub struct TransferFromArg {
     pub created_at_time: Option<u64>,
 }
 
+#[derive(CandidType)]
+pub struct AllowanceArg {
+    pub account: Account,
+    pub spender: Account,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub struct Allowance {
+    pub allowance: Nat,
+    pub expires_at: Option<u64>,
+}
+
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
 pub enum TransferFromError {
     BadFee { expected_fee: Nat },

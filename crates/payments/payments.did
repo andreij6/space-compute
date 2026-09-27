@@ -120,6 +120,7 @@ type Result_5 = variant { Ok : Overview; Err : ApiError };
 type Result_6 = variant { Ok : RateCache; Err : ApiError };
 type Result_7 = variant { Ok : Quote; Err : ApiError };
 type SpawnArgs = record { name : text; path : PayPath; avatar_seed : nat64 };
+type TopUpArgs = record { aaa : principal; path : PayPath };
 service : () -> {
   admin_add_admin : (principal) -> (Result);
   admin_audit_log : (opt nat64, nat32) -> (Result_1) query;
@@ -142,5 +143,6 @@ service : () -> {
   get_rate : () -> (RateCache) query;
   resume : (nat64) -> (Result);
   spawn_aaa : (SpawnArgs) -> (Result_2);
+  top_up : (TopUpArgs) -> (Result_2);
   version : () -> (text) query;
 }
