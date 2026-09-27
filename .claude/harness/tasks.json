@@ -476,6 +476,26 @@
   "pct": 1
  },
  {
+  "id": "T2.9",
+  "phase": "P2",
+  "name": "Lead-review fixes for P2 (gold leak, verify auth, provenance, install idempotency, payments_id, scans, limits)",
+  "lane": 1,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 2,
+  "deps": [
+   "T2.7",
+   "T2.8"
+  ],
+  "spec": "02 §4-7, 08 §3",
+  "acceptance": "Review defects #1-2,4-6,10-18,20-21 closed with tests",
+  "demo": "test: just demo T2.9  (narrated PocketIC/pytest run)",
+  "start": "2026-10-27",
+  "end": "2026-10-28",
+  "status": "in_progress",
+  "pct": 0.5
+ },
+ {
   "id": "T3.1",
   "phase": "P3",
   "name": "AAA skeleton: roles, operators, config, inspect_message",
@@ -498,7 +518,7 @@
   "id": "T3.2",
   "phase": "P3",
   "name": "AAA forwarding w/ fees, retries, idempotency, low-cycles guard",
-  "lane": 1,
+  "lane": 2,
   "tier": "H",
   "model": "opus-5.5 (high)",
   "days": 3,
@@ -1115,8 +1135,8 @@
   "demo": "test: just demo T5.17  (narrated PocketIC/pytest run)",
   "start": "2026-12-08",
   "end": "2026-12-10",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T5.18",

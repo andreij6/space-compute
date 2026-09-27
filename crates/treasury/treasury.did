@@ -1,1 +1,105 @@
-service : () -> { version : () -> (text) query }
+type Action = variant {
+  Withdraw : record { to : principal; amount_e8s : nat64 };
+  SetConfig : Config;
+};
+type ApiError = variant {
+  Internal : text;
+  NotRegistered;
+  InvalidInput : text;
+  InsufficientFee : record { required : nat };
+  NotFound;
+  Suspended;
+  LeaseExpired;
+  LeaseNotFound;
+  Unauthorized;
+  RateLimited : record { retry_after_secs : nat32 };
+  NotEligible : text;
+  Conflict : text;
+};
+type CanisterRunway = record {
+  burn_per_day : nat;
+  cycles : nat;
+  runway_days : nat32;
+  canister : principal;
+  priority : nat8;
+};
+type Config = record {
+  v : nat8;
+  withdraw_approval_secs : nat64;
+  default_target_days : nat32;
+  runway_alert_days : nat32;
+  min_topup_cycles : nat;
+  admins : vec principal;
+  min_balance_cycles : nat;
+  reserve_e8s : nat64;
+  check_interval_secs : nat64;
+};
+type Health = record {
+  reserve_breached : bool;
+  min_runway_days : nat32;
+  worst_canister : opt principal;
+};
+type HistoryItem = record {
+  v : nat8;
+  at : nat64;
+  seq : nat64;
+  actor : principal;
+  kind : HistoryKind;
+};
+type HistoryKind = variant {
+  WithdrawFailed : record { id : nat64; reason : text };
+  Deposit : record { e8s : nat64 };
+  TopUpFailed : record { canister : principal; reason : text };
+  Withdrawn : record {
+    id : nat64;
+    to : principal;
+    amount_e8s : nat64;
+    block : nat64;
+  };
+  SkippedReserve : record { canister : principal; needed_e8s : nat64 };
+  Proposed : record { id : nat64; summary : text };
+  TopUp : record {
+    e8s : nat64;
+    cycles : nat;
+    canister : principal;
+    block : nat64;
+  };
+  Admin : record { method : text; summary : text };
+  ConfigChanged : record { id : nat64 };
+};
+type Proposal = record {
+  v : nat8;
+  action : Action;
+  executing_since : opt nat64;
+  proposer : principal;
+  proposed_at : nat64;
+};
+type Result = variant { Ok : opt nat64; Err : ApiError };
+type Result_1 = variant { Ok : Config; Err : ApiError };
+type Result_2 = variant { Ok : vec record { nat64; Proposal }; Err : ApiError };
+type Result_3 = variant { Ok : Health; Err : ApiError };
+type Result_4 = variant { Ok; Err : ApiError };
+type Result_5 = variant { Ok : nat64; Err : ApiError };
+type Status = record {
+  icp_balance_e8s : nat64;
+  xdr_permyriad_per_icp : nat64;
+  canisters : vec CanisterRunway;
+  reserve_e8s : nat64;
+  daily_burn_cycles : nat;
+  checked_at : nat64;
+  projected_runway_months : nat32;
+};
+service : () -> {
+  admin_approve : (nat64) -> (Result);
+  admin_get_config : () -> (Result_1) query;
+  admin_proposals : () -> (Result_2) query;
+  admin_set_config : (Config) -> (Result);
+  admin_topup_now : (opt principal) -> (Result_3);
+  admin_unwatch : (principal) -> (Result_4);
+  admin_watch : (principal, nat8, nat32) -> (Result_4);
+  admin_withdraw : (principal, nat64) -> (Result_5);
+  health : () -> (Health) query;
+  history : (opt nat64, nat32) -> (vec HistoryItem, opt nat64) query;
+  status : () -> (Status) query;
+  version : () -> (text) query;
+}

@@ -14,5 +14,6 @@ serde = { workspace = true, features = ["derive"] }
 platform = { path = "../platform" }
 aaa = { path = "../aaa" }
 payments = { path = "../payments" }
+treasury = { path = "../treasury" }
 sc-types.workspace = true
 sha2.workspace = true

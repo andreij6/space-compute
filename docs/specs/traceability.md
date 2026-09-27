@@ -50,3 +50,7 @@
 | One record per task under SYS_UNKNOWN | T3.2 | t3_2_one_record_per_task_under_sys_unknown |
 | Records survive upgrade | T3.3 | t3_3_records_and_credits_survive_canister_upgrade |
 | get_api_doc documents every public method; wasm ≤ 1.5 MiB gz (verify gate) | T3.5 | t3_5_api_doc_lists_every_public_method_in_the_candid |
+| Keeper tops up low canisters via ledger→CMC, skips healthy ones; reserve floor stops top-ups and flags health() | T5.17 | t5_17_keeper_tops_up_low_canisters_and_health_flags_the_reserve |
+| Reserve floor never crossed; transfer retry reuses created_at; burn EMA ignores top-ups | T5.17 | t5_17_reserve_floor_is_never_crossed |
+| Sensitive config changes (admins, lower reserve) need a second admin | T5.17 | t5_17_sensitive_config_changes_need_a_second_admin |
+| 12 §5 #1-6: deposit, top-up, skip, reserve, two-admin withdraw, upgrade + timers resume | T5.18 | t5_18_withdraw_needs_two_admins_and_state_survives_upgrade |

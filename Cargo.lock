@@ -1152,6 +1152,7 @@ dependencies = [
  "sc-types",
  "serde",
  "sha2",
+ "treasury",
 ]
 
 [[package]]
@@ -2677,6 +2678,8 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "ic-cdk 0.20.3",
+ "ic-cdk-timers",
+ "ic-stable-structures",
  "sc-types",
  "serde",
 ]

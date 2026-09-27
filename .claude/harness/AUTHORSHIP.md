@@ -25,6 +25,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T3.1 | fdf33c1 | AAA skeleton — written by a Sonnet sub-agent of the lead, spot-checked by the lead |
 | T5.1 | 08d322b, aef2b5b | payments skeleton — Sonnet sub-agent; Stripe removed by the lead |
 | T3.5 | (see commit) | started by the other agent (stopped mid-task); lead fixed the doc (wrong `icp identity get-principal`, 7 undocumented methods) and added a Candid-drift test |
+| T5.17, T5.18 | (see commits) | treasury keeper; Opus-reviewed, 8 defects fixed |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 

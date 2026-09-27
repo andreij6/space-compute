@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T5.17 + T5.18 treasury keeper (done, lead)
+- Owner-funded ICP reserve; 6 h keeper reads canister_status of watched canisters (treasury co-controller), burn EMA (floor = idle burn), tops up to max(target_days × burn, min_balance) via icrc1_transfer→CMC (TPUP) + notify_top_up; reserve floor never crossed.
+- Money safety: in-flight intent with fixed created_at persisted before the transfer; Done/Failed/Unknown outcomes; Unknown retried with the same created_at (ledger dedupe). Withdrawals and admin/reserve-lowering config changes need a second admin (proposals).
+- health()/status()/history() public; deposits logged. Opus review found 8 defects (3 high); all fixed. Fuel-treasury feed (spec 12 §2.3) deferred to T5.8.
+
 ## 2026-09-27 — T3.3 AAA repository records + queries + credits copy (done)
 - Assigned Mem 5 to CREDITS with CreditCopy, CreditRole, and Outcome types in stable memory.
 - Repository records and credits indexing with newest-first ordering, page_limit clamping (≤100), and pruning guard (1M quota).
