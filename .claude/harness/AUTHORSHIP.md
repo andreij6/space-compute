@@ -32,7 +32,14 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 |---|---|---|---|
 | T6.1 | gemini-antigravity (no trailer) | 32a300a | **Reviewed 2026-09-27: not done** — mock data, no II auth/ic_env/bindgen/tests; reset to in_progress 30% (see progress.md) |
 | T6.1 screenshots | gemini-antigravity | uncommitted (`docs/demos/T6.1/`, `scripts/capture_screenshots.py`) | pending; script writes to the agent's private folder |
-| T2.2 | unknown (in progress, uncommitted edits to `crates/platform/src/memory.rs` seen 2026-09-27) | — | review when committed |
+| T2.2 | other agent (no Agent trailer) | b416e8b | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
+| T2.3 | other agent (no Agent trailer) | 862ebfc | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
+| T2.4 | other agent (no Agent trailer) | 258489f | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
+| T2.5 | other agent (no Agent trailer) | 8096466 | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
+| T2.6 | other agent (no Agent trailer) | 907a945 | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
+| T2.8 | other agent (no Agent trailer) | 1f15e0c | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
+| T2.7 | other agent (no Agent trailer) | ad9b922 | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
+| docs/board, docs/guide | other agent | uncommitted | pending |
 
 ## How to tell from git
 `git log --format='%h %s | %(trailers:key=Co-Authored-By,valueonly)%(trailers:key=Agent,valueonly)'` — lead commits carry `Co-Authored-By: Claude Opus 5.5`; anything else goes in "Other agents" and gets reviewed.
