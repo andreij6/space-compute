@@ -823,8 +823,8 @@
   "demo": "image: docs/demos/T4.7/contact-sheet.png",
   "start": "2026-11-13",
   "end": "2026-11-13",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T4.10",
