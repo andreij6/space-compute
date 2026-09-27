@@ -4,7 +4,7 @@ You are continuing Space Compute, an agent-run citizen-science astronomy app on 
 
 ## Read first (in this order, only what you need)
 1. `CLAUDE.md` / `AGENTS.md` (hard rules), `.claude/harness/README.md` (protocol: `/task <id>` then `/retro`).
-2. `.claude/harness/progress.md` (newest first) and `.claude/harness/LESSONS.md` (L-001…L-025; obey them).
+2. `.claude/harness/AUTHORSHIP.md` (who did what; add your row with every task), `.claude/harness/progress.md` (newest first) and `.claude/harness/LESSONS.md` (L-001…L-025; obey them).
 3. `.claude/harness/tasks.json` (status of every task), `docs/specs/10-tasks.md` (plan table), `docs/specs/00-INDEX.md`.
 4. For each task: only the spec sections named in its `spec` field (grep, then read ±40 lines).
 
@@ -33,7 +33,7 @@ T2.2 registry & factory (H), T2.3 catalog/get_task (M), T2.5 event log (M), then
 3. `just demo <id>` and `just verify` must be green (a skip counts as a failure). Add traceability rows in `docs/specs/traceability.md`.
 4. H-tier tasks, or anything touching money, auth or stable state: get one Opus review pass and fix what it finds.
 5. Add a progress.md entry (≤5 lines, newest first) and a LESSONS entry if something went wrong. Then `just task-status <id> done`, `just plan`.
-6. **Commit and push straight to main after every task**: `git add <explicit paths>` then `git commit -m "<id>: <summary>"` then `git push origin main`. One commit per task; no branches or PRs.
+6. **Commit and push straight to main after every task**: `git add <explicit paths>` then `git commit -m "<id>: <summary>" -m "Agent: <your tool>/<model>"` (plus your AUTHORSHIP.md row in "Other agents") then `git push origin main`. One commit per task; no branches or PRs. The lead session reviews your tasks against their acceptance lines before they count as done.
 7. Keep `docs/OKR.md` current when scope or parameters change.
 
 ## Gantt (owner's Google Sheet)
