@@ -72,6 +72,7 @@ Technical unknowns and spikes resolution for Space Compute.
 ## 3. Canister Runtime & Tooling
 
 ### Q9 (SP-3): Frozen Canister Query & Management Behavior
+> **Correction 2026-09-27 (SP-3, tested):** wrong below — a frozen canister rejects ingress queries and updates, and even a controller's `canister_status` is rejected. Only a CMC top-up (which works on frozen canisters) brings it back. See `just demo SP-3`.
 - **Answer:** Ingress `query` calls still execute when a canister is frozen. Inter-canister calls and composite queries fail with `SYS_TRANSIENT`. `canister_status` calls by a controller succeed because they execute on the subnet management canister (`aaaaa-aa`).
 - **Confidence:** High.
 - **Evidence:** DFINITY canister execution environment specs; ic-cdk execution model.

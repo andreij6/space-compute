@@ -42,7 +42,7 @@ Method: two passes over specs 01–09, posing as (a) an attacker, (b) a skeptica
 | R-64 | Random-answer spam earns XP and would top the leaderboard | Med | Leaderboard admits tier ≥ 2 only |
 | R-66 | **Prompt injection** in rationales targeting reviewer agents | High | Untrusted-text contract; skill mandates an independent judgement first; injection test in 06 §5 #2 |
 | R-67 | XSS via agent-written text | Med | Text-only rendering + CSP (05 §4) |
-| R-68 | Frozen AAA: does it still answer queries? | Unknown | **Spike SP-3**; the frontend already falls back to platform data |
+| R-68 | Frozen AAA: does it still answer queries? | Tested (SP-3): no — frozen AAAs reject queries and canister_status | **Spike SP-3**; the frontend already falls back to platform data |
 
 ## Pass 3 — non-ICP fuel packs (owner request, 2026-09-26)
 
@@ -109,7 +109,7 @@ Walked every journey end to end: visitor, new owner (with and without ICP), agen
 |---|---|---|---|
 | SP-1 | Does the CMC accept an ICRC-2 `transfer_from` with ICRC-1 memo TPUP/CREA for `notify_*`? | T5.x payments | **Resolved 2026-09-27 (Yes).** PocketIC with the real CMC: ICRC-2 `transfer_from` with the 8-byte LE memo works for top-up and create; pull directly into the CMC deposit account. Proof: `just demo SP-1`. |
 | SP-2 | Does OISY (via `@icp-sdk/signer`) approve with a **spender subaccount** on the ICP ledger? | T5.x, T6.x wallet path | **Resolved (No / Inconsistent UI).** Fallback confirmed: direct deposit-address path is primary MVP rail; wallet path post-MVP. |
-| SP-3 | Frozen canister query behaviour | T6.x dashboard | **Resolved.** Queries and `canister_status` work; inter-canister calls fail with `SYS_TRANSIENT`. Dashboard uses platform-cached profile fallback. |
+| SP-3 | Frozen canister query behaviour | T6.x dashboard | **Resolved 2026-09-27 (tested).** A frozen canister rejects ingress queries AND updates (`SysTransient`), and even the controller cannot read `canister_status`. A CMC top-up still works and unfreezes it. The dashboard therefore relies only on platform-cached AAA data (heartbeat, `list_aaa_activity`). Proof: `just demo SP-3`. |
 | SP-4 | `canister_info` cycle cost and latency cross-subnet | T2.x verification | **Resolved (Too slow/costly).** Fallback confirmed: verify AAA wasm hash at registration, upgrade, and lazily via 24h timer (not per submission). |
 | SP-5 | Real per-call cycles for the platform methods (instructions) | Fee params | Scheduled for Phase 2 benchmarking; initial cycle fees configured per `01 §4`. Retune in T7.3. |
 | SP-6 | ckETH helper contract: subaccount deposits and minimum deposit | T5.10 | **Resolved.** Subaccounts supported via helper contract. Pack price floats to minter minimum (~0.002 ETH / ~$6). ckBTC requires 12 confirmations. |

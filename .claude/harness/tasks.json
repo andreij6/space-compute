@@ -241,8 +241,8 @@
   "demo": "note: decision + 1 proof command",
   "start": "2026-10-06",
   "end": "2026-10-06",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "SP-4",

@@ -116,11 +116,20 @@ impl IcpEnv {
     }
 
     pub fn install(&self, name: &str, controller: Principal) -> Principal {
+        self.install_with_cycles(name, controller, 10_000_000_000_000)
+    }
+
+    pub fn install_with_cycles(
+        &self,
+        name: &str,
+        controller: Principal,
+        cycles: u128,
+    ) -> Principal {
         let subnet = self.pic.topology().get_app_subnets()[0];
         let id = self
             .pic
             .create_canister_on_subnet(Some(controller), None, subnet);
-        self.pic.add_cycles(id, 10_000_000_000_000);
+        self.pic.add_cycles(id, cycles);
         self.pic.install_canister(
             id,
             canister_wasm(name),

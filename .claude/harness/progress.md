@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — SP-3 Frozen canister behaviour (done)
+- Tested: frozen AAA rejects queries, updates, and even controller `canister_status`; CMC top-up works while frozen and unfreezes it.
+- Decision (REVIEW SP-3/R-68): dashboard uses platform-cached AAA data only; 05's frozen fallback already matches. research-unknowns Q9 corrected (again said the opposite).
+- Demo: `just demo SP-3`. Harness: L-017 hits:2.
+
 ## 2026-09-27 — SP-1 CMC + ICRC-2 memo (done)
 - Tested against the real CMC: ICRC-2 transfer_from (and icrc1_transfer) with the 8-byte LE memo TPUP/CREA works for top-up AND create; memo-less → refunded. Legacy transfer also works.
 - Decision in 04 §2 + REVIEW: payments pulls directly into the CMC deposit account; no two-step fallback. research-unknowns Q1 corrected (it said the opposite).
