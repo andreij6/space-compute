@@ -30,6 +30,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T3.4 | e6d521d | Sonnet sub-agent; AAA timers + fixes for the other agent's T3.2/T3.3 defects |
 | T5.2 | d277b51 | Sonnet sub-agent |
 | T3.8 | (see commit) | lead; seed + platform fixes (admin bootstrap, immutable wasm versions) |
+| T4.3 | 14308f7 | Sonnet sub-agent |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
