@@ -77,7 +77,7 @@
 | 03 §8.6: aaa wasm is <= 1.5 MiB after a real ic-wasm shrink + gzip | T3.6 | t3_6_aaa_wasm_shrunk_and_gzipped_is_at_most_1_5_mib |
 | One command seeds local net (protocol v1, 500 subjects across 6 fields, AAA wasm); re-seeding is idempotent | T3.8 | t3_8_seed_args_load_into_platform_and_reseeding_is_idempotent |
 | Existing wasm version is immutable; identical re-upload is a no-op | T3.8 | t3_8_existing_wasm_version_is_immutable_and_identical_reupload_is_a_no_op |
-| A fresh machine completes 10 local classifications + 1 review via the skill, using only icp canister call | T3.7 | docs/demos/T3.7/session.md |
+| A fresh machine completes 10 local classifications via the operator skill (review blocked on T4.2) | T3.7 | docs/demos/T3.7/session.md |
 | Keeper tops up low canisters via ledger→CMC, skips healthy ones; reserve floor stops top-ups and flags health() | T5.17 | t5_17_keeper_tops_up_low_canisters_and_health_flags_the_reserve |
 | Reserve floor never crossed; transfer retry reuses created_at; burn EMA ignores top-ups | T5.17 | t5_17_reserve_floor_is_never_crossed |
 | Sensitive config changes (admins, lower reserve) need a second admin | T5.17 | t5_17_sensitive_config_changes_need_a_second_admin |
@@ -96,6 +96,19 @@
 | 02 §6.4: Rejected claim within claim_reopen_days → ClosedRecentlyRejected; after the window a New claim opens; Confirmed still corroborates | T4.9 | t4_9_rejected_claim_blocks_within_reopen_window_then_reopens |
 | 02 §6.4: submit_classification — same cell+category → 1 Discovery + corroborations; other category → separate Discovery; recently rejected → no new Discovery | T4.9 | t4_9_same_cell_flags_collapse_into_one_discovery_with_corroborations |
 | 02 §11: PocketIC — concurrent flags → one discovery (3 AAAs, same position+category: 1 New + 2 Corroborates; different category opens its own) | T4.9 | t4_9_concurrent_same_cell_flags_resolve_to_one_discovery |
+| 02 §11 #5 / §5.3: same-owner exclusion — a tier-2 AAA is never assigned a discovery from another AAA of the same owner (two AAAs sharing one owner) | T4.2 | t4_2_same_owner_sibling_aaa_is_never_assigned |
+| 02 §11 #5 / §5.3: tier < 2 → NotEligible("tier") (unit + PocketIC) | T4.2 | t4_2_tier1_caller_is_not_eligible |
+| 02 §11 #5 / §5.3: tier < 2 → NotEligible("tier") (unit + PocketIC) | T4.2 | t4_2_review_assignment_tier_gate_blind_record_and_three_agrees_confirm |
+| 02 §5.3: oldest UnderReview first; not discoverer, not corroborator, not previously assigned (mem 34), open+reviews < needed, ≤ 3 open per reviewer, expired assignments free the slot; blind record | T4.2 | t4_2_assignment_is_blind_and_respects_eligibility |
+| 02 §5.3: oldest UnderReview first; not discoverer, not corroborator, not previously assigned (mem 34), open+reviews < needed, ≤ 3 open per reviewer, expired assignments free the slot; blind record | T4.2 | t4_2_slots_open_limit_and_expiry |
+| 02 §5.3: PocketIC — the wire ReviewAssignment carries no discoverer, public_id, votes or tallies | T4.2 | t4_2_review_assignment_tier_gate_blind_record_and_three_agrees_confirm |
+| 02 §5.4: submit_review lease/ownership/expiry checks, rationale 20–1000, idempotent duplicate receipt, weight_bp captured at vote time | T4.2 | t4_2_submit_validates_lease_and_is_idempotent |
+| 02 §6.2: evaluate() — Pending, Confirmed (A·3 ≥ 2T), Rejected (2D > T), needed += 2, final A > D tie-break, min weight 100 | T4.2 | t4_2_evaluate_decide_covers_every_branch |
+| 02 §6.2: evaluate() — Pending, Confirmed (A·3 ≥ 2T), Rejected (2D > T), needed += 2, final A > D tie-break, min weight 100 | T4.2 | t4_2_split_three_way_extends_needed_reviews |
+| 02 §6.2: evaluate() — Pending, Confirmed (A·3 ≥ 2T), Rejected (2D > T), needed += 2, final A > D tie-break, min weight 100 | T4.2 | t4_2_two_disagreeing_reviewers_reject |
+| 02 §11 #4 / §6.2: 3 agreeing reviewers → Confirmed; citation with all reviewers, events, progression, credits; open assignments expire (LeaseExpired) | T4.2 | t4_2_three_agreeing_reviewers_confirm_with_citation_credits_and_expiry |
+| 02 §11 #4 / §6.2: 3 agreeing reviewers → Confirmed; citation with all reviewers, events, progression, credits; open assignments expire (LeaseExpired) | T4.2 | t4_2_review_assignment_tier_gate_blind_record_and_three_agrees_confirm |
+| 02 §6.3: admin_add_honeypots (gold subjects only); honeypot_rate_bp picks a honeypot; review scored immediately vs truth, discovery state untouched | T4.2 | t4_2_honeypots_are_assigned_by_rate_and_scored_immediately |
 | 04 §5 #2: Deposit spawn reaches Done, platform shows the AAA registered, and the deposit account is swept to zero | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §5 #4: platform can't register mid-saga → op stays Notified with no double charge; resume completes it; a duplicate resume on a Done op is a no-op | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §4: top_up(aaa, path) — anyone may gift fuel to any registered AAA, no owner check; min 0.1 ICP enforced before any funds move | T5.4 | t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_is_rejected |

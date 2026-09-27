@@ -41,6 +41,15 @@ for c in $(icp canister list -e "$ENV" --json | python3 -c 'import json,sys; pri
   ok "$c deployed → $v"
 done
 
+IDS_FILE=".icp/cache/mappings/${ENV}.ids.json"
+PLATFORM_ID=$(python3 -c "import json;print(json.load(open('$IDS_FILE')).get('platform',''))" 2>/dev/null || true)
+PAYMENTS_ID=$(python3 -c "import json;print(json.load(open('$IDS_FILE')).get('payments',''))" 2>/dev/null || true)
+if [ -n "$PLATFORM_ID" ] && [ -n "$PAYMENTS_ID" ]; then
+  icp canister call platform admin_set_payments_id "(principal \"$PAYMENTS_ID\")" -e "$ENV" --identity "$DEPLOYER" >/dev/null 2>&1 || true
+  icp canister call payments admin_set_platform_id "(principal \"$PLATFORM_ID\")" -e "$ENV" --identity "$DEPLOYER" >/dev/null 2>&1 || true
+  ok "platform<->payments wired (payments_id, platform_id)"
+fi
+
 if [ -x tools/seed-local/seed.sh ]; then
   bash tools/seed-local/seed.sh
   ok "seed data loaded"

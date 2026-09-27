@@ -9,12 +9,13 @@
 | Integration | `pocket-ic` crate, `crates/integration-tests` | every acceptance list in 02–04; multi-canister flows with the real ICP ledger + CMC wasms (downloaded, sha-pinned in `tests/wasm.lock`) |
 | Upgrade | PocketIC | install vN-1 → populate → upgrade to vN → assert state (per canister) |
 | Frontend | `vitest` for utils; Playwright smoke against the local network | route rendering, spawn via Deposit, citation verification |
+| Screenshot grid (T9.6) | Playwright, one script | every screen (desktop+mobile), captured into one labeled contact-sheet image for the owner to review at a glance |
 | Agent e2e | scripted Claude Code run against staging | 06 §5 |
 | Load | PocketIC script: 200 AAAs × 100 tasks | instructions per call, memory growth, fee adequacy |
 
 ## 2. Verification & Deploy Harness (Local First — No Remote CI)
 - Local verification (`just verify` / `scripts/verify-local.sh`): `cargo fmt --check`, `clippy -D warnings`, unit + PocketIC integration tests, build wasms, `candid-extractor` drift check against committed `.did`, AAA wasm size ≤ 1.5 MiB gz, frontend typecheck/lint/test/build.
-- Deterministic deploy (`just deploy-local` / `scripts/deploy-local.sh`): one-shot idempotent script: starts the network, creates and funds dedicated `sc-*` identities, deploys the environment canisters (IDs reach each canister through `PUBLIC_CANISTER_ID:*` env vars, no setter wiring), registers the AAA wasm template (from T2.2), installs ckBTC/ckETH test ledgers once (from T5.9), and seeds test data (from T3.8).
+- Deterministic deploy (`just deploy-local` / `scripts/deploy-local.sh`): one-shot idempotent script: starts the network, creates and funds dedicated `sc-*` identities, deploys the environment canisters, wires `platform.payments_id` ↔ `payments.platform_id` via their admin setters, registers the AAA wasm template (from T2.2), and seeds test data (from T3.8). ckBTC/ckETH ledgers are deferred with the rest of non-ICP payments (D7-D8).
 - Production/staging deploy: manual scripted deploy using `icp deploy -e <env>` with explicit identity checks and guardrails (`guard.sh`).
 
 ## 3. Operations

@@ -133,7 +133,7 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-14 | 2027-01-27 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
 | T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-14 | 2027-01-27 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
 | T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-01-28 | 2027-01-29 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
-| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-02 | 2027-02-02 | OKR | Launch announced | note: 3-line summary in chat |
+| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.6 | 2027-02-02 | 2027-02-02 | OKR | Launch announced | note: 3-line summary in chat |
 | T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-13 | 2027-01-13 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
 | T8.15 | Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits) | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 02 §5, 03, 06, 07 §4 | Agree/changes recorded in OKR.md; spec edits filed as tasks | note: 3-line summary in chat |
 
@@ -146,6 +146,7 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T9.3 | Style owner flows: spawn, dashboard, connect agent, fuel, payments | M | 3 | 4 | T9.1 | 2027-01-15 | 2027-01-20 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.3/*.png (Playwright) |
 | T9.4 | Style admin console + about/legal/practice pages | L | 2 | 2 | T9.1 | 2027-01-21 | 2027-01-22 | 05 §2b | Visual snapshots | shots: docs/demos/T9.4/*.png (Playwright) |
 | T9.5 | Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run | L | 2 | 2 | T9.2, T9.3, T9.4 | 2027-01-25 | 2027-01-26 | 05 §4-5 | Lighthouse a11y ≥90, perf ≥80; baseline committed | shots: docs/demos/T9.5/*.png (Playwright) |
+| T9.6 | Full-app screenshot grid: labeled Playwright contact sheet of every screen (desktop+mobile) | L | 2 | 1 | T9.5 | 2027-01-27 | 2027-01-27 | 05, 09 | One image, every screen labeled, owner can review at a glance | shots: docs/demos/T9.6/*.png (Playwright) |
 
 ## Deferred (not scheduled — owner decision 2026-09-27: no Stripe code until the whole app is ready; owner decision 2026-09-27: ICP-only payments for now, no ckBTC/ckETH)
 
@@ -173,6 +174,6 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | M3 Review & credits complete | T4.8 | 2026-12-01 |
 | M4 Payments complete | T5.7 | 2026-12-07 |
 | M5 Frontend feature-complete (unstyled) | T6.10 | 2027-01-07 |
-| M5b Design applied | T9.5 | 2027-01-26 |
+| M5b Design applied | T9.6 | 2027-01-27 |
 | M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-13 |
 | M7 Public launch | T8.7 | 2027-02-02 |

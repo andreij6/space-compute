@@ -109,12 +109,13 @@ T = [
  ("T8.3","P8","Closed beta (10-20 owners)","Owner",10,["T8.2","T6.10"],"OKR KR","Beta KRs measured",0),
  ("T8.4","P8","Beta fixes & tuning","BE-A",10,["T8.2","T6.10"],"—","No open P0/P1 bugs",0),
  ("T8.6","P8","Production deploy, II metadata, treasury watch list","BE-A",2,["T8.3","T8.4","T8.13"],"09 §2","Prod live",0),
- ("T8.7","P8","Public launch","Owner",1,["T8.6","T8.5","T9.5"],"OKR","Launch announced",0),
+ ("T8.7","P8","Public launch","Owner",1,["T8.6","T8.5","T9.6"],"OKR","Launch announced",0),
  ("T9.1","P9","Import mockups (Claude Design), reconcile, design tokens + shared components","FE",4,["T6.10"],"05 intro","05a-design-reconciliation.md + component page",0),
  ("T9.2","P9","Style public pages: landing, museum, discovery, profile, leaderboard","FE",4,["T9.1"],"05 §2-3, mockups","Visual snapshots approved by owner",0),
  ("T9.3","P9","Style owner flows: spawn, dashboard, connect agent, fuel, payments","FE",4,["T9.1"],"05 §2-3, mockups","Visual snapshots approved by owner",0),
  ("T9.4","P9","Style admin console + about/legal/practice pages","FE",2,["T9.1"],"05 §2b","Visual snapshots",0),
  ("T9.5","P9","Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run","FE",2,["T9.2","T9.3","T9.4"],"05 §4-5","Lighthouse a11y ≥90, perf ≥80; baseline committed",0),
+ ("T9.6","P9","Full-app screenshot grid: labeled Playwright contact sheet of every screen (desktop+mobile)","FE",1,["T9.5"],"05, 09","One image, every screen labeled, owner can review at a glance",0),
  ("T8.13","P8","Custom domain + II alternative origins","Owner",1,["T8.1"],"05 §1","Domain serves frontend; II principal stable",0),
  ("T8.15","P8","Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits)","Owner",1,["T0.4"],"02 §5, 03, 06, 07 §4","Agree/changes recorded in OKR.md; spec edits filed as tasks",0),
 ]
@@ -123,7 +124,7 @@ _missing = sorted({(t[0], d) for t in T for d in t[5] if d not in _ids})
 if _missing:
     raise SystemExit(f"unknown deps: {_missing}")
 MILESTONES = [("M1 Foundations + JWST data ready","T1.7"),("M2 Local alpha: agent classifies end-to-end","T3.8"),
- ("M3 Review & credits complete","T4.8"),("M4 Payments complete","T5.7"),("M5 Frontend feature-complete (unstyled)","T6.10"),("M5b Design applied","T9.5"),
+ ("M3 Review & credits complete","T4.8"),("M4 Payments complete","T5.7"),("M5 Frontend feature-complete (unstyled)","T6.10"),("M5b Design applied","T9.6"),
  ("M6 Staging loaded & beta-ready backend","T8.2"),("M7 Public launch","T8.7")]
 
 # Model tier = intelligence needed. H: Opus 5.5 (high effort) — novel design, security, money sagas, consensus.
@@ -138,7 +139,7 @@ T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.15:L T5.16:M T5.17:H T5.18:M
 T6.1:M T6.3:M T6.4:L T6.5:M T6.6:L T6.7:M T6.8:L T6.9:L T6.10:M T6.12:M T6.14:L
 T7.1:M T7.2:M T7.3:M T7.4:M T7.5:- T7.6:H T7.7:H T7.9:L T7.10:L T7.11:M
 T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.13:- T8.14:- T8.15:- T8.16:L
-T9.1:M T9.2:M T9.3:M T9.4:L T9.5:L""".split())
+T9.1:M T9.2:M T9.3:M T9.4:L T9.5:L T9.6:L""".split())
 MODEL = {"H": "opus-5.5 (high)", "M": "sonnet-5", "L": "haiku-4.5", "-": "human"}
 def demo(tid, ph, name):
     """What the owner looks at to accept the task (keep it < 1 minute)."""

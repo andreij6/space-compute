@@ -1689,7 +1689,7 @@
   "deps": [
    "T8.6",
    "T8.5",
-   "T9.5"
+   "T9.6"
   ],
   "spec": "OKR",
   "acceptance": "Launch announced",
@@ -1793,6 +1793,25 @@
   "demo": "shots: docs/demos/T9.5/*.png (Playwright)",
   "start": "2027-01-25",
   "end": "2027-01-26",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T9.6",
+  "phase": "P9",
+  "name": "Full-app screenshot grid: labeled Playwright contact sheet of every screen (desktop+mobile)",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T9.5"
+  ],
+  "spec": "05, 09",
+  "acceptance": "One image, every screen labeled, owner can review at a glance",
+  "demo": "shots: docs/demos/T9.6/*.png (Playwright)",
+  "start": "2027-01-27",
+  "end": "2027-01-27",
   "status": "todo",
   "pct": 0
  },
