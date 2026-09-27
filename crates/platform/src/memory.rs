@@ -24,6 +24,7 @@ pub const EVENTS_INDEX: u8 = 40;
 pub const EVENTS_DATA: u8 = 41;
 pub const PROGRESS: u8 = 43;
 pub const LEADERBOARD: u8 = 44;
+pub const CREDIT_INDEX: u8 = 45;
 pub const AAA_ACTIVITY: u8 = 47;
 pub const AAA_OPERATORS: u8 = 49;
 pub const AAA_PROVENANCE: u8 = 50;

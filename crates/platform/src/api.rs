@@ -749,3 +749,32 @@ fn get_leaderboard(
 ) -> progression::LeaderPage {
     progression::get_leaderboard(cursor, limit)
 }
+
+#[ic_cdk::query]
+fn list_aaa_credits(args: crate::credits::ListAaaCreditsArgs) -> crate::credits::CreditPage {
+    crate::credits::list_aaa_credits(args)
+}
+
+#[ic_cdk::update]
+fn admin_replay_progression(
+    from_event_id: u64,
+    batch: u32,
+) -> Result<progression::ReplayStatus, ApiError> {
+    let caller = require_admin()?;
+    let status = progression::replay(from_event_id, batch);
+    audit(
+        caller,
+        "admin_replay_progression",
+        &(from_event_id, batch),
+        format!(
+            "replayed {} events up to id {} ({})",
+            status.processed,
+            status.next_event_id,
+            if status.done { "done" } else { "continuing" }
+        ),
+    );
+    if !status.done {
+        crate::timers::schedule_replay_continue(status.next_event_id, batch);
+    }
+    Ok(status)
+}

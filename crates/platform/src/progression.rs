@@ -362,6 +362,52 @@ pub fn get_leaderboard(cursor: Option<LeaderCursor>, limit: u32) -> LeaderPage {
     }
 }
 
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ReplayStatus {
+    pub next_event_id: u64,
+    pub processed: u64,
+    pub done: bool,
+}
+
+pub const REPLAY_BATCH_MAX: u32 = 5_000;
+
+pub fn replay(from_event_id: u64, batch: u32) -> ReplayStatus {
+    if from_event_id == 0 {
+        PROGRESS_MAP.with_borrow_mut(|m| {
+            let keys: Vec<Principal> = m.iter().map(|e| *e.key()).collect();
+            for k in keys {
+                m.remove(&k);
+            }
+        });
+        LEADERBOARD_MAP.with_borrow_mut(|m| {
+            let keys: Vec<LeaderboardKey> = m.iter().map(|e| *e.key()).collect();
+            for k in keys {
+                m.remove(&k);
+            }
+        });
+    }
+
+    let batch = batch.clamp(1, REPLAY_BATCH_MAX) as u64;
+    let total = crate::events::len();
+    let end = from_event_id.saturating_add(batch).min(total);
+
+    let mut processed = 0u64;
+    for id in from_event_id..end {
+        if let Some(ev) = crate::events::get_event(id) {
+            if !matches!(ev.kind, EventKind::Admin { .. }) {
+                apply_event(&ev);
+            }
+        }
+        processed += 1;
+    }
+
+    ReplayStatus {
+        next_event_id: end,
+        processed,
+        done: end >= total,
+    }
+}
+
 pub fn get_stats() -> Stats {
     let total_classifications = crate::scoring::classifications_count();
     let active_aaas = crate::registry::active_aaas_count();
@@ -705,5 +751,144 @@ mod tests {
         unique.dedup();
         assert_eq!(unique.len(), 5);
         assert_eq!(get_progress(&aaas[0]).v, 1);
+    }
+
+    #[test]
+    fn t4_3_new_aaa_reaches_tier2_within_60_honest_tasks() {
+        let aaa = Principal::from_slice(&[201, 202, 203]);
+        let owner = Principal::from_slice(&[204, 205, 206]);
+
+        let mut tier2_at = None;
+        for i in 1..=60u64 {
+            apply_event(&Event {
+                v: 1,
+                id: i,
+                at: i,
+                aaa,
+                owner,
+                kind: EventKind::Classified {
+                    classification_id: i,
+                    subject_id: i as u32,
+                    gold: Some((2, 2)),
+                    fee: 0,
+                },
+            });
+            if tier2_at.is_none() && get_progress(&aaa).tier >= 2 {
+                tier2_at = Some(i);
+            }
+        }
+
+        let reached = tier2_at.expect("tier 2 reached within 60 honest all-correct tasks");
+        assert!(
+            reached <= 60,
+            "tier 2 must be reached in <= 60 tasks, got {reached}"
+        );
+        assert!(get_progress(&aaa).tier >= 2);
+    }
+
+    #[test]
+    fn t4_3_replay_from_event_0_reproduces_identical_progress() {
+        use crate::events;
+
+        let aaa_1 = Principal::from_slice(&[210, 1]);
+        let owner_1 = Principal::from_slice(&[210, 2]);
+        let aaa_2 = Principal::from_slice(&[210, 3]);
+        let owner_2 = Principal::from_slice(&[210, 4]);
+        let admin = Principal::from_slice(&[210, 5]);
+
+        for i in 1..=30u64 {
+            events::record_event(
+                i,
+                aaa_1,
+                owner_1,
+                EventKind::Classified {
+                    classification_id: i,
+                    subject_id: i as u32,
+                    gold: Some((2, 2)),
+                    fee: 0,
+                },
+            );
+        }
+        events::record_event(
+            31,
+            aaa_1,
+            owner_1,
+            EventKind::ReviewSubmitted {
+                review_id: 1,
+                seq: 1,
+                honeypot: false,
+                fee: 0,
+            },
+        );
+        events::record_event(
+            32,
+            aaa_1,
+            owner_1,
+            EventKind::ReviewScored {
+                review_id: 1,
+                matched: true,
+            },
+        );
+        events::record_event(
+            33,
+            aaa_1,
+            owner_1,
+            EventKind::DiscoveryResolved {
+                seq: 1,
+                outcome: "Confirmed".into(),
+            },
+        );
+        events::record_event(
+            34,
+            aaa_2,
+            owner_2,
+            EventKind::Classified {
+                classification_id: 1_000,
+                subject_id: 1,
+                gold: None,
+                fee: 0,
+            },
+        );
+        events::record_event(
+            35,
+            admin,
+            Principal::anonymous(),
+            EventKind::Admin {
+                method: "admin_pause".into(),
+            },
+        );
+
+        let expected_1 = get_progress(&aaa_1);
+        let expected_2 = get_progress(&aaa_2);
+        let expected_lb = get_leaderboard(None, 100);
+
+        PROGRESS_MAP.with_borrow_mut(|m| {
+            m.insert(
+                aaa_1,
+                Progress {
+                    xp: 999_999,
+                    ..Default::default()
+                },
+            );
+        });
+        LEADERBOARD_MAP.with_borrow_mut(|m| {
+            let keys: Vec<LeaderboardKey> = m.iter().map(|e| *e.key()).collect();
+            for k in keys {
+                m.remove(&k);
+            }
+        });
+        assert_ne!(get_progress(&aaa_1), expected_1);
+
+        let mut status = replay(0, 3);
+        assert!(!status.done);
+        while !status.done {
+            status = replay(status.next_event_id, 3);
+        }
+        assert_eq!(status.next_event_id, events::len());
+
+        assert_eq!(get_progress(&aaa_1), expected_1);
+        assert_eq!(get_progress(&aaa_2), expected_2);
+        assert_eq!(get_progress(&admin), Progress::default());
+        assert_eq!(get_leaderboard(None, 100), expected_lb);
     }
 }

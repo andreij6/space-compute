@@ -30,3 +30,14 @@ async fn reseed() {
         }
     }
 }
+
+pub fn schedule_replay_continue(from_event_id: u64, batch: u32) {
+    ic_cdk_timers::set_timer(Duration::ZERO, continue_replay(from_event_id, batch));
+}
+
+async fn continue_replay(from_event_id: u64, batch: u32) {
+    let status = crate::progression::replay(from_event_id, batch);
+    if !status.done {
+        schedule_replay_continue(status.next_event_id, batch);
+    }
+}

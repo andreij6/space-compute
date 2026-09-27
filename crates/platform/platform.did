@@ -120,6 +120,19 @@ type ClassificationSubmission = record {
   observed_image_sha256 : blob;
   submitted_by : principal;
 };
+type CreditCopy = record {
+  v : nat8;
+  at : nat64;
+  public_id : text;
+  citation_url : opt text;
+  role : CreditRole;
+  subject_id : nat32;
+  category : text;
+  outcome : CreditOutcome;
+};
+type CreditOutcome = variant { Confirmed; Rejected; NeedsMoreReview };
+type CreditPage = record { next_cursor : opt nat64; items : vec CreditCopy };
+type CreditRole = variant { Reviewer; Discoverer };
 type DiscoveryCategory = record { id : text; description : text; label : text };
 type DiscoveryFlag = record {
   claim_position : opt ClaimPosition;
@@ -188,6 +201,7 @@ type Lease = record {
   subject_id : nat32;
   expires_at : nat64;
 };
+type ListAaaCreditsArgs = record { aaa : principal; cursor : nat64 };
 type OperatorSetInput = record {
   operators : vec record { principal; opt nat64 };
 };
@@ -240,10 +254,16 @@ type RegisterArgs = record {
   canister_id : principal;
   avatar_seed : nat64;
 };
+type ReplayStatus = record {
+  done : bool;
+  next_event_id : nat64;
+  processed : nat64;
+};
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : nat32; Err : ApiError };
-type Result_10 = variant { Ok : Task; Err : ApiError };
-type Result_11 = variant { Ok : ClassificationReceipt; Err : ApiError };
+type Result_10 = variant { Ok : ReplayStatus; Err : ApiError };
+type Result_11 = variant { Ok : Task; Err : ApiError };
+type Result_12 = variant { Ok : ClassificationReceipt; Err : ApiError };
 type Result_2 = variant { Ok : vec AuditEntry; Err : ApiError };
 type Result_3 = variant { Ok : AaaRecord; Err : ApiError };
 type Result_4 = variant { Ok : vec AaaRecord; Err : ApiError };
@@ -320,6 +340,7 @@ service : () -> {
   admin_pause : (PauseFlags) -> (Result);
   admin_remove_admin : (principal) -> (Result);
   admin_rename_aaa : (principal, text, text) -> (Result);
+  admin_replay_progression : (nat64, nat32) -> (Result_10);
   admin_retry_install : (principal) -> (Result);
   admin_set_current_protocol : (nat16) -> (Result);
   admin_set_params : (Params) -> (Result);
@@ -341,12 +362,13 @@ service : () -> {
   get_stats : () -> (Stats) query;
   get_subject : (nat32) -> (opt Subject) query;
   get_subject_consensus : (nat32) -> (opt SubjectConsensus) query;
-  get_task : (opt principal) -> (Result_10);
+  get_task : (opt principal) -> (Result_11);
   heartbeat : (Heartbeat) -> (Result);
   list_aaa_activity : (principal, opt nat64, nat32) -> (Page) query;
+  list_aaa_credits : (ListAaaCreditsArgs) -> (CreditPage) query;
   list_subject_classifications : (nat32) -> (vec Classification) query;
   register_aaa : (RegisterArgs) -> (Result);
-  submit_classification : (ClassificationSubmission) -> (Result_11);
+  submit_classification : (ClassificationSubmission) -> (Result_12);
   sync_operators : (OperatorSetInput) -> (Result);
   update_aaa_profile : (UpdateAaaProfileArgs) -> (Result);
   upgrade_aaa : (principal) -> (Result);

@@ -75,3 +75,8 @@
 | Reserve floor never crossed; transfer retry reuses created_at; burn EMA ignores top-ups | T5.17 | t5_17_reserve_floor_is_never_crossed |
 | Sensitive config changes (admins, lower reserve) need a second admin | T5.17 | t5_17_sensitive_config_changes_need_a_second_admin |
 | 12 §5 #1-6: deposit, top-up, skip, reserve, two-admin withdraw, upgrade + timers resume | T5.18 | t5_18_withdraw_needs_two_admins_and_state_survives_upgrade |
+| 02 §11 #9: a new AAA reaches tier 2 in ≤ 60 honest all-correct tasks | T4.3 | t4_3_new_aaa_reaches_tier2_within_60_honest_tasks |
+| 02 §11 #9 (PocketIC, full get_task/submit_classification flow) | T4.3 | t4_3_new_aaa_reaches_tier2_in_60_tasks_and_replay_matches_incremental |
+| 02 §8.2: admin_replay_progression rebuilds Progress + leaderboard from event 0 in batches, driven by a timer to completion | T4.3 | t4_3_replay_from_event_0_reproduces_identical_progress |
+| 02 §11 #8: replay from event 0 reproduces an identical Progress (PocketIC, get_aaa_public + get_leaderboard before/after) | T4.3 | t4_3_new_aaa_reaches_tier2_in_60_tasks_and_replay_matches_incremental |
+| 02 §8: list_aaa_credits(aaa, cursor) paginated by discovery_seq (mem 45 credit index), matching the AAA's daily pull | T4.3 | t4_3_list_aaa_credits_pages_by_discovery_seq_per_aaa |

@@ -2,6 +2,7 @@ pub mod api;
 pub mod audit;
 pub mod catalog;
 pub mod config;
+pub mod credits;
 pub mod events;
 mod guard;
 mod memory;
