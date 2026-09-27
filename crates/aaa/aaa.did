@@ -42,12 +42,28 @@ type ClassificationSubmission = record {
   observed_image_sha256 : blob;
   submitted_by : principal;
 };
+type CreditCopy = record {
+  v : nat8;
+  at : nat64;
+  public_id : text;
+  citation_url : opt text;
+  role : CreditRole;
+  subject_id : nat32;
+  category : text;
+  outcome : Outcome;
+};
+type CreditRole = variant { Reviewer; Discoverer };
 type DiscoveryCategory = record { id : text; description : text; label : text };
 type DiscoveryFlag = record {
   claim_position : opt ClaimPosition;
   rationale : text;
   category : text;
   confidence : nat8;
+};
+type ListRecordsFilter = record {
+  cursor : opt nat64;
+  kind : opt RecordKind;
+  limit : nat16;
 };
 type Operator = record {
   v : nat8;
@@ -57,11 +73,19 @@ type Operator = record {
   expires_at : opt nat64;
 };
 type Outcome = variant { Confirmed; Rejected; NeedsMoreReview };
+type PageCreditCopy = record { next_cursor : opt text; items : vec CreditCopy };
+type PageRecord = record { next_cursor : opt nat64; items : vec Record };
 type Protocol = record {
   version : nat16;
   guidance_md : text;
   questions : vec Question;
   discovery_categories : vec DiscoveryCategory;
+};
+type PublicStatus = record {
+  owner : principal;
+  name : text;
+  last_activity_at : nat64;
+  version : text;
 };
 type Question = record { id : text; answers : vec AnswerOption; prompt : text };
 type Record = record {
@@ -93,12 +117,15 @@ type RecordKind = variant {
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : opt ReviewAssignment; Err : ApiError };
 type Result_2 = variant { Ok : Task; Err : ApiError };
-type Result_3 = variant {
+type Result_3 = variant { Ok : PageCreditCopy; Err : ApiError };
+type Result_4 = variant {
   Ok : vec record { principal; Operator };
   Err : ApiError;
 };
-type Result_4 = variant { Ok : ClassificationReceipt; Err : ApiError };
-type Result_5 = variant { Ok : ReviewReceipt; Err : ApiError };
+type Result_5 = variant { Ok : PageRecord; Err : ApiError };
+type Result_6 = variant { Ok : Status; Err : ApiError };
+type Result_7 = variant { Ok : ClassificationReceipt; Err : ApiError };
+type Result_8 = variant { Ok : ReviewReceipt; Err : ApiError };
 type ReviewAssignment = record {
   subject : SubjectRef;
   lease_expires_at_ns : nat64;
@@ -121,6 +148,26 @@ type ReviewSubmission = record {
   submitted_by : principal;
 };
 type Role = variant { Operator; None; Platform; Owner };
+type Stats = record {
+  reviews : nat64;
+  last_activity_at : nat64;
+  credits_cursor : nat64;
+  last_heartbeat_at : nat64;
+  burn_ema_daily : nat;
+  topups : nat64;
+  discoveries : nat64;
+  total_records : nat64;
+  auto_topup_failures : nat64;
+  classifications : nat64;
+};
+type Status = record {
+  wasm_version : text;
+  version : text;
+  cycles : nat;
+  stats : Stats;
+  operators : vec record { principal; Operator };
+  days_of_fuel_estimate : float64;
+};
 type SubjectRef = record {
   field : text;
   image_url : text;
@@ -144,13 +191,18 @@ service : (AaaInit) -> {
   get_record : (nat64) -> (opt Record) query;
   get_review_assignment : () -> (Result_1);
   get_task : () -> (Result_2);
-  list_operators : () -> (Result_3) query;
+  list_credits : (opt text, nat16) -> (Result_3) query;
+  list_operators : () -> (Result_4) query;
+  list_records : (ListRecordsFilter) -> (Result_5) query;
   remove_operator : (principal) -> (Result);
   set_agent_label : (opt text) -> (Result);
   set_auto_topup : (opt nat) -> (Result);
   simulate_sys_unknown_once : () -> (Result);
-  submit_classification : (ClassificationSubmission) -> (Result_4);
-  submit_review : (ReviewSubmission) -> (Result_5);
+  status : () -> (Result_6) query;
+  status_public : () -> (PublicStatus) query;
+  submit_classification : (ClassificationSubmission) -> (Result_7);
+  submit_review : (ReviewSubmission) -> (Result_8);
+  sync_credit_copy : (CreditCopy) -> (Result);
   version : () -> (text) query;
   whoami : () -> (Role) query;
 }

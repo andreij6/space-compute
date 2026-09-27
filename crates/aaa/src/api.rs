@@ -8,7 +8,10 @@ use crate::config;
 use crate::forwarding;
 use crate::operators::{self, Operator};
 use crate::params;
-use crate::record::{Record, RecordKind};
+use crate::record::{
+    CreditCopy, ListRecordsFilter, PageCreditCopy, PageRecord, PublicStatus, Record, RecordKind,
+    Status,
+};
 use crate::repository;
 use crate::roles::{self, Role};
 
@@ -513,4 +516,67 @@ async fn submit_review(
 #[ic_cdk::query]
 fn get_record(seq: u64) -> Option<Record> {
     repository::get_record(seq)
+}
+
+#[ic_cdk::query]
+fn list_records(filter: ListRecordsFilter) -> Result<PageRecord, ApiError> {
+    let caller = ic_cdk::api::msg_caller();
+    let cfg = config::get();
+    let now = ic_cdk::api::time();
+    let op_active = operators::is_active(&caller, now);
+    forwarding::verify_caller(caller, cfg.owner, op_active)?;
+    Ok(repository::list_records(filter))
+}
+
+#[ic_cdk::query]
+fn list_credits(cursor: Option<String>, limit: u16) -> Result<PageCreditCopy, ApiError> {
+    let caller = ic_cdk::api::msg_caller();
+    let cfg = config::get();
+    let now = ic_cdk::api::time();
+    let op_active = operators::is_active(&caller, now);
+    forwarding::verify_caller(caller, cfg.owner, op_active)?;
+    Ok(repository::list_credits(cursor, limit))
+}
+
+#[ic_cdk::query]
+fn status() -> Result<Status, ApiError> {
+    let caller = ic_cdk::api::msg_caller();
+    let cfg = config::get();
+    let now = ic_cdk::api::time();
+    let op_active = operators::is_active(&caller, now);
+    forwarding::verify_caller(caller, cfg.owner, op_active)?;
+
+    let cached = params::get();
+    let balance = ic_cdk::api::canister_cycle_balance();
+    let stats = repository::get_stats();
+    let fuel_days =
+        forwarding::calculate_fuel_days(balance, cached.freezing_reserve, stats.burn_ema_daily);
+
+    Ok(Status {
+        cycles: balance,
+        days_of_fuel_estimate: fuel_days,
+        operators: operators::list(),
+        stats,
+        version: sc_types::build_version("aaa"),
+        wasm_version: cfg.wasm_version,
+    })
+}
+
+#[ic_cdk::query]
+fn status_public() -> PublicStatus {
+    let cfg = config::get();
+    let stats = repository::get_stats();
+    PublicStatus {
+        name: cfg.name,
+        version: sc_types::build_version("aaa"),
+        owner: cfg.owner,
+        last_activity_at: stats.last_activity_at,
+    }
+}
+
+#[ic_cdk::update]
+fn sync_credit_copy(credit: CreditCopy) -> Result<(), ApiError> {
+    require_owner()?;
+    repository::upsert_credit(credit);
+    Ok(())
 }

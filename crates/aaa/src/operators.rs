@@ -3,13 +3,13 @@ use std::cell::RefCell;
 use candid::{CandidType, Principal};
 use ic_stable_structures::StableBTreeMap;
 use sc_types::ApiError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::memory::{self, Memory};
 
 pub const MAX_OPERATORS: usize = 5;
 
-#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Operator {
     pub v: u8,
     pub label: String,

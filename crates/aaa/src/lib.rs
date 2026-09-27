@@ -11,7 +11,9 @@ pub mod roles;
 use candid::Principal;
 use config::AaaInit;
 use operators::Operator;
-use record::Record;
+use record::{
+    CreditCopy, ListRecordsFilter, PageCreditCopy, PageRecord, PublicStatus, Record, Status,
+};
 use roles::Role;
 use sc_types::ApiError;
 

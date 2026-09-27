@@ -45,6 +45,15 @@ pub fn prepare_review_submission(
     submission
 }
 
+pub fn calculate_fuel_days(balance: u128, freezing_reserve: u128, burn_ema_daily: u128) -> f64 {
+    let spendable = balance.saturating_sub(freezing_reserve) as f64;
+    if burn_ema_daily == 0 {
+        f64::INFINITY
+    } else {
+        spendable / (burn_ema_daily as f64)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,5 +104,12 @@ mod tests {
         let stamped_rev = prepare_review_submission(rev, p(4), Some("default-bot".into()));
         assert_eq!(stamped_rev.submitted_by, p(4));
         assert_eq!(stamped_rev.agent_label.as_deref(), Some("custom-bot"));
+    }
+
+    #[test]
+    fn t3_3_calculate_fuel_days() {
+        assert_eq!(calculate_fuel_days(10_000, 5_000, 0), f64::INFINITY);
+        assert_eq!(calculate_fuel_days(5_000, 10_000, 1_000), 0.0);
+        assert_eq!(calculate_fuel_days(15_000, 5_000, 2_000), 5.0);
     }
 }

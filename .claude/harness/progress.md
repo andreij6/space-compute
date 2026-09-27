@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T3.3 AAA repository records + queries + credits copy (done)
+- Assigned Mem 5 to CREDITS with CreditCopy, CreditRole, and Outcome types in stable memory.
+- Repository records and credits indexing with newest-first ordering, page_limit clamping (≤100), and pruning guard (1M quota).
+- Added get_record, list_records, list_credits, status, status_public, and sync_credit_copy endpoints.
+- PocketIC acceptance test t3_3_records_and_credits_survive_canister_upgrade verifies state survival across upgrades; 92.8% coverage.
+
 ## 2026-09-27 — T3.2 AAA forwarding w/ fees, retries, idempotency, low-cycles guard (done)
 - Forwarding work methods (get_task, submit_classification, get_review_assignment, submit_review) with low-cycles guard and fee caching.
 - Stamped submitted_by = msg_caller(), default agent_label fallback, and sync_operators on operator addition/removal.
