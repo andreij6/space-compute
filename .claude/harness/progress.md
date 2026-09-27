@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T1.5 JWST subject selection + gold (done)
+- Real DJA v7 catalogues (8 phot + 8 EAZY, ~4 GB, `sc_curation.fetch`) → 20,000 subjects over 6 fields, z-stratified; 2,286 gold (1,536 strong: GZ CANDELS answers + 681 bright point sources; 750 weak "merger=none" capped 250/field).
+- Informative GZ overlap caps at ~1,100 whatever the guards (measured) → weak tier + objective stars fill the gap; flagged for T4.3 weighting. Committed `data/curation/v1/` + `docs/data/curation-report-v1.md`.
+- Demo: `just demo T1.5` + `docs/demos/T1.5/contact-sheet.png` (real JWST thumbnails via the DJA cutout service, demo-only).
+- Harness: `just demo` now also runs matching pytest tests.
+
 ## 2026-09-27 — T1.8 Test infra (done)
 - `just verify` now also runs: coverage gate (per crate, gated from 50 lines; sc-types 86%), pytest (tools/curation), frontend checks, traceability (`docs/specs/traceability.md` + waivers). ~45 s.
 - proptest (sc-types), cargo-fuzz targets (`just fuzz`, `just nightly`), bot agent (`agent-kit/tests/bot-agent`, @icp-sdk/core, root key from icp — no fetchRootKey), 50 deterministic fixture dossiers + JSON Schema sc-dossier/1 (`just fixtures`).

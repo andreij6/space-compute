@@ -26,6 +26,10 @@
 | Fixture dossiers match sc-dossier/1 and their hashes | T1.8 | test_t1_8_every_dossier_matches_schema_and_hashes |
 | Gold/honeypot status never in a dossier | T1.8 | test_t1_8_gold_and_honeypot_status_never_leak_into_dossiers |
 | Deterministic bot agent reaches local canisters | T1.8 | t1_8_bot_agent_talks_to_every_local_canister |
+| Selection criteria (07 §5.1) | T1.5 | test_t1_5_criteria_follow_spec_07 |
+| Field quotas and z-stratification, deterministic | T1.5 | test_t1_5_selection_is_deterministic_and_ids_unique |
+| Gold mapping, thresholds, 0.3″ match, z < 2 guard | T1.5 | test_t1_5_gold_mapping_thresholds_and_z_guard |
+| 20k selected; ≥ 2k gold (committed v1 data) | T1.5 | test_t1_5_committed_v1_selection_meets_acceptance |
 
 ## Waivers (printed on every `just verify` until removed)
 

@@ -1,0 +1,40 @@
+{
+ "eligible": {
+  "abell2744": 9045,
+  "ceers": 16169,
+  "jades-gdn": 9552,
+  "jades-gds": 8541,
+  "primer-cosmos": 26100,
+  "primer-uds": 41411
+ },
+ "fields": {
+  "abell2744": 4617,
+  "ceers": 3077,
+  "jades-gdn": 3077,
+  "jades-gds": 3077,
+  "primer-cosmos": 3076,
+  "primer-uds": 3076
+ },
+ "quotas": {
+  "abell2744": 4617,
+  "ceers": 3077,
+  "jades-gdn": 3077,
+  "jades-gds": 3077,
+  "primer-cosmos": 3076,
+  "primer-uds": 3076
+ },
+ "reasons": {
+  "gold": 2286,
+  "red_compact": 176,
+  "star": 45,
+  "stratified": 17493
+ },
+ "total": 20000,
+ "z_bins": {
+  "0-1": 6383,
+  "1-3": 6762,
+  "3-6": 5119,
+  ">6": 1576,
+  "none": 160
+ }
+}

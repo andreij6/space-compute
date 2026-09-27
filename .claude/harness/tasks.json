@@ -184,8 +184,8 @@
   "demo": "image: docs/demos/T1.5/contact-sheet.png",
   "start": "2026-10-07",
   "end": "2026-10-13",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T1.7",

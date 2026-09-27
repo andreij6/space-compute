@@ -104,7 +104,9 @@ Each category's guidance names the dossier fields that support it; for example, 
 1. `select.py`: from the DJA v7 catalogs across the six fields, pick **20,000 subjects**:
    - F444W ≤ 27 AB, S/N(F444W) ≥ 10, at least 5 NIRCam bands, not flagged as a star, not within 3″ of a mosaic edge
    - stratified by redshift bins (0–1, 1–3, 3–6, >6) and by field
-   - all GZ-CEERS-labelled galaxies, plus an oversample of the lensing cluster and of red compact objects (discovery-rich)
+   - all gold subjects, plus an oversample of the lensing cluster (×1.5) and of red compact objects (F277W−F444W > 1, flux_radius < 2.5 px, z_phot > 4; ≤ 250 per field)
+   - point sources (F444W < 24, flux_radius < 2.3 px, F277W−F444W < 0.3) are excluded from the pool; the brightest 150 per field become objective `shape=artifact` gold
+   - Run: `uv run python -m sc_curation.fetch` (≈ 4 GB into `~/.cache/space-compute/dja`) then `python -m sc_curation.select`; v1 output committed in `data/curation/v1/`, report in `docs/data/curation-report-v1.md`.
 2. `gold.py` (SP-7): Galaxy Zoo CANDELS answers mapped to protocol v1 — `t00`→`shape` (smooth/featured/artifact), `t09`→`edgeon`, `t11 no`→`bar=none`, `t12`→`spiral`, `t02 no`→`clumps=none`, `t16`→`merger` (neither→none, merging→major). A question is gold when its top-answer fraction is ≥ 0.8 with ≥ 20 votes, the source crossmatches a DJA object within 0.3″, and `z_phot < 2` (HST H-band ≈ JWST F150W rest-frame optical; morphology is robust there). `merger=none` alone does not make a subject gold. Target ≥ 2,000 gold subjects (SP-7 found 16,796 GZC subjects with ≥ 1 gold-grade answer before crossmatch).
    - **Fallback if the GZ labels aren't usable:** objective gold only. Known stars and artifacts from catalog flags and `shape`. Also spectroscopically confirmed high-z sources, so a dropout flag can be scored against them.
 3. `render.py`: cutouts via `astropy.nddata.Cutout2D` from the DJA mosaics (range-read from S3/HTTPS), RGB composites with fixed asinh parameters, and the segmentation cutout. Output is deterministic (pinned library versions, recorded parameters).
