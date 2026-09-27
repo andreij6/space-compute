@@ -5,6 +5,8 @@ type AaaInit = record {
   avatar_seed : nat64;
   payments_id : principal;
 };
+type Answer = record { answer_id : text; question_id : text };
+type AnswerOption = record { id : text; next : opt text; label : text };
 type ApiError = variant {
   Internal : text;
   NotRegistered;
@@ -19,6 +21,34 @@ type ApiError = variant {
   NotEligible : text;
   Conflict : text;
 };
+type ClaimOutcome = variant {
+  New;
+  ClosedRecentlyRejected : text;
+  Corroborates : text;
+};
+type ClaimPosition = record { ra_deg : float64; dec_deg : float64 };
+type ClassificationReceipt = record {
+  xp_awarded : nat32;
+  claim : opt ClaimOutcome;
+  classification_id : nat64;
+  duplicate : bool;
+  discovery_id : opt text;
+};
+type ClassificationSubmission = record {
+  task_id : nat64;
+  agent_label : opt text;
+  answers : vec Answer;
+  discovery : opt DiscoveryFlag;
+  observed_image_sha256 : blob;
+  submitted_by : principal;
+};
+type DiscoveryCategory = record { id : text; description : text; label : text };
+type DiscoveryFlag = record {
+  claim_position : opt ClaimPosition;
+  rationale : text;
+  category : text;
+  confidence : nat8;
+};
 type Operator = record {
   v : nat8;
   last_used_at : opt nat64;
@@ -26,18 +56,101 @@ type Operator = record {
   label : text;
   expires_at : opt nat64;
 };
+type Outcome = variant { Confirmed; Rejected; NeedsMoreReview };
+type Protocol = record {
+  version : nat16;
+  guidance_md : text;
+  questions : vec Question;
+  discovery_categories : vec DiscoveryCategory;
+};
+type Question = record { id : text; answers : vec AnswerOption; prompt : text };
+type Record = record {
+  v : nat8;
+  at : nat64;
+  by : principal;
+  fee : nat;
+  seq : nat64;
+  discovery_public_id : opt text;
+  xp_awarded : nat32;
+  subject : opt SubjectRef;
+  agent_label : opt text;
+  answers : vec Answer;
+  kind : RecordKind;
+  vote : opt Vote;
+  rationale : opt text;
+  category : opt text;
+  task_or_assignment_id : opt nat64;
+  outcome : opt Outcome;
+};
+type RecordKind = variant {
+  Operator;
+  Review;
+  TopUp;
+  Classification;
+  Profile;
+  Discovery;
+};
 type Result = variant { Ok; Err : ApiError };
-type Result_1 = variant {
+type Result_1 = variant { Ok : opt ReviewAssignment; Err : ApiError };
+type Result_2 = variant { Ok : Task; Err : ApiError };
+type Result_3 = variant {
   Ok : vec record { principal; Operator };
   Err : ApiError;
 };
+type Result_4 = variant { Ok : ClassificationReceipt; Err : ApiError };
+type Result_5 = variant { Ok : ReviewReceipt; Err : ApiError };
+type ReviewAssignment = record {
+  subject : SubjectRef;
+  lease_expires_at_ns : nat64;
+  rationale : text;
+  category : text;
+  assignment_id : nat64;
+  protocol_version : nat16;
+};
+type ReviewReceipt = record {
+  review_id : nat64;
+  xp_awarded : nat32;
+  duplicate : bool;
+};
+type ReviewSubmission = record {
+  agent_label : opt text;
+  vote : Vote;
+  rationale : text;
+  observed_image_sha256 : blob;
+  assignment_id : nat64;
+  submitted_by : principal;
+};
 type Role = variant { Operator; None; Platform; Owner };
+type SubjectRef = record {
+  field : text;
+  image_url : text;
+  data_version : nat16;
+  dossier_url : text;
+  subject_id : nat32;
+  ra_deg : float64;
+  image_sha256 : blob;
+  dossier_sha256 : blob;
+  dec_deg : float64;
+};
+type Task = record {
+  protocol : Protocol;
+  task_id : nat64;
+  subject : SubjectRef;
+  lease_expires_at_ns : nat64;
+};
+type Vote = variant { Disagree; Agree };
 service : (AaaInit) -> {
   add_operator : (principal, text, opt nat64) -> (Result);
-  list_operators : () -> (Result_1) query;
+  get_record : (nat64) -> (opt Record) query;
+  get_review_assignment : () -> (Result_1);
+  get_task : () -> (Result_2);
+  list_operators : () -> (Result_3) query;
   remove_operator : (principal) -> (Result);
   set_agent_label : (opt text) -> (Result);
   set_auto_topup : (opt nat) -> (Result);
+  simulate_sys_unknown_once : () -> (Result);
+  submit_classification : (ClassificationSubmission) -> (Result_4);
+  submit_review : (ReviewSubmission) -> (Result_5);
   version : () -> (text) query;
   whoami : () -> (Role) query;
 }

@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T3.2 AAA forwarding w/ fees, retries, idempotency, low-cycles guard (done)
+- Forwarding work methods (get_task, submit_classification, get_review_assignment, submit_review) with low-cycles guard and fee caching.
+- Stamped submitted_by = msg_caller(), default agent_label fallback, and sync_operators on operator addition/removal.
+- Safe retry on SYS_UNKNOWN with idempotency index ensuring exactly one local record per task and deduplicated platform state.
+- PocketIC acceptance test t3_2_one_record_per_task_under_sys_unknown + 7 unit tests pass; AAA coverage 93.2% (min 85%).
+
 ## 2026-09-27 — T2.7 Platform PocketIC tests (02 §11 #1-3) (done)
 - Validated criteria 1 & 2: registration enforcement, InsufficientFee with cycle requirements, task receipt, idempotent duplicate submission.
 - Validated criterion 3: subject retirement at K=5 classifications, majority consensus evaluation, never reissued to any agent.

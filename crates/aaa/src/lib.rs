@@ -1,12 +1,17 @@
 pub mod api;
 pub mod config;
+pub mod forwarding;
 mod memory;
 pub mod operators;
+pub mod params;
+pub mod record;
+pub mod repository;
 pub mod roles;
 
 use candid::Principal;
 use config::AaaInit;
 use operators::Operator;
+use record::Record;
 use roles::Role;
 use sc_types::ApiError;
 
