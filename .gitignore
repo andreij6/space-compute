@@ -11,3 +11,8 @@ __pycache__/
 .claude/harness/current
 .claude/harness/metrics/
 *.tsbuildinfo
+fuzz/target/
+fuzz/artifacts/
+fuzz/corpus/
+tools/curation/.venv/
+.pytest_cache/

@@ -9,7 +9,7 @@ Format: `L-NNN [area] trigger → rule (source) hits:N`. Promoted lessons are re
 - L-005 [edit] "File modified since read" → re-read just the region, then edit; don't rewrite whole files. (planning) hits:2
 - L-006 [owner] Anything that needs an interactive login (`/design-login`, II on mainnet, Firebase console) can't be done headless → put it on the owner's list at task start, not the end. (planning) hits:1
 - L-007 [tests] PocketIC suites "pass" by skipping when the wasm or binary is missing (proof-of-burn) → report counts; a skip is a failure. hits:0
-- L-008 [icp] Always pass `--identity` and `-e local`; mainnet only when the owner asked in this session (proof-of-burn) → enforced by hooks/guard.sh. hits:0
+- L-008 [icp] Always pass `--identity`; an `icp canister status` without it used the password-protected `prod-deployer`, hung on a hidden password prompt and held icp's identity lock so every later icp call blocked (T1.8, 10 min lost) → promoted: guard.sh blocks icp canister/deploy/token/cycles without --identity. hits:1
 - L-009 [copy] Money/threshold numbers in prose go stale (proof-of-burn) → render from config queries; after a money change, grep UI, the agent skill and docs for the old value. hits:0
 - L-010 [context] Reading a whole big file to find one thing burns tokens → grep for the symbol, then read ±40 lines. hits:0
 - L-011 [deploy] Ad-hoc deployment breaks canister wiring and ledger states (proof-of-burn) → always run scripts/deploy-local.sh (or just deploy-local); ledgers install once with Init, never upgrade. hits:0

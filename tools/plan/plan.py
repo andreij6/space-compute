@@ -39,7 +39,7 @@ T = [
  ("SP-4","P1","Spike: canister_info cost/latency","BE-A",1,["T1.4"],"REVIEW SP-4","Decision recorded",0),
  ("SP-6","P1","Spike: ckETH helper subaccount deposit + minimum","BE-B",1,["T1.4"],"REVIEW SP-6","Decision recorded in 04 §6.6",0),
  ("SP-2","P1","Spike: OISY approve w/ spender subaccount","FE",1,["T0.4"],"REVIEW SP-2","Decision recorded",0),
- ("T1.8","P1","Test infra: coverage, fuzz, Playwright+axe, bot-agent harness, traceability script, fixture dossiers","BE-A",3,["T1.3","T1.4"],"11","Gates run in just verify on empty suites",0),
+ ("T1.8","P1","Test infra: coverage gate, proptest, fuzz, bot-agent harness, traceability, fixture dossiers (Playwright+axe → T6.10)","BE-A",3,["T1.3","T1.4"],"11","Gates run in just verify on empty suites",0),
  ("T2.1","P2","platform skeleton: config/admin, memory map, timers, RNG","BE-A",2,["T1.2"],"02 §3, §9-10","Upgrade keeps config",0),
  ("T2.2","P2","Registry & factory: register/install/verify/upgrade/profile","BE-A",4,["T2.1","SP-4"],"02 §4","Spawned AAA verified; upgrade works",0),
  ("T2.3","P2","Catalog: subjects, protocol, leases, seen-set, get_task (gold+calibration)","BE-A",4,["T2.1"],"02 §5.1","Never same subject twice",0),

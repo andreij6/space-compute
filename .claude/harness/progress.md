@@ -1,5 +1,12 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T1.8 Test infra (done)
+- `just verify` now also runs: coverage gate (per crate, gated from 50 lines; sc-types 86%), pytest (tools/curation), frontend checks, traceability (`docs/specs/traceability.md` + waivers). ~45 s.
+- proptest (sc-types), cargo-fuzz targets (`just fuzz`, `just nightly`), bot agent (`agent-kit/tests/bot-agent`, @icp-sdk/core, root key from icp — no fetchRootKey), 50 deterministic fixture dossiers + JSON Schema sc-dossier/1 (`just fixtures`).
+- Demo: `just demo T1.8` + `docs/demos/T1.8/fixtures-contact-sheet.png`. Playwright+axe moved to T6.10 (no UI to test in P1).
+- T6.1 was marked done by a parallel session without tests → visible WAIVER in traceability.md until T6.10.
+- Harness: guard blocks icp calls without --identity (L-008 promoted after a 10-min hang on a hidden password prompt).
+
 ## 2026-09-27 — SP-7 Gold source (done)
 - Galaxy Zoo JWST CEERS labels are not public (paper: "upon request"; Masters et al. in prep). research Q14 was wrong again.
 - Decision (07 §1/§5, REVIEW): gold = Galaxy Zoo: CANDELS (public, HST, COSMOS/GOODS-S/UDS; cite Simmons+2017) mapped to protocol v1 with a ≤0.3″ DJA crossmatch and z_phot < 2 guard; objective gold elsewhere.

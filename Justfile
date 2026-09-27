@@ -38,6 +38,26 @@ plan:
 candid:
     @bash scripts/check-candid.sh --write
 
+# Per-crate line coverage gate (platform/payments/treasury ≥ 90%, aaa/sc-types ≥ 85%)
+coverage:
+    @python3 scripts/coverage.py
+
+# Curation pipeline tests (tools/curation, uv-managed venv)
+py-test:
+    @cd tools/curation && uv run -q pytest -q
+
+# Generate the 50 synthetic fixture dossiers into target/fixtures
+fixtures:
+    @cd tools/curation && uv run -q python -m sc_curation.fixtures --out ../../target/fixtures
+
+# Fuzz sc-types decoders and validators (nightly toolchain; default 60 s per target)
+fuzz SECS='60':
+    @bash scripts/fuzz.sh {{SECS}}
+
+# Nightly, non-blocking suite: 10 min fuzzing per target (LLM agent run and load test join later)
+nightly:
+    @bash scripts/fuzz.sh 600
+
 # Format all Rust code
 fmt:
     @cargo fmt --all

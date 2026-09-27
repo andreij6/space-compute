@@ -35,7 +35,10 @@ IGNORED=$(echo "$OUT" | grep -oE '[0-9]+ ignored' | awk '{s+=$1} END {print s+0}
 echo "$OUT" | grep -qiE 'skipping|skipped' && fail "a test reported skipping — a skipped test is a failed test"
 ok "cargo test: $PASSED passed, 0 ignored"
 
-if grep -rnE '\bdfx\b|fetchRootKey' crates frontend agent-kit tools --include='*.rs' --include='*.ts' --include='*.tsx' --include='*.py' 2>/dev/null | grep -q .; then
+python3 scripts/coverage.py || fail "coverage below threshold"
+ok "coverage gates"
+
+if grep -rnE '\bdfx\b|fetchRootKey' crates frontend/ agent-kit tools --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=dist --exclude-dir=target --include='*.rs' --include='*.ts' --include='*.tsx' --include='*.py' 2>/dev/null | grep -q .; then
   fail "found dfx or fetchRootKey in source"
 fi
 ok "no dfx / fetchRootKey in source"
@@ -46,7 +49,7 @@ if [ -f tools/curation/pyproject.toml ] || [ -d tools/curation/tests ]; then
 fi
 
 if [ -f frontend/package.json ]; then
-  (cd frontend && npm run -s typecheck && npm run -s lint && npm run -s test && npm run -s build) >/dev/null 2>&1 || fail "frontend checks"
+  (cd frontend && npm run -s typecheck && npm run -s lint && npm run -s test && npm run -s build) >/tmp/sc-frontend.log 2>&1 || { tail -30 /tmp/sc-frontend.log; false; } || fail "frontend checks"
   ok "frontend typecheck, lint, test, build"
 fi
 

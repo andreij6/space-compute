@@ -304,7 +304,7 @@
  {
   "id": "T1.8",
   "phase": "P1",
-  "name": "Test infra: coverage, fuzz, Playwright+axe, bot-agent harness, traceability script, fixture dossiers",
+  "name": "Test infra: coverage gate, proptest, fuzz, bot-agent harness, traceability, fixture dossiers (Playwright+axe → T6.10)",
   "lane": 3,
   "tier": "M",
   "model": "sonnet-5",
@@ -318,8 +318,8 @@
   "demo": "test: just demo T1.8  (narrated PocketIC/pytest run)",
   "start": "2026-10-08",
   "end": "2026-10-12",
-  "status": "in_progress",
-  "pct": 0.5
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T2.1",

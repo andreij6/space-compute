@@ -8,4 +8,7 @@ if [[ "$cmd" =~ (-e|--environment)[[:space:]=]+(ic|production|staging) || "$cmd"
   [[ "${SC_ALLOW_MAINNET:-}" == "1" ]] || block "mainnet/staging command blocked. Only when the owner asked this session; rerun with SC_ALLOW_MAINNET=1"
 fi
 [[ "$cmd" =~ --mode[[:space:]=]+reinstall && ! "$cmd" =~ -e[[:space:]]+local ]] && block "reinstall wipes state; only allowed with -e local"
+if [[ "$cmd" =~ (^|[[:space:];&|])icp[[:space:]]+(canister|deploy|token|cycles)([[:space:]]|$) && ! "$cmd" =~ --identity ]]; then
+  block "pass --identity explicitly (sc-deployer/sc-admin/sc-user/anonymous); the default identity here is a password-protected mainnet key and hangs waiting for a password (L-008)"
+fi
 exit 0

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spacecompute.org/schemas/sc-dossier-1.json",
+  "title": "Space Compute subject dossier (sc-dossier/1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "subject_id", "target", "images", "photometry", "redshift", "physical",
+               "morphology_params", "lensing", "neighbours", "quality_flags", "provenance"],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "relurl": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+$"},
+    "num": {"type": ["number", "null"]},
+    "file": {
+      "type": "object",
+      "required": ["url", "sha256"],
+      "properties": {"url": {"$ref": "#/$defs/relurl"}, "sha256": {"$ref": "#/$defs/sha256"}}
+    }
+  },
+  "properties": {
+    "schema": {"const": "sc-dossier/1"},
+    "subject_id": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ra_deg", "dec_deg", "field", "catalog", "catalog_id", "galactic_l_b", "on_mosaic_edge"],
+      "properties": {
+        "ra_deg": {"type": "number", "minimum": 0, "maximum": 360},
+        "dec_deg": {"type": "number", "minimum": -90, "maximum": 90},
+        "field": {"enum": ["ceers", "jades-gds", "jades-gdn", "primer-uds", "primer-cosmos", "abell2744"]},
+        "catalog": {"type": "string"},
+        "catalog_id": {"type": "integer"},
+        "galactic_l_b": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+        "on_mosaic_edge": {"type": "boolean"}
+      }
+    },
+    "images": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rgb", "rgb_sw", "fits", "segmentation", "pixel_scale_arcsec", "north_up"],
+      "properties": {
+        "rgb": {
+          "allOf": [{"$ref": "#/$defs/file"}],
+          "required": ["channels", "stretch", "size_arcsec"]
+        },
+        "rgb_sw": {"$ref": "#/$defs/file"},
+        "fits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "allOf": [{"$ref": "#/$defs/file"}],
+            "required": ["filter", "pivot_um", "psf_fwhm_arcsec", "depth_5sigma_ab", "exptime_s"]
+          }
+        },
+        "segmentation": {"$ref": "#/$defs/file"},
+        "pixel_scale_arcsec": {"type": "number", "exclusiveMinimum": 0},
+        "north_up": {"type": "boolean"}
+      }
+    },
+    "photometry": {
+      "type": "object",
+      "required": ["unit", "aperture_arcsec", "bands"],
+      "properties": {
+        "unit": {"const": "uJy"},
+        "bands": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["flux", "err", "mag_ab"],
+            "properties": {"flux": {"$ref": "#/$defs/num"}, "err": {"$ref": "#/$defs/num"}, "mag_ab": {"$ref": "#/$defs/num"}}
+          }
+        }
+      }
+    },
+    "redshift": {
+      "type": "object",
+      "required": ["z_phot", "z_phot_p16", "z_phot_p84", "z_spec", "z_spec_grade", "has_spectrum",
+                   "kpc_per_arcsec", "lookback_gyr", "cosmology"]
+    },
+    "physical": {"type": "object", "required": ["log_mstar", "sfr_msun_yr", "rest_uv", "rest_vj", "source"]},
+    "morphology_params": {"type": "object", "required": ["sersic_n", "r_e_arcsec", "axis_ratio", "pa_deg", "source"]},
+    "lensing": {"type": "object", "required": ["magnification"]},
+    "neighbours": {"type": "array"},
+    "quality_flags": {"type": "array", "items": {"type": "string"}},
+    "provenance": {
+      "type": "object",
+      "required": ["programs", "credits", "acknowledgment"],
+      "properties": {"acknowledgment": {"type": "string", "minLength": 20}}
+    }
+  },
+  "not": {"anyOf": [{"required": ["gold"]}, {"required": ["honeypot"]}, {"required": ["gold_answers"]}]}
+}

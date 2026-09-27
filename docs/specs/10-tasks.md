@@ -28,7 +28,7 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | SP-4 | Spike: canister_info cost/latency | L | 2 | 1 | T1.4 | 2026-10-07 | 2026-10-07 | REVIEW SP-4 | Decision recorded | note: decision + 1 proof command |
 | SP-6 | Spike: ckETH helper subaccount deposit + minimum | M | 3 | 1 | T1.4 | 2026-10-07 | 2026-10-07 | REVIEW SP-6 | Decision recorded in 04 §6.6 | note: decision + 1 proof command |
 | SP-2 | Spike: OISY approve w/ spender subaccount | M | 2 | 1 | T0.4 | 2026-10-08 | 2026-10-08 | REVIEW SP-2 | Decision recorded | note: decision + 1 proof command |
-| T1.8 | Test infra: coverage, fuzz, Playwright+axe, bot-agent harness, traceability script, fixture dossiers | M | 3 | 3 | T1.3, T1.4 | 2026-10-08 | 2026-10-12 | 11 | Gates run in just verify on empty suites | test: just demo T1.8  (narrated PocketIC/pytest run) |
+| T1.8 | Test infra: coverage gate, proptest, fuzz, bot-agent harness, traceability, fixture dossiers (Playwright+axe → T6.10) | M | 3 | 3 | T1.3, T1.4 | 2026-10-08 | 2026-10-12 | 11 | Gates run in just verify on empty suites | test: just demo T1.8  (narrated PocketIC/pytest run) |
 
 ## P2 — Platform core
 

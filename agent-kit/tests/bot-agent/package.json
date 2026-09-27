@@ -1,0 +1,11 @@
+{
+  "name": "sc-bot-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "@icp-sdk/core": "^6.1.0"
+  }
+}
