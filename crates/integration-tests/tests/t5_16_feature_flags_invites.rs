@@ -127,8 +127,9 @@ fn t5_16_admin_set_features_updates_and_is_audit_logged() {
             encode_args((None::<u64>, 50u32)).unwrap(),
         )
         .expect("admin_audit_log");
-    let log: Result<Vec<payments::audit::AuditEntry>, ApiError> = decode_one(&raw).unwrap();
-    let methods: Vec<_> = log.unwrap().into_iter().map(|e| e.method).collect();
+    let log: Result<payments::journal::Page<payments::audit::AuditEntry>, ApiError> =
+        decode_one(&raw).unwrap();
+    let methods: Vec<_> = log.unwrap().items.into_iter().map(|e| e.method).collect();
     assert!(methods.contains(&"admin_set_features".to_string()));
     step("admin_set_features appears in the audit log");
 

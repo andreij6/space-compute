@@ -62,6 +62,11 @@ type Op = record {
   amount_e8s : nat64;
   state : OpState;
 };
+type OpFilter = record {
+  kind : opt OpKind;
+  since : opt nat64;
+  state : opt OpState;
+};
 type OpKind = variant {
   Spawn : record { owner : principal; name : text; avatar_seed : nat64 };
   FuelPack : record {
@@ -84,14 +89,8 @@ type OpState = variant {
   Registered;
   Pending;
 };
-type Overview = record {
-  features : Features;
-  cycles : nat;
-  admins : vec principal;
-  params : Params;
-  paused : PauseFlags;
-  audit_entries : nat64;
-};
+type Page = record { next_cursor : opt nat64; items : vec AuditEntry };
+type Page_1 = record { next_cursor : opt nat64; items : vec Op };
 type Params = record {
   rate_max_age_secs : nat64;
   icp_ledger_fee_e8s : nat64;
@@ -119,6 +118,19 @@ type PayPath = variant {
   Invite : record { code : text };
   Wallet : record { payer : Account };
 };
+type PaymentsOverview = record {
+  features : Features;
+  stuck_ops : nat64;
+  treasury_icp_balance_e8s : nat64;
+  main_icp_balance_e8s : nat64;
+  cycles : nat;
+  admins : vec principal;
+  failed_ops : nat64;
+  ops_24h_by_kind : vec record { text; nat64; nat64 };
+  params : Params;
+  paused : PauseFlags;
+  audit_entries : nat64;
+};
 type Purpose = variant { Spawn; Auto; TopUp };
 type Quote = record {
   v : nat8;
@@ -135,12 +147,12 @@ type RateCache = record {
   xdr_permyriad_per_icp : nat64;
 };
 type Result = variant { Ok; Err : ApiError };
-type Result_1 = variant { Ok : vec AuditEntry; Err : ApiError };
+type Result_1 = variant { Ok : Page; Err : ApiError };
 type Result_2 = variant { Ok : nat64; Err : ApiError };
 type Result_3 = variant { Ok : vec principal; Err : ApiError };
-type Result_4 = variant { Ok : vec Op; Err : ApiError };
+type Result_4 = variant { Ok : Page_1; Err : ApiError };
 type Result_5 = variant { Ok : vec text; Err : ApiError };
-type Result_6 = variant { Ok : Overview; Err : ApiError };
+type Result_6 = variant { Ok : PaymentsOverview; Err : ApiError };
 type Result_7 = variant { Ok : RateCache; Err : ApiError };
 type Result_8 = variant { Ok : Quote; Err : ApiError };
 type SetMandateArgs = record {
@@ -152,20 +164,22 @@ type SetMandateArgs = record {
 };
 type SpawnArgs = record { name : text; path : PayPath; avatar_seed : nat64 };
 type TopUpArgs = record { aaa : principal; path : PayPath };
+type TreasuryWithdrawArgs = record { to : Account; amount : nat };
 service : () -> {
   admin_add_admin : (principal) -> (Result);
   admin_audit_log : (opt nat64, nat32) -> (Result_1) query;
   admin_journal_demo : (JournalDemoArg) -> (Result_2);
   admin_list_admins : () -> (Result_3) query;
-  admin_list_ops : (opt nat64, nat32) -> (Result_4) query;
+  admin_list_ops : (OpFilter, opt nat64, nat32) -> (Result_4) query;
   admin_mint_invites : (MintInvitesArgs) -> (Result_5);
-  admin_overview : () -> (Result_6) query;
+  admin_overview : () -> (Result_6);
   admin_pause : (PauseFlags) -> (Result);
   admin_refresh_rate : () -> (Result_7);
   admin_remove_admin : (principal) -> (Result);
   admin_set_features : (Features) -> (Result);
   admin_set_params : (Params) -> (Result);
   admin_set_platform_id : (principal) -> (Result);
+  admin_treasury_withdraw : (TreasuryWithdrawArgs) -> (Result_2);
   get_deposit_account : (Purpose, principal) -> (text, Account) query;
   get_features : () -> (Features) query;
   get_mandate : (principal) -> (opt MandateView) query;

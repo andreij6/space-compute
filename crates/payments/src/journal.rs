@@ -207,6 +207,118 @@ pub fn list_by_created(cursor: Option<u64>, limit: u32) -> Vec<Op> {
     OPS.with_borrow(|m| m.range(start..).take(limit).map(|e| e.value()).collect())
 }
 
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub struct Page<T> {
+    pub items: Vec<T>,
+    pub next_cursor: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug, Default)]
+pub struct OpFilter {
+    pub state: Option<OpState>,
+    pub kind: Option<OpKind>,
+    pub since: Option<u64>,
+}
+
+impl OpFilter {
+    pub fn matches(&self, op: &Op) -> bool {
+        if let Some(k) = &self.kind {
+            if std::mem::discriminant(k) != std::mem::discriminant(&op.kind) {
+                return false;
+            }
+        }
+        if let Some(s) = &self.state {
+            if std::mem::discriminant(s) != std::mem::discriminant(&op.state) {
+                return false;
+            }
+        }
+        if let Some(since) = self.since {
+            if op.created_at < since {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+pub fn list_filtered(filter: &OpFilter, cursor: Option<u64>, limit: u32) -> Page<Op> {
+    let limit = sc_types::limits::page_limit(limit) as usize;
+    let start = cursor.unwrap_or(0);
+    OPS.with_borrow(|m| {
+        let mut items = Vec::new();
+        let mut next_cursor = None;
+        for entry in m.range(start..) {
+            let op = entry.value();
+            if !filter.matches(&op) {
+                continue;
+            }
+            if items.len() == limit {
+                next_cursor = Some(op.id);
+                break;
+            }
+            items.push(op);
+        }
+        Page { items, next_cursor }
+    })
+}
+
+fn kind_label(kind: &OpKind) -> &'static str {
+    match kind {
+        OpKind::Spawn { .. } => "spawn",
+        OpKind::TopUp { .. } => "topup",
+        OpKind::AutoTopUp { .. } => "auto_topup",
+        OpKind::FuelPack { .. } => "fuel_pack",
+    }
+}
+
+pub fn stats_since(now: u64, since_secs_ago: u64) -> Vec<(String, u64, u64)> {
+    let since = now.saturating_sub(since_secs_ago.saturating_mul(1_000_000_000));
+    let labels = ["spawn", "topup", "auto_topup", "fuel_pack"];
+    let mut counts = [0u64; 4];
+    let mut spends = [0u64; 4];
+    OPS.with_borrow(|m| {
+        for entry in m.iter() {
+            let op = entry.value();
+            if op.created_at < since {
+                continue;
+            }
+            let idx = labels
+                .iter()
+                .position(|l| *l == kind_label(&op.kind))
+                .unwrap();
+            counts[idx] += 1;
+            spends[idx] += op.amount_e8s;
+        }
+    });
+    labels
+        .iter()
+        .enumerate()
+        .map(|(i, l)| (l.to_string(), counts[i], spends[i]))
+        .collect()
+}
+
+pub fn failed_count() -> u64 {
+    OPS.with_borrow(|m| {
+        m.iter()
+            .filter(|e| matches!(e.value().state, OpState::Failed { .. }))
+            .count() as u64
+    })
+}
+
+pub const STUCK_AFTER_SECS: u64 = 3_600;
+
+pub fn stuck_count(now: u64, stuck_after_secs: u64) -> u64 {
+    let threshold_ns = stuck_after_secs.saturating_mul(1_000_000_000);
+    OPS.with_borrow(|m| {
+        m.iter()
+            .filter(|e| {
+                let op = e.value();
+                !op.state.is_terminal() && now.saturating_sub(op.updated_at) > threshold_ns
+            })
+            .count() as u64
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -355,6 +467,123 @@ mod tests {
             topup.auto_topup_fields(),
             Err(ApiError::Internal(_))
         ));
+    }
+
+    #[test]
+    fn t5_15_list_filtered_by_kind_state_and_since_pages_correctly() {
+        create(OpKind::TopUp { aaa: p(1) }, PayPath::Deposit, 100, p(9), 10);
+        let spawn = create(
+            OpKind::Spawn {
+                owner: p(2),
+                name: "Rover".into(),
+                avatar_seed: 1,
+            },
+            PayPath::Deposit,
+            200,
+            p(9),
+            20,
+        );
+        create(OpKind::TopUp { aaa: p(3) }, PayPath::Deposit, 300, p(9), 30);
+        advance(spawn.id, OpState::Pulled { block: 1 }, 21).unwrap();
+
+        let by_kind = list_filtered(
+            &OpFilter {
+                kind: Some(OpKind::TopUp { aaa: p(0) }),
+                ..Default::default()
+            },
+            None,
+            100,
+        );
+        assert_eq!(by_kind.items.len(), 2);
+        assert!(by_kind
+            .items
+            .iter()
+            .all(|op| matches!(op.kind, OpKind::TopUp { .. })));
+        assert_eq!(by_kind.next_cursor, None);
+
+        let by_state = list_filtered(
+            &OpFilter {
+                state: Some(OpState::Pulled { block: 0 }),
+                ..Default::default()
+            },
+            None,
+            100,
+        );
+        assert_eq!(by_state.items, vec![get(spawn.id).unwrap()]);
+
+        let by_since = list_filtered(
+            &OpFilter {
+                since: Some(20),
+                ..Default::default()
+            },
+            None,
+            100,
+        );
+        assert_eq!(by_since.items.len(), 2);
+
+        let page1 = list_filtered(&OpFilter::default(), None, 2);
+        assert_eq!(page1.items.len(), 2);
+        assert_eq!(page1.next_cursor, Some(2));
+        let page2 = list_filtered(&OpFilter::default(), page1.next_cursor, 2);
+        assert_eq!(page2.items.len(), 1);
+        assert_eq!(page2.next_cursor, None);
+    }
+
+    #[test]
+    fn t5_15_stats_since_buckets_count_and_spend_by_kind_within_window() {
+        const WINDOW_NS: u64 = 24 * 3_600 * 1_000_000_000;
+        let now: u64 = WINDOW_NS * 10;
+        create(
+            OpKind::TopUp { aaa: p(1) },
+            PayPath::Deposit,
+            1_000,
+            p(9),
+            now - 100,
+        );
+        create(
+            OpKind::TopUp { aaa: p(2) },
+            PayPath::Deposit,
+            2_000,
+            p(9),
+            now - 200,
+        );
+        create(
+            OpKind::Spawn {
+                owner: p(3),
+                name: "Rover".into(),
+                avatar_seed: 1,
+            },
+            PayPath::Deposit,
+            5_000,
+            p(9),
+            now - WINDOW_NS - 1,
+        );
+        let stats = stats_since(now, 24 * 3_600);
+        let topup = stats.iter().find(|(k, ..)| k == "topup").unwrap();
+        assert_eq!(topup.1, 2);
+        assert_eq!(topup.2, 3_000);
+        let spawn = stats.iter().find(|(k, ..)| k == "spawn").unwrap();
+        assert_eq!(spawn.1, 0);
+        assert_eq!(spawn.2, 0);
+    }
+
+    #[test]
+    fn t5_15_failed_and_stuck_counts() {
+        let a = create(OpKind::TopUp { aaa: p(1) }, PayPath::Deposit, 0, p(9), 0);
+        advance(
+            a.id,
+            OpState::Failed {
+                reason: "boom".into(),
+            },
+            1,
+        )
+        .unwrap();
+        let b = create(OpKind::TopUp { aaa: p(2) }, PayPath::Deposit, 0, p(9), 0);
+        advance(b.id, OpState::Pulled { block: 1 }, 1_000).unwrap();
+
+        assert_eq!(failed_count(), 1);
+        assert_eq!(stuck_count(1_000 + 2 * 3_600 * 1_000_000_000, 3_600), 1);
+        assert_eq!(stuck_count(1_000, 3_600), 0);
     }
 
     #[test]

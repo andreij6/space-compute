@@ -9,7 +9,7 @@ use crate::config::{self, Features, Params, PauseFlags};
 use crate::deposit::{self, Purpose};
 use crate::guard::{self, CallerGuard};
 use crate::invites;
-use crate::journal::{self, Account, NotifiedInfo, Op, OpKind, OpState, PayPath};
+use crate::journal::{self, Account, NotifiedInfo, Op, OpFilter, OpKind, OpState, Page, PayPath};
 use crate::ledger;
 use crate::mandate::{self, MandateView};
 use crate::owners;
@@ -18,13 +18,18 @@ use crate::quote::{self, Quote};
 use crate::rate::{self, RateCache};
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct Overview {
+pub struct PaymentsOverview {
     pub admins: Vec<Principal>,
     pub params: Params,
     pub features: Features,
     pub paused: PauseFlags,
     pub cycles: u128,
     pub audit_entries: u64,
+    pub main_icp_balance_e8s: u64,
+    pub treasury_icp_balance_e8s: u64,
+    pub ops_24h_by_kind: Vec<(String, u64, u64)>,
+    pub failed_ops: u64,
+    pub stuck_ops: u64,
 }
 
 fn require_admin() -> Result<Principal, ApiError> {
@@ -159,28 +164,47 @@ fn admin_list_admins() -> Result<Vec<Principal>, ApiError> {
 }
 
 #[ic_cdk::query]
-fn admin_audit_log(cursor: Option<u64>, limit: u32) -> Result<Vec<AuditEntry>, ApiError> {
+fn admin_audit_log(cursor: Option<u64>, limit: u32) -> Result<Page<AuditEntry>, ApiError> {
     require_admin()?;
     Ok(audit::page(cursor, limit))
 }
 
 #[ic_cdk::query]
-fn admin_list_ops(cursor: Option<u64>, limit: u32) -> Result<Vec<Op>, ApiError> {
+fn admin_list_ops(filter: OpFilter, cursor: Option<u64>, limit: u32) -> Result<Page<Op>, ApiError> {
     require_admin()?;
-    Ok(journal::list_by_created(cursor, limit))
+    Ok(journal::list_filtered(&filter, cursor, limit))
 }
 
-#[ic_cdk::query]
-fn admin_overview() -> Result<Overview, ApiError> {
+const OVERVIEW_WINDOW_SECS: u64 = 24 * 3_600;
+
+#[ic_cdk::update]
+async fn admin_overview() -> Result<PaymentsOverview, ApiError> {
     require_admin()?;
     let c = config::get();
-    Ok(Overview {
+    let self_id = ic_cdk::api::canister_self();
+    let now = ic_cdk::api::time();
+    let main_account = Account {
+        owner: self_id,
+        subaccount: None,
+    };
+    let treasury_account = Account {
+        owner: self_id,
+        subaccount: Some(deposit::treasury_subaccount()),
+    };
+    let main_icp_balance_e8s = ledger_balance(main_account).await?;
+    let treasury_icp_balance_e8s = ledger_balance(treasury_account).await?;
+    Ok(PaymentsOverview {
         admins: c.admins,
         params: c.params,
         features: c.features,
         paused: c.paused,
         cycles: ic_cdk::api::canister_cycle_balance(),
         audit_entries: audit::len(),
+        main_icp_balance_e8s,
+        treasury_icp_balance_e8s,
+        ops_24h_by_kind: journal::stats_since(now, OVERVIEW_WINDOW_SECS),
+        failed_ops: journal::failed_count(),
+        stuck_ops: journal::stuck_count(now, journal::STUCK_AFTER_SECS),
     })
 }
 
@@ -1059,4 +1083,39 @@ pub(crate) async fn resume(op_id: u64) -> Result<(), ApiError> {
             "resume: this op kind is not implemented yet".into(),
         )),
     }
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct TreasuryWithdrawArgs {
+    pub to: Account,
+    pub amount: Nat,
+}
+
+#[ic_cdk::update]
+async fn admin_treasury_withdraw(args: TreasuryWithdrawArgs) -> Result<u64, ApiError> {
+    let caller = require_admin()?;
+    let amount = nat_u64(args.amount.clone());
+    if amount == 0 {
+        return Err(ApiError::invalid("amount must be greater than zero"));
+    }
+    let params = config::get().params;
+    let sub = deposit::treasury_subaccount();
+    let now = ic_cdk::api::time();
+    let memo = cmc::MEMO_WITHDRAW.to_le_bytes().to_vec();
+    let block = ledger_transfer(
+        Some(sub),
+        args.to.clone(),
+        amount,
+        params.icp_ledger_fee_e8s,
+        memo,
+        now,
+    )
+    .await?;
+    audit(
+        caller,
+        "admin_treasury_withdraw",
+        &args,
+        format!("withdrew {amount} e8s to {:?}, block {block}", args.to),
+    );
+    Ok(block)
 }

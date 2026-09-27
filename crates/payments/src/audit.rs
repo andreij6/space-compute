@@ -43,14 +43,14 @@ pub fn len() -> u64 {
     LOG.with_borrow(|log| log.len())
 }
 
-pub fn page(cursor: Option<u64>, limit: u32) -> Vec<AuditEntry> {
+pub fn page(cursor: Option<u64>, limit: u32) -> crate::journal::Page<AuditEntry> {
     let limit = sc_types::limits::page_limit(limit) as u64;
     let start = cursor.unwrap_or(0);
-    LOG.with_borrow(|log| {
-        (start..log.len().min(start.saturating_add(limit)))
-            .filter_map(|i| log.get(i))
-            .collect()
-    })
+    let len = LOG.with_borrow(|log| log.len());
+    let end = len.min(start.saturating_add(limit));
+    let items = LOG.with_borrow(|log| (start..end).filter_map(|i| log.get(i)).collect());
+    let next_cursor = if end < len { Some(end) } else { None };
+    crate::journal::Page { items, next_cursor }
 }
 
 #[cfg(test)]
@@ -65,12 +65,15 @@ mod tests {
         }
         assert_eq!(len(), 5);
         let all = page(None, 100);
-        assert_eq!(all.len(), 5);
-        assert!(all.iter().all(|e| e.args_digest.len() == 32));
-        assert_ne!(all[0].args_digest, all[1].args_digest);
+        assert_eq!(all.items.len(), 5);
+        assert_eq!(all.next_cursor, None);
+        assert!(all.items.iter().all(|e| e.args_digest.len() == 32));
+        assert_ne!(all.items[0].args_digest, all.items[1].args_digest);
         let tail = page(Some(3), 100);
-        assert_eq!(tail.iter().map(|e| e.at).collect::<Vec<_>>(), [3, 4]);
-        assert_eq!(page(Some(1), 2).len(), 2);
-        assert!(page(Some(99), 10).is_empty());
+        assert_eq!(tail.items.iter().map(|e| e.at).collect::<Vec<_>>(), [3, 4]);
+        let limited = page(Some(1), 2);
+        assert_eq!(limited.items.len(), 2);
+        assert_eq!(limited.next_cursor, Some(3));
+        assert!(page(Some(99), 10).items.is_empty());
     }
 }

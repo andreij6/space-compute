@@ -1,9 +1,10 @@
 use candid::Principal;
 use integration_tests::pic::{user, IcpEnv};
 use integration_tests::step;
-use payments::api::{JournalDemoArg, Overview};
+use payments::api::{JournalDemoArg, PaymentsOverview};
 use payments::audit::AuditEntry;
 use payments::config::{Features, Params, PauseFlags};
+use payments::journal::Page;
 use payments::journal::{Op, OpState};
 use sc_types::ApiError;
 
@@ -76,8 +77,13 @@ fn t5_1_payments_skeleton_config_journal_guard_admin() {
             candid::encode_args((None::<u64>, 50u32)).unwrap(),
         )
         .expect("admin_audit_log");
-    let log: Result<Vec<AuditEntry>, ApiError> = candid::decode_one(&raw).unwrap();
-    let methods: Vec<_> = log.unwrap().iter().map(|e| e.method.clone()).collect();
+    let log: Result<Page<AuditEntry>, ApiError> = candid::decode_one(&raw).unwrap();
+    let methods: Vec<_> = log
+        .unwrap()
+        .items
+        .iter()
+        .map(|e| e.method.clone())
+        .collect();
     assert_eq!(
         methods,
         [
@@ -144,7 +150,8 @@ fn t5_1_payments_skeleton_config_journal_guard_admin() {
     assert_eq!(new_op.unwrap().state, OpState::Done);
     step("aaa2's CallerGuard was released when the callback trap unwound the call, so a fresh journal for the same beneficiary starts and completes cleanly; op 1's Pulled record is still there for an operator to inspect");
 
-    let overview: Result<Overview, ApiError> = env.query(payments, bob, "admin_overview", ());
+    let overview: Result<PaymentsOverview, ApiError> =
+        env.update(payments, bob, "admin_overview", ());
     let overview = overview.unwrap();
     assert_eq!(overview.admins, vec![bob]);
     assert_eq!(overview.paused, paused);
