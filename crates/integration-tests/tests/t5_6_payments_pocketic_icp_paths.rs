@@ -32,6 +32,9 @@ fn upload_and_approve_aaa_wasm(env: &IcpEnv, platform: Principal, admin: Princip
 fn install_wired(env: &IcpEnv, admin: Principal) -> (Principal, Principal) {
     let platform = env.install("platform", admin);
     let payments = env.install("payments", admin);
+    for _ in 0..5 {
+        env.pic.tick();
+    }
     let ok: Result<(), ApiError> = env.update(platform, admin, "admin_set_payments_id", payments);
     assert_eq!(ok, Ok(()));
     let ok: Result<(), ApiError> = env.update(payments, admin, "admin_set_platform_id", platform);

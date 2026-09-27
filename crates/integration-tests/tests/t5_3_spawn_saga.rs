@@ -85,6 +85,9 @@ fn t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure(
 
     let platform = env.install("platform", admin);
     let payments = env.install("payments", admin);
+    for _ in 0..5 {
+        env.pic.tick();
+    }
     let ok: Result<(), ApiError> = env.update(platform, admin, "admin_set_payments_id", payments);
     assert_eq!(ok, Ok(()));
     let ok: Result<(), ApiError> = env.update(payments, admin, "admin_set_platform_id", platform);

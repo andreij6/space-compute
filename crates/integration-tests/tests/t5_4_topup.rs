@@ -124,6 +124,9 @@ fn t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_
 
     let platform = env.install("platform", admin);
     let payments = env.install("payments", admin);
+    for _ in 0..5 {
+        env.pic.tick();
+    }
     let ok: Result<(), ApiError> = env.update(platform, admin, "admin_set_payments_id", payments);
     assert_eq!(ok, Ok(()));
     let ok: Result<(), ApiError> = env.update(payments, admin, "admin_set_platform_id", platform);
