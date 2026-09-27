@@ -114,6 +114,11 @@ pub fn create(input: NewDiscovery) -> Discovery {
     discovery
 }
 
+#[cfg(test)]
+pub fn put(d: &Discovery) {
+    DISCOVERIES.with_borrow_mut(|m| m.insert(d.seq, d.clone()));
+}
+
 pub fn get(seq: u64) -> Option<Discovery> {
     DISCOVERIES.with_borrow(|m| m.get(&seq))
 }

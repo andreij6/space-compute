@@ -29,8 +29,10 @@ pub const LEADERBOARD: u8 = 44;
 pub const CREDIT_INDEX: u8 = 45;
 pub const PUBLIC_ID_INDEX: u8 = 46;
 pub const AAA_ACTIVITY: u8 = 47;
+pub const CLAIM_INDEX: u8 = 48;
 pub const AAA_OPERATORS: u8 = 49;
 pub const AAA_PROVENANCE: u8 = 50;
+pub const CORROBORATIONS: u8 = 51;
 pub const AUDIT_INDEX: u8 = 52;
 pub const AUDIT_DATA: u8 = 53;
 

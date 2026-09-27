@@ -1,0 +1,259 @@
+use std::cell::RefCell;
+
+use candid::{CandidType, Principal};
+use ic_stable_structures::StableBTreeMap;
+use serde::{Deserialize, Serialize};
+
+use crate::discoveries::{self, Discovery, DiscoveryStatus};
+use crate::memory::{self, Memory};
+
+const NS_PER_DAY: u64 = 86_400_000_000_000;
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ClaimKey {
+    pub field: String,
+    pub cell_x: i32,
+    pub cell_y: i32,
+    pub category: String,
+}
+
+crate::candid_storable!(ClaimKey);
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
+struct Seqs(Vec<u64>);
+
+crate::candid_storable!(Seqs);
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Corroboration {
+    pub aaa: Principal,
+    pub owner: Principal,
+    pub classification_id: u64,
+    pub at: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
+struct Corroborations(Vec<Corroboration>);
+
+crate::candid_storable!(Corroborations);
+
+thread_local! {
+    static CLAIM_INDEX: RefCell<StableBTreeMap<ClaimKey, Seqs, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::CLAIM_INDEX)));
+    static CORROBORATIONS: RefCell<StableBTreeMap<u64, Corroborations, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::CORROBORATIONS)));
+}
+
+pub fn cell(ra_deg: f64, dec_deg: f64, cell_arcsec: f64) -> (i32, i32) {
+    let x = (ra_deg * dec_deg.to_radians().cos() * 3600.0 / cell_arcsec).floor();
+    let y = (dec_deg * 3600.0 / cell_arcsec).floor();
+    (x as i32, y as i32)
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Resolution {
+    New,
+    Corroborate(Discovery),
+    ClosedRecentlyRejected(Discovery),
+    Noop,
+}
+
+pub struct ClaimQuery<'a> {
+    pub field: &'a str,
+    pub cell: (i32, i32),
+    pub category: &'a str,
+    pub caller: Principal,
+    pub reopen_days: u32,
+    pub now: u64,
+}
+
+fn neighbours(q: &ClaimQuery) -> Vec<Discovery> {
+    let mut seqs: Vec<u64> = CLAIM_INDEX.with_borrow(|m| {
+        (-1..=1)
+            .flat_map(|dx| (-1..=1).map(move |dy| (dx, dy)))
+            .filter_map(|(dx, dy)| {
+                m.get(&ClaimKey {
+                    field: q.field.to_string(),
+                    cell_x: q.cell.0.saturating_add(dx),
+                    cell_y: q.cell.1.saturating_add(dy),
+                    category: q.category.to_string(),
+                })
+            })
+            .flat_map(|s| s.0)
+            .collect()
+    });
+    seqs.sort_unstable();
+    seqs.dedup();
+    seqs.into_iter().filter_map(discoveries::get).collect()
+}
+
+pub fn resolve(q: &ClaimQuery) -> Resolution {
+    let found = neighbours(q);
+    if let Some(open) = found.iter().find(|d| d.status != DiscoveryStatus::Rejected) {
+        let already = open.discoverer_aaa == q.caller
+            || corroborations(open.seq).iter().any(|c| c.aaa == q.caller);
+        return if already {
+            Resolution::Noop
+        } else {
+            Resolution::Corroborate(open.clone())
+        };
+    }
+    let window = q.reopen_days as u64 * NS_PER_DAY;
+    found
+        .into_iter()
+        .filter(|d| {
+            d.resolved_at
+                .is_some_and(|r| q.now.saturating_sub(r) < window)
+        })
+        .max_by_key(|d| d.resolved_at)
+        .map_or(Resolution::New, Resolution::ClosedRecentlyRejected)
+}
+
+pub fn index(field: &str, cell: (i32, i32), category: &str, seq: u64) {
+    let key = ClaimKey {
+        field: field.to_string(),
+        cell_x: cell.0,
+        cell_y: cell.1,
+        category: category.to_string(),
+    };
+    CLAIM_INDEX.with_borrow_mut(|m| {
+        let mut seqs = m.get(&key).unwrap_or_default();
+        seqs.0.push(seq);
+        m.insert(key, seqs);
+    });
+}
+
+pub fn corroborate(seq: u64, c: Corroboration) {
+    CORROBORATIONS.with_borrow_mut(|m| {
+        let mut list = m.get(&seq).unwrap_or_default();
+        list.0.push(c);
+        m.insert(seq, list);
+    });
+}
+
+pub fn corroborations(seq: u64) -> Vec<Corroboration> {
+    CORROBORATIONS.with_borrow(|m| m.get(&seq).map(|c| c.0).unwrap_or_default())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::discoveries::NewDiscovery;
+
+    const NOW: u64 = 1_790_467_200_000_000_000;
+
+    fn p(n: u8) -> Principal {
+        Principal::from_slice(&[n; 29])
+    }
+
+    fn new_discovery(aaa: Principal, category: &str) -> Discovery {
+        discoveries::create(NewDiscovery {
+            subject_id: 1,
+            classification_id: 1,
+            discoverer_aaa: aaa,
+            discoverer_owner: aaa,
+            discoverer_name_at_time: "A".into(),
+            category: category.into(),
+            rationale: "arc".into(),
+            confidence: 50,
+            fee: 0,
+            needed_reviews: 3,
+            created_at: NOW,
+        })
+    }
+
+    fn query(caller: Principal, category: &str, cell: (i32, i32), now: u64) -> ClaimQuery<'_> {
+        ClaimQuery {
+            field: "ceers",
+            cell,
+            category,
+            caller,
+            reopen_days: 30,
+            now,
+        }
+    }
+
+    #[test]
+    fn t4_9_claim_cell_math_matches_spec_including_negative_dec_and_boundaries() {
+        assert_eq!(cell(0.0, 0.0, 1.5), (0, 0));
+        assert_eq!(cell(0.0, 1.5 / 3600.0, 1.5), (0, 1));
+        assert_eq!(cell(0.0, 1.4999 / 3600.0, 1.5), (0, 0));
+        assert_eq!(cell(0.0, -0.0001 / 3600.0, 1.5), (0, -1));
+        assert_eq!(cell(0.0, -1.5 / 3600.0, 1.5), (0, -1));
+        assert_eq!(cell(0.0, -1.5001 / 3600.0, 1.5), (0, -2));
+        assert_eq!(cell(1.0, 0.0, 1.5), (2400, 0));
+        let (x, y) = cell(214.9, -52.8, 1.5);
+        let expected_x = (214.9 * (-52.8f64).to_radians().cos() * 2400.0).floor() as i32;
+        assert_eq!((x, y), (expected_x, (-52.8f64 * 2400.0).floor() as i32));
+        assert_eq!(cell(214.9, -52.8, 1.5).0, cell(214.9, 52.8, 1.5).0);
+        assert_eq!(cell(10.0, 60.0, 3.0), (6000, 72_000));
+    }
+
+    #[test]
+    fn t4_9_resolve_corroborates_open_claim_in_neighbouring_cells_and_noops_repeat_flaggers() {
+        let d = new_discovery(p(1), "lens");
+        index("ceers", (100, 200), "lens", d.seq);
+        assert_eq!(
+            resolve(&query(p(2), "lens", (101, 199), NOW)),
+            Resolution::Corroborate(d.clone())
+        );
+        assert_eq!(
+            resolve(&query(p(2), "lens", (102, 200), NOW)),
+            Resolution::New
+        );
+        assert_eq!(
+            resolve(&query(p(2), "merger", (100, 200), NOW)),
+            Resolution::New
+        );
+        let other_field = ClaimQuery {
+            field: "cosmos",
+            ..query(p(2), "lens", (100, 200), NOW)
+        };
+        assert_eq!(resolve(&other_field), Resolution::New);
+        assert_eq!(
+            resolve(&query(p(1), "lens", (100, 200), NOW)),
+            Resolution::Noop
+        );
+        corroborate(
+            d.seq,
+            Corroboration {
+                aaa: p(2),
+                owner: p(2),
+                classification_id: 2,
+                at: NOW,
+            },
+        );
+        assert_eq!(
+            resolve(&query(p(2), "lens", (100, 200), NOW)),
+            Resolution::Noop
+        );
+        assert_eq!(corroborations(d.seq).len(), 1);
+        assert!(corroborations(999).is_empty());
+    }
+
+    #[test]
+    fn t4_9_rejected_claim_blocks_within_reopen_window_then_reopens() {
+        let mut d = new_discovery(p(1), "lens");
+        index("ceers", (5, -5), "lens", d.seq);
+        d.status = DiscoveryStatus::Rejected;
+        d.resolved_at = Some(NOW);
+        discoveries::put(&d);
+        let day = NS_PER_DAY;
+        assert_eq!(
+            resolve(&query(p(2), "lens", (5, -5), NOW + 29 * day)),
+            Resolution::ClosedRecentlyRejected(d.clone())
+        );
+        assert_eq!(
+            resolve(&query(p(2), "lens", (5, -5), NOW + 30 * day)),
+            Resolution::New
+        );
+        let mut confirmed = new_discovery(p(3), "lens");
+        confirmed.status = DiscoveryStatus::Confirmed;
+        discoveries::put(&confirmed);
+        index("ceers", (5, -4), "lens", confirmed.seq);
+        assert_eq!(
+            resolve(&query(p(2), "lens", (5, -5), NOW + 29 * day)),
+            Resolution::Corroborate(confirmed)
+        );
+    }
+}

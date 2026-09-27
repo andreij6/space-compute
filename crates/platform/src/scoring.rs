@@ -3,10 +3,13 @@ use std::collections::HashMap;
 
 use candid::{CandidType, Principal};
 use ic_stable_structures::StableBTreeMap;
-use sc_types::{Answer, ApiError, ClassificationReceipt, ClassificationSubmission, Protocol};
+use sc_types::{
+    Answer, ApiError, ClaimOutcome, ClassificationReceipt, ClassificationSubmission, Protocol,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::catalog;
+use crate::claims;
 use crate::config::Params;
 use crate::discoveries::{self, NewDiscovery};
 use crate::memory::{self, Memory};
@@ -388,6 +391,7 @@ pub fn process_submission(
             discovery_id: original
                 .discovery_seq
                 .and_then(discoveries::get)
+                .filter(|d| d.classification_id == cid)
                 .map(|d| d.public_id),
             xp_awarded: original.xp_awarded,
             duplicate: true,
@@ -447,6 +451,8 @@ pub fn process_submission(
 
     let mut discovery_seq = None;
     let mut discovery_public_id = None;
+    let mut claim = None;
+    let mut created = false;
     if let Some(flag) = submission.discovery.as_ref() {
         let category_known = protocol
             .discovery_categories
@@ -455,24 +461,62 @@ pub fn process_submission(
         let cap = (FLAG_RATE_WINDOW as u32 * params.max_flag_rate_bp as u32) / 10_000;
         let within_rate = recent_flagged_count(caller, FLAG_RATE_WINDOW) < cap;
         if !image_mismatch && category_known && within_rate {
-            let discoverer_name = registry::get_aaa(&caller)
-                .map(|r| r.name)
-                .unwrap_or_default();
-            let discovery = discoveries::create(NewDiscovery {
-                subject_id: subject.ref_.subject_id,
-                classification_id,
-                discoverer_aaa: caller,
-                discoverer_owner: owner,
-                discoverer_name_at_time: discoverer_name,
-                category: flag.category.clone(),
-                rationale: flag.rationale.clone(),
-                confidence: flag.confidence,
-                fee,
-                needed_reviews: params.reviews_min as u8,
-                created_at: now,
-            });
-            discovery_seq = Some(discovery.seq);
-            discovery_public_id = Some(discovery.public_id);
+            let (ra, dec) = flag
+                .claim_position
+                .map_or((subject.ref_.ra_deg, subject.ref_.dec_deg), |p| {
+                    (p.ra_deg, p.dec_deg)
+                });
+            let cell = claims::cell(ra, dec, params.claim_cell_arcsec);
+            let query = claims::ClaimQuery {
+                field: &subject.ref_.field,
+                cell,
+                category: &flag.category,
+                caller,
+                reopen_days: params.claim_reopen_days,
+                now,
+            };
+            match claims::resolve(&query) {
+                claims::Resolution::New => {
+                    let discoverer_name = registry::get_aaa(&caller)
+                        .map(|r| r.name)
+                        .unwrap_or_default();
+                    let discovery = discoveries::create(NewDiscovery {
+                        subject_id: subject.ref_.subject_id,
+                        classification_id,
+                        discoverer_aaa: caller,
+                        discoverer_owner: owner,
+                        discoverer_name_at_time: discoverer_name,
+                        category: flag.category.clone(),
+                        rationale: flag.rationale.clone(),
+                        confidence: flag.confidence,
+                        fee,
+                        needed_reviews: params.reviews_min as u8,
+                        created_at: now,
+                    });
+                    claims::index(&subject.ref_.field, cell, &flag.category, discovery.seq);
+                    discovery_seq = Some(discovery.seq);
+                    discovery_public_id = Some(discovery.public_id);
+                    claim = Some(ClaimOutcome::New);
+                    created = true;
+                }
+                claims::Resolution::Corroborate(existing) => {
+                    claims::corroborate(
+                        existing.seq,
+                        claims::Corroboration {
+                            aaa: caller,
+                            owner,
+                            classification_id,
+                            at: now,
+                        },
+                    );
+                    discovery_seq = Some(existing.seq);
+                    claim = Some(ClaimOutcome::Corroborates(existing.public_id));
+                }
+                claims::Resolution::ClosedRecentlyRejected(rejected) => {
+                    claim = Some(ClaimOutcome::ClosedRecentlyRejected(rejected.public_id));
+                }
+                claims::Resolution::Noop => {}
+            }
         }
     }
 
@@ -543,7 +587,7 @@ pub fn process_submission(
         );
     }
 
-    if let Some(seq) = discovery_seq {
+    if let Some(seq) = discovery_seq.filter(|_| created) {
         crate::events::record_event(
             now,
             caller,
@@ -557,7 +601,7 @@ pub fn process_submission(
         discovery_id: discovery_public_id,
         xp_awarded,
         duplicate: false,
-        claim: None,
+        claim,
     })
 }
 
@@ -570,8 +614,8 @@ mod tests {
         SubjectRef {
             subject_id: id,
             field: "ceers".into(),
-            ra_deg: 214.9,
-            dec_deg: 52.8,
+            ra_deg: 214.9 + id as f64 * 0.001,
+            dec_deg: 52.8 + id as f64 * 0.001,
             image_url: format!("https://data.example.com/{id}/rgb.png"),
             image_sha256: vec![1; 32],
             dossier_url: format!("https://data.example.com/{id}/dossier.json"),
@@ -1117,5 +1161,74 @@ mod tests {
         assert!(r2.discovery_id.is_none());
         assert!(!r2.duplicate);
         assert_eq!(discoveries::count(), 0);
+    }
+
+    #[test]
+    fn t4_9_same_cell_flags_collapse_into_one_discovery_with_corroborations() {
+        let mut proto = sample_tree_protocol();
+        proto.discovery_categories.push(DiscoveryCategory {
+            id: "merger".into(),
+            label: "Merger".into(),
+            description: "Merger".into(),
+        });
+        catalog::add_protocol(proto).unwrap();
+        let params = Params {
+            gold_rate_bp: 0,
+            calibration_gold_rate_bp: 0,
+            calibration_tasks: 0,
+            ..Params::default()
+        };
+        let now = 1_790_467_200_000_000_000u64;
+        let pos = sc_types::ClaimPosition {
+            ra_deg: 150.1,
+            dec_deg: 2.2,
+        };
+        let flag = |caller: Principal, subject_id: u32, category: &str| {
+            catalog::add_subjects(vec![catalog::SubjectInput {
+                subject: sample_ref(subject_id),
+                gold: None,
+            }])
+            .unwrap();
+            let task = catalog::issue_task(caller, 0, &params, 1, now, 0).unwrap();
+            let mut sub = flagged_submission(task.task_id, caller, true);
+            let d = sub.discovery.as_mut().unwrap();
+            d.claim_position = Some(pos);
+            d.category = category.into();
+            process_submission(caller, caller, sub, &params, 1, now, 0).unwrap()
+        };
+
+        let first = flag(p(1), 1, "lens");
+        let id = first.discovery_id.clone().unwrap();
+        assert_eq!(first.claim, Some(ClaimOutcome::New));
+        for (caller, subject) in [(p(2), 2), (p(3), 3)] {
+            let r = flag(caller, subject, "lens");
+            assert_eq!(r.discovery_id, None);
+            assert_eq!(r.claim, Some(ClaimOutcome::Corroborates(id.clone())));
+        }
+        let repeat = flag(p(2), 4, "lens");
+        assert_eq!(repeat.claim, None);
+        let d = discoveries::get_by_public_id(&id).unwrap();
+        let corr = claims::corroborations(d.seq);
+        assert_eq!(corr.len(), 2);
+        assert_eq!(corr[0].aaa, p(2));
+        assert_eq!(discoveries::count(), 1);
+
+        let other = flag(p(2), 5, "merger");
+        assert_eq!(other.claim, Some(ClaimOutcome::New));
+        assert_ne!(other.discovery_id, Some(id));
+        assert_eq!(discoveries::count(), 2);
+
+        let mut rejected =
+            discoveries::get_by_public_id(&other.discovery_id.clone().unwrap()).unwrap();
+        rejected.status = crate::discoveries::DiscoveryStatus::Rejected;
+        rejected.resolved_at = Some(now);
+        discoveries::put(&rejected);
+        let closed = flag(p(3), 6, "merger");
+        assert_eq!(
+            closed.claim,
+            Some(ClaimOutcome::ClosedRecentlyRejected(rejected.public_id))
+        );
+        assert_eq!(closed.discovery_id, None);
+        assert_eq!(discoveries::count(), 2);
     }
 }

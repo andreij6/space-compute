@@ -1,6 +1,7 @@
 pub mod api;
 pub mod audit;
 pub mod catalog;
+pub mod claims;
 pub mod config;
 pub mod credits;
 pub mod discoveries;
