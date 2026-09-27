@@ -75,15 +75,11 @@ T = [
  ("T5.4","P5","One-time top-up (wallet + deposit sweep)","BE-B",2,["T5.2"],"04 §4","Gift top-up works",0),
  ("T5.5","P5","Auto top-up mandates, rolling 30-day cap","BE-B",3,["T5.4","T3.4"],"04 §4","04 §5 #5",0),
  ("T5.6","P5","Payments PocketIC tests — ICP paths (04 §5)","BE-B",3,["T5.3","T5.5"],"04 §5","All 7 green",0),
- ("T5.8","P5","XRC rates, fuel treasury guard rails + auto intake pause","BE-B",4,["T5.2"],"04 §6.1-6.3, §6.2b","04 §6.7 #11-13, #15-17",0),
- ("T5.9","P5","ckBTC fuel-pack deposits (address, update_balance, sweep)","BE-B",3,["T5.8"],"04 §6.5","04 §6.7 #10",0),
- ("T5.10","P5","ckETH fuel-pack deposits","BE-B",2,["T5.8","SP-6"],"04 §6.6","Mock mint → top-up",0),
- ("T5.13","P5","Non-ICP payment tests (04 §6.7)","BE-B",2,["T5.9","T5.10"],"04 §6.7","All green",0),
- ("T5.15","P5","Payments admin APIs (audit log exists since T5.1)","BE-B",1,["T5.13"],"04 §4 admin","Overview matches ledger balances",0),
- ("T5.16","P5","Feature flags + invite codes (sponsored spawn)","BE-B",2,["T5.3"],"04 §0-0b","btc/eth off → FeatureDisabled; invite single-use",0),
+ ("T5.15","P5","Payments admin APIs (audit log exists since T5.1)","BE-B",1,["T5.1"],"04 §4 admin","Overview matches ledger balances",0),
+ ("T5.16","P5","Feature flags + invite codes (sponsored spawn)","BE-B",2,["T5.3"],"04 §0-0b","invite single-use; card/btc/eth default off",0),
  ("T5.17","P5","treasury canister: owner-funded reserve, cycles keeper, health()","BE-A",3,["T2.1","T1.4"],"12 §1-4","Keeper tops up; health() drives intake pause",0),
  ("T5.18","P5","treasury PocketIC tests (ICP ledger + CMC, no NNS)","BE-A",1,["T5.17"],"12 §5","12 §5 #1-6 green",0),
- ("T5.7","P5","Internal payments security review","BE-A",2,["T5.6","T5.13","T5.16"],"08 §4","Checklist signed",0),
+ ("T5.7","P5","Internal payments security review","BE-A",2,["T5.6","T5.16"],"08 §4","Checklist signed",0),
  ("T6.1","P6","App scaffold: routing, bindgen, II auth, ic_env, CSP","FE",3,["T1.1"],"05 §1","Sign-in works locally",0),
  ("T6.3","P6","Landing, Discovery Museum feed, Discovery detail + citation verify","FE",5,["T6.1"],"05 §2-3","Verified mark fails closed",0),
  ("T6.4","P6","AAA profile + Leaderboard","FE",3,["T6.3"],"05 §2","Tier/badges render",0),
@@ -92,10 +88,9 @@ T = [
  ("T6.7","P6","Owner dashboard","FE",4,["T6.1","T3.3","T4.6"],"05 §2-3","Frozen fallback works",0),
  ("T6.8","P6","Connect your agent + Activity & records","FE",3,["T6.7"],"05 §3","Operator add/revoke",0),
  ("T6.9","P6","Fuel & billing + auto top-up","FE",3,["T6.5","T5.5"],"05 §3","Mandate states render",0),
- ("T6.11","P6","BTC & ETH methods + feature-flag gating","FE",4,["T6.5","T5.9","T5.10"],"05 §3","Mock BTC/ETH e2e",0),
  ("T6.12","P6","Admin console (8 screens)","FE",5,["T6.1","T4.10","T5.15"],"05 §2b","Non-admin gets 404/Unauthorized",0),
  ("T6.14","P6","About/legal/practice pages, invite spawn UI, admin invites/treasury/moderation","FE",3,["T6.12","T5.16","T5.18"],"05 §2, §2b","E2E: invite spawn; non-admin blocked",0),
- ("T6.10","P6","States, accessibility, Playwright smoke","FE",3,["T6.4","T6.6","T6.8","T6.9","T6.11","T6.12","T6.14"],"05 §5","Lighthouse a11y ≥90",0),
+ ("T6.10","P6","States, accessibility, Playwright smoke","FE",3,["T6.4","T6.6","T6.8","T6.9","T6.12","T6.14"],"05 §5","Lighthouse a11y ≥90",0),
  ("T7.1","P7","Upgrade tests for all canisters","BE-A",2,["T4.8","T5.6"],"09 §1","vN-1→vN state intact",0),
  ("T7.2","P7","Load test: 200 AAAs × 100 tasks","BE-A",2,["T7.1"],"09 §1","Report committed",0),
  ("T7.3","P7","Cycle cost measurement & fee retune","BE-A",2,["T7.2"],"01 §7, SP-5","Params updated",0),
@@ -122,8 +117,6 @@ T = [
  ("T9.5","P9","Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run","FE",2,["T9.2","T9.3","T9.4"],"05 §4-5","Lighthouse a11y ≥90, perf ≥80; baseline committed",0),
  ("T8.13","P8","Custom domain + II alternative origins","Owner",1,["T8.1"],"05 §1","Domain serves frontend; II principal stable",0),
  ("T8.15","P8","Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits)","Owner",1,["T0.4"],"02 §5, 03, 06, 07 §4","Agree/changes recorded in OKR.md; spec edits filed as tasks",0),
- ("T8.8","P8","Compliance check for crypto fuel packs (recommended)","Owner",5,["T0.4"],"08 S20","Written go/no-go",0),
- ("T8.9","P8","Enable BTC/ETH on production","Owner",1,["T8.6","T8.8"],"04 §6.2","admin_pause_non_icp off",0),
 ]
 _ids = {t[0] for t in T}
 _missing = sorted({(t[0], d) for t in T for d in t[5] if d not in _ids})
@@ -141,10 +134,10 @@ T1.1:L T1.2:M T1.3:L T1.4:M T1.5:M T1.7:M T1.8:M
 T2.1:M T2.2:H T2.3:M T2.4:H T2.5:M T2.6:L T2.7:M T2.8:H T2.9:H
 T3.1:M T3.2:H T3.3:L T3.4:M T3.5:L T3.6:M T3.7:H T3.8:L T3.9:L
 T4.1:M T4.2:H T4.3:M T4.4:H T4.5:H T4.6:M T4.7:L T4.8:M T4.9:H T4.10:L T4.11:L
-T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.8:H T5.9:H T5.10:M T5.13:M T5.15:L T5.16:M T5.17:H T5.18:M
-T6.1:M T6.3:M T6.4:L T6.5:M T6.6:L T6.7:M T6.8:L T6.9:L T6.10:M T6.11:M T6.12:M T6.14:L
+T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.15:L T5.16:M T5.17:H T5.18:M
+T6.1:M T6.3:M T6.4:L T6.5:M T6.6:L T6.7:M T6.8:L T6.9:L T6.10:M T6.12:M T6.14:L
 T7.1:M T7.2:M T7.3:M T7.4:M T7.5:- T7.6:H T7.7:H T7.9:L T7.10:L T7.11:M
-T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.8:- T8.9:- T8.13:- T8.14:- T8.15:- T8.16:L
+T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.13:- T8.14:- T8.15:- T8.16:L
 T9.1:M T9.2:M T9.3:M T9.4:L T9.5:L""".split())
 MODEL = {"H": "opus-5.5 (high)", "M": "sonnet-5", "L": "haiku-4.5", "-": "human"}
 def demo(tid, ph, name):
@@ -204,13 +197,20 @@ def md():
         for tid, _, name, owner, days, deps, spec, acc, _p in rows:
             out.append(f"| {tid} | {name} | {TIER[tid]} | {lane.get(tid, 'you')} | {days} | {', '.join(deps) or '—'} | {start[tid]} | {end[tid]} | {spec} | {acc} | {demo(tid, ph, name)} |")
         out.append("")
-    out += ["## Deferred (not scheduled — owner decision 2026-09-27: no Stripe code until the whole app is ready)", "",
+    out += ["## Deferred (not scheduled — owner decision 2026-09-27: no Stripe code until the whole app is ready; owner decision 2026-09-27: ICP-only payments for now, no ckBTC/ckETH)", "",
             "| ID | Task | Spec |", "|---|---|---|",
             "| D1 | Stripe relay Worker: checkout, webhook, portal | 04b |",
             "| D2 | Stripe account, products, Radar | 04b §2 |",
             "| D3 | Card tab + subscription management UI | 05 §3 |",
             "| D4 | Stripe reconciliation job + enable `features.card` | 04b §3, 09 §3 |",
-            "| D5 | payments `stripe_credit` endpoint, `Card` fuel source, `features.card`, `stripe_daily_usd_cap`, Stripe dedupe map (mem 6 reserved) | 04 §6.4, 04b §3 |", ""]
+            "| D5 | payments `stripe_credit` endpoint, `Card` fuel source, `features.card`, `stripe_daily_usd_cap`, Stripe dedupe map (mem 6 reserved) | 04 §6.4, 04b §3 |",
+            "| D6 | XRC rates, fuel treasury guard rails + auto intake pause | 04 §6.1-6.3, §6.2b |",
+            "| D7 | ckBTC fuel-pack deposits (address, update_balance, sweep) | 04 §6.5 |",
+            "| D8 | ckETH fuel-pack deposits | 04 §6.6 |",
+            "| D9 | Non-ICP payment tests (04 §6.7) | 04 §6.7 |",
+            "| D10 | BTC & ETH methods + feature-flag gating (frontend) | 05 §3 |",
+            "| D11 | Compliance check for crypto fuel packs | 08 S20 |",
+            "| D12 | Enable BTC/ETH on production | 04 §6.2 |", ""]
     out += ["## Milestones", "", "| Milestone | Gate task | Date |", "|---|---|---|"]
     out += [f"| {m} | {t} | {end[t]} |" for m, t in MILESTONES]
     return "\n".join(out) + "\n"

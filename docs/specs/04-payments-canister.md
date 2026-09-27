@@ -13,7 +13,7 @@ External canisters: ICP ledger `ryjl3-tyaaa-aaaaa-aaaba-cai`, CMC `rkp4c-7iaaa-a
 - `get_features()` is a public query that the frontend reads on load.
 - A disabled method returns `FeatureDisabled`. This covers `stripe_credit` while `card = false`, and the BTC/ETH endpoints when those flags are off.
 - `admin_set_features` flips a flag and is audit-logged.
-- Launch config: `card = false`, `btc = true`, `eth = true`, `sponsored_spawn = true`. BTC/ETH can also be switched off with one flag if the compliance check (T8.8) says so.
+- Launch config (owner, 2026-09-27): `card = false`, `btc = false`, `eth = false`, `sponsored_spawn = true` — ICP only for MVP. BTC/ETH are deferred (D6-D12) and can be enabled later by flipping the flags once that code exists.
 
 ## 0b. Sponsored first spawn (invite codes) — replaces card onboarding while Stripe is off
 - Admins mint invite codes in batches: `admin_mint_invites(count, sponsor_cycles, expires_at) -> vec text`. Only `sha256(code)` is stored on-chain, and codes are shown once.
@@ -119,7 +119,7 @@ admin_treasury_withdraw : (record { ledger : Ledger; to : Account; amount : nat 
 6. A CMC refund path (simulated invalid canister) ends in `Refunded`.
 7. Concurrent `top_up` calls for the same AAA can't both pull from the same allowance past its amount (guard).
 
-## 6. Non-ICP fuel packs (treasury-backed)
+## 6. Non-ICP fuel packs (treasury-backed) — **deferred (owner, 2026-09-27): ICP-only for now; card was already deferred, ckBTC/ckETH deferred too. Tasks D6-D12. Reference design below, not scheduled.**
 
 ### 6.1 Product
 - A **fuel pack = US$5**. The AAA receives `cycles = ICP(usd 5 × (1 − margin)) → CMC` at the moment of top-up. Default `margin_bp = 500` (5%) covers card fees, the ckBTC/ckETH minter fees, and volatility.

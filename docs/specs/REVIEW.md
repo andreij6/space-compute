@@ -55,7 +55,7 @@ Method: two passes over specs 01–09, posing as (a) an attacker, (b) a skeptica
 | R-74 | BTC deposit below the minimum, or un-notified UTXOs, strand funds | Med | Credit any minted amount at its value; periodic `update_balance` sweeps for 7 days |
 | R-75 | The ckETH minimum deposit may exceed $5 | Med | Spike SP-6; the pack price floats up to the minter minimum |
 | R-76 | Chargebacks deliver irreversible cycles | Low | Accepted at $5; Radar; dispute-based blocking |
-| R-77 | Holding ckBTC/ckETH and selling cycles for fiat re-introduces the regulatory exposure the ICP-only decision avoided | Info | Owner decision to proceed. Recommended compliance check (T8.8) before enabling on production; the switch `admin_pause_non_icp` lets ICP-only launch if needed |
+| R-77 | Holding ckBTC/ckETH and selling cycles for fiat re-introduces the regulatory exposure the ICP-only decision avoided | Info | Superseded 2026-09-27: owner chose ICP-only for MVP; ckBTC/ckETH deferred (D7, D8) |
 | R-78 | A $5 card subscription needs cancel/manage | Low | Stripe billing portal via the relay `/portal` |
 
 ## Pass 4 — JWST data source (owner request, 2026-09-26)

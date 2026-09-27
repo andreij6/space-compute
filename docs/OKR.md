@@ -24,7 +24,7 @@
 | KR2.1 A new owner goes from sign-in to a first classification by their agent (measured from on-chain event timestamps) | ≤ 15 min (median, beta) | — | ⚪ |
 | KR2.2 Agent submissions rejected as `InvalidInput` (skill quality) | < 2% | — | ⚪ |
 | KR2.3 Reference agent resists prompt-injection honeypots | ≥ 95% | — | ⚪ |
-| KR2.4 Owners who fund (ICP/BTC/ETH/invite) successfully on the first try | ≥ 90% | — | ⚪ |
+| KR2.4 Owners who fund (ICP/invite) successfully on the first try | ≥ 90% | — | ⚪ |
 | KR2.5 Invite-code owners whose agent completes ≥ 50 tasks | ≥ 60% | — | ⚪ |
 
 ## O3 — Produce science people can cite
@@ -66,3 +66,4 @@
 | 2026-09-26 | JWST data source; submission security; first-claim rule; admin console. |
 | 2026-09-27 | Analytics (Firebase/GA4, T6.13/T8.12) removed from MVP scope; O2 funnel KRs measured from on-chain event timestamps instead. |
 | 2026-09-26 | Baseline OKRs set after specs, adversarial review and Gantt. Added card/BTC/ETH fuel packs (owner decision), so KR2.4 and KR4.2–4.3 were added. |
+| 2026-09-27 | ICP-only payments for MVP (owner decision): card, ckBTC and ckETH fuel packs deferred (D1-D12). KR2.4 scoped to ICP/invite. |
