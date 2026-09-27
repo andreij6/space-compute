@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — Review of the parallel session's frontend (T6.1 reset to in_progress 30%)
+- Real: Vite/React build, 25 routed screens, static-site recipe, _redirects/_headers. Missing: II auth, ic_env, bindgen, tests (lint/test are echo stubs).
+- All 25 screens run on mockData.ts; no canister calls. Misleading: citation block always shows "BLS Verified" (spec: fail closed); spawn "provisioning" is setTimeout; connect page shows a "Secret Operator API Key" (design uses revocable principals, no shared secrets); no admin guard; card (Stripe) tab always visible.
+- Keep the pages as a visual reference for P9; build T6.x functionally when scheduled. Frontend files were swept into SP-1..SP-7 commits by my `git add -A` (shared checkout) — use explicit paths when another session is active.
+
 ## 2026-09-27 — T1.5 JWST subject selection + gold (done)
 - Real DJA v7 catalogues (8 phot + 8 EAZY, ~4 GB, `sc_curation.fetch`) → 20,000 subjects over 6 fields, z-stratified; 2,286 gold (1,536 strong: GZ CANDELS answers + 681 bright point sources; 750 weak "merger=none" capped 250/field).
 - Informative GZ overlap caps at ~1,100 whatever the guards (measured) → weak tier + objective stars fill the gap; flagged for T4.3 weighting. Committed `data/curation/v1/` + `docs/data/curation-report-v1.md`.

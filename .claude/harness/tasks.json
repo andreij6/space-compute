@@ -204,7 +204,7 @@
   "start": "2026-10-14",
   "end": "2026-10-20",
   "status": "in_progress",
-  "pct": 0.35
+  "pct": 0.45
  },
  {
   "id": "SP-1",
@@ -1194,8 +1194,8 @@
   "demo": "shots: docs/demos/T6.1/*.png (Playwright)",
   "start": "2026-12-16",
   "end": "2026-12-18",
-  "status": "done",
-  "pct": 1.0
+  "status": "in_progress",
+  "pct": 0.3
  },
  {
   "id": "T6.3",
