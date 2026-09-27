@@ -6,7 +6,8 @@ use candid::{encode_args, encode_one};
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use platform::catalog::SubjectInput;
-use sc_types::{Answer, Protocol, SubjectRef};
+use platform::reviews::HoneypotSpec;
+use sc_types::{Answer, Protocol, SubjectRef, Vote};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -30,6 +31,14 @@ struct GoldRow {
     answers: BTreeMap<String, String>,
 }
 
+#[derive(Deserialize)]
+struct HoneypotRow {
+    subject_id: u32,
+    category: String,
+    rationale: String,
+    truth: String,
+}
+
 fn hex(s: &str) -> Vec<u8> {
     (0..s.len())
         .step_by(2)
@@ -39,6 +48,32 @@ fn hex(s: &str) -> Vec<u8> {
 
 pub fn protocol(path: &Path) -> Protocol {
     serde_json::from_str(&std::fs::read_to_string(path).expect("protocol json")).expect("protocol")
+}
+
+fn to_subject_input(r: ManifestRow, gold: &BTreeMap<String, GoldRow>, base: &str) -> SubjectInput {
+    let answers = gold.get(&r.subject_id.to_string()).map(|g| {
+        g.answers
+            .iter()
+            .map(|(q, a)| Answer {
+                question_id: q.clone(),
+                answer_id: a.clone(),
+            })
+            .collect()
+    });
+    SubjectInput {
+        subject: SubjectRef {
+            subject_id: r.subject_id,
+            field: r.field,
+            ra_deg: r.ra_deg,
+            dec_deg: r.dec_deg,
+            image_url: format!("{base}/{}", r.rgb_url),
+            image_sha256: hex(&r.rgb_sha256),
+            dossier_url: format!("{base}/{}", r.dossier_url),
+            dossier_sha256: hex(&r.dossier_sha256),
+            data_version: r.data_version,
+        },
+        gold: answers,
+    }
 }
 
 pub fn subjects(manifest: &Path, gold: &Path, base_url: &str, limit: usize) -> Vec<SubjectInput> {
@@ -51,31 +86,53 @@ pub fn subjects(manifest: &Path, gold: &Path, base_url: &str, limit: usize) -> V
     rows.iter()
         .step_by(stride)
         .take(limit)
-        .map(|l| {
-            let r: ManifestRow = serde_json::from_str(l).expect("manifest row");
-            let answers = gold.get(&r.subject_id.to_string()).map(|g| {
-                g.answers
-                    .iter()
-                    .map(|(q, a)| Answer {
-                        question_id: q.clone(),
-                        answer_id: a.clone(),
-                    })
-                    .collect()
-            });
-            SubjectInput {
-                subject: SubjectRef {
-                    subject_id: r.subject_id,
-                    field: r.field,
-                    ra_deg: r.ra_deg,
-                    dec_deg: r.dec_deg,
-                    image_url: format!("{base}/{}", r.rgb_url),
-                    image_sha256: hex(&r.rgb_sha256),
-                    dossier_url: format!("{base}/{}", r.dossier_url),
-                    dossier_sha256: hex(&r.dossier_sha256),
-                    data_version: r.data_version,
-                },
-                gold: answers,
-            }
+        .map(|l| to_subject_input(serde_json::from_str(l).expect("manifest row"), &gold, base))
+        .collect()
+}
+
+pub fn ensure_gold_subjects(
+    manifest: &Path,
+    gold: &Path,
+    base_url: &str,
+    subjects: &mut Vec<SubjectInput>,
+    ids: &[u32],
+) {
+    let gold: BTreeMap<String, GoldRow> =
+        serde_json::from_str(&std::fs::read_to_string(gold).expect("gold json")).expect("gold");
+    let base = base_url.trim_end_matches('/');
+    let have: std::collections::BTreeSet<u32> =
+        subjects.iter().map(|s| s.subject.subject_id).collect();
+    let missing: std::collections::BTreeSet<u32> = ids
+        .iter()
+        .copied()
+        .filter(|id| !have.contains(id))
+        .collect();
+    if missing.is_empty() {
+        return;
+    }
+    let text = std::fs::read_to_string(manifest).expect("manifest");
+    for line in text.lines() {
+        let r: ManifestRow = serde_json::from_str(line).expect("manifest row");
+        if missing.contains(&r.subject_id) {
+            subjects.push(to_subject_input(r, &gold, base));
+        }
+    }
+}
+
+pub fn honeypots(path: &Path) -> Vec<HoneypotSpec> {
+    let rows: Vec<HoneypotRow> =
+        serde_json::from_str(&std::fs::read_to_string(path).expect("honeypots json"))
+            .expect("honeypots");
+    rows.into_iter()
+        .map(|r| HoneypotSpec {
+            subject_id: r.subject_id,
+            category: r.category,
+            rationale: r.rationale,
+            truth: match r.truth.as_str() {
+                "Agree" => Vote::Agree,
+                "Disagree" => Vote::Disagree,
+                other => panic!("unknown honeypot truth {other}"),
+            },
         })
         .collect()
 }
@@ -116,4 +173,13 @@ pub fn write_args(
     }
     std::fs::write(out.join("aaa_wasm.bin"), wasm_upload(1, aaa_wasm).1).expect("write");
     batches.len()
+}
+
+pub fn write_honeypots(out: &Path, honeypots: &[HoneypotSpec]) {
+    std::fs::create_dir_all(out).expect("out dir");
+    std::fs::write(
+        out.join("honeypots.bin"),
+        encode_one(honeypots.to_vec()).expect("encode"),
+    )
+    .expect("write");
 }

@@ -122,6 +122,9 @@
 | 02 §8.3: witness + certificate verification rejects tampered citation, stale certified_data, wrong canister, junk CBOR | T4.5 | t4_5_verify_accepts_witness_and_rejects_tampering |
 | 02 §7: get_citation unknown public_id → None | T4.5 | t4_5_certified_unknown_public_id_is_none |
 | 02 §11 #7: after an upgrade citations are intact and get_citation still verifies (PocketIC) | T4.5 | t4_5_witness_verifies_after_upgrade |
+| 07 §5: 120 deterministic honeypots built from gold_v1.json (mix of true/false claims, categories restricted to protocol v1 discovery_categories) | T4.7 | tools/curation/tests/test_t4_7_honeypots.py |
+| 02 §6.3: admin_add_honeypots(vec HoneypotSpec) loads gold-only honeypots; a non-gold subject is rejected; honeypots absent from list_discoveries and get_stats().under_review_count (PocketIC) | T4.7 | t4_7_honeypots_load_into_platform |
+| 07 §5 acceptance: honeypots uploaded locally via seed-local (idempotent re-run, admin_audit_log guard) | T4.7 | tools/seed-local/seed.sh |
 | 04 §5 #2: Deposit spawn reaches Done, platform shows the AAA registered, and the deposit account is swept to zero | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §5 #4: platform can't register mid-saga → op stays Notified with no double charge; resume completes it; a duplicate resume on a Done op is a no-op | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §4: top_up(aaa, path) — anyone may gift fuel to any registered AAA, no owner check; min 0.1 ICP enforced before any funds move | T5.4 | t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_is_rejected |
@@ -155,6 +158,12 @@
 | 06 §2c: headless runner stops without invoking claude when days_of_fuel_estimate is below the threshold | T3.9 | test_t3_9_run_sh_stops_at_fuel_guard |
 | 06 §2c: headless runner invokes claude -p when fuel is above the threshold | T3.9 | test_t3_9_run_sh_proceeds_above_threshold |
 | 06 §2b: practice.py scores an agent's answers against the practice key per question | T3.9 | test_t3_9_practice_per_question_accuracy |
+| 02 §7: list_discoveries newest-first with category/status filters and cursor pagination (limit ≤100) | T4.6 | t4_6_list_filters_by_category_and_status_newest_first_with_cursor |
+| 02 §7/§11 #6: UnderReview discovery hidden from non-owners, visible to its owner and honeypots hidden from everyone | T4.6 | t4_6_is_visible_hides_under_review_from_non_owners_and_honeypots_from_everyone |
+| 02 §7: list_discoveries hides an UnderReview discovery from a stranger and shows it to its owner | T4.6 | t4_6_list_hides_under_review_and_honeypots_from_non_owners_shows_owner_their_own |
+| 02 §7: get_stats under_review_count/confirmed_discoveries count real discoveries only, excluding honeypots | T4.6 | t4_6_stats_counts_real_discoveries_and_excludes_honeypots |
+| 02 §11 #6: an UnderReview discovery is invisible via get_discovery/list_discoveries to a stranger but visible to the owner and discoverer AAA; it becomes fully public on resolution | T4.6 | t4_6_under_review_hidden_from_strangers_visible_to_owner_and_discoverer |
+| 02 §11 #6: honeypots never appear in list_discoveries or get_leaderboard | T4.6 | t4_6_honeypots_never_appear_in_discoveries_leaderboard_or_citations |
 | 08 §4 / S7: a timed-out or ambiguous ledger call is Unknown (retried with the same created_at_time), Duplicate is Done, definitive rejects are Failed | T5.7 | t5_7_classify_transfer_never_treats_ambiguous_outcomes_as_failed |
 | 08 §4: InsufficientAllowance/InsufficientFunds are funding rejections (mandate needs_attention) | T5.7 | t5_7_classify_transfer_from_flags_allowance_and_funds_as_funding_rejections |
 | 04 §3: the pull amount is pinned in the journal before the transfer await and never changes on resume | T5.7 | t5_7_fix_pull_pins_the_first_amount_and_refuses_after_pending |

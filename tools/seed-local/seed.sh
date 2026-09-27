@@ -33,4 +33,10 @@ for f in target/seed/subjects_*.bin; do
 done
 call admin_upload_wasm --args-file target/seed/aaa_wasm.bin --args-format bin
 call admin_approve_wasm '(1 : nat32)'
-echo "  seeded protocol v1, $LIMIT subjects (images at http://127.0.0.1:$PORT), AAA wasm v1"
+
+if icp canister call platform admin_audit_log '(null, 1000 : nat32)' "${ID[@]}" 2>&1 | grep -q "admin_add_honeypots"; then
+  echo "  honeypots already seeded, skipping"
+else
+  call admin_add_honeypots --args-file target/seed/honeypots.bin --args-format bin
+fi
+echo "  seeded protocol v1, $LIMIT subjects (images at http://127.0.0.1:$PORT), AAA wasm v1, honeypots"
