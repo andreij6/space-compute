@@ -41,7 +41,7 @@ External canisters: ICP ledger `ryjl3-tyaaa-aaaaa-aaaba-cai`, CMC `rkp4c-7iaaa-a
 ## 2. CMC interaction
 - **Top-up:** transfer to `(CMC, subaccount = principal_to_subaccount(aaa))` with memo `TPUP` (`0x50555054`), then `notify_top_up { block_index, canister_id = aaa }`.
 - **Create:** transfer to `(CMC, subaccount = principal_to_subaccount(payments))` with memo `CREA` (`0x41455243`), then `notify_create_canister { block_index, controller = payments, settings = { controllers = [owner, platform], freezing_threshold = 60 days } , subnet_selection = null }`.
-- **Spike SP-1 (Phase 1)** answers: does the CMC accept an ICRC-2 `transfer_from` whose ICRC-1 memo carries TPUP/CREA? If not, pull into the payments default account first, then use the legacy `transfer` with memo (costs one extra fee). The spec supports both behind `CmcDepositMode`.
+- **Spike SP-1 — resolved 2026-09-27 (PocketIC, real CMC): yes.** The CMC accepts an ICRC-2 `icrc2_transfer_from` (and a plain `icrc1_transfer`) whose ICRC-1 memo is the 8-byte little-endian u64 `TPUP`/`CREA`, for both `notify_top_up` and `notify_create_canister`. So `payments` pulls straight from the payer into the CMC deposit account in one ledger call; no intermediate account, no extra fee, no `CmcDepositMode` switch. A transfer without the memo is refunded (minus fee) to the sender. Proof: `just demo SP-1` (`crates/integration-tests/tests/sp_1_cmc_memo.rs`).
 - `notify_*` is idempotent per block index. On `Processing` or `SYS_UNKNOWN`, retry. On `Refunded { block_index }`, mark the op `Refunded` and record the refund block; the CMC refunds to the sender.
 
 ## 3. Operations journal (saga)

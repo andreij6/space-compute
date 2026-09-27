@@ -7,6 +7,7 @@ Technical unknowns and spikes resolution for Space Compute.
 ## 1. Payments & Ledger
 
 ### Q1 (SP-1): CMC `notify_top_up` & ICRC-2 Transfers
+> **Correction 2026-09-27 (SP-1, tested):** the answer below is wrong. The real CMC in PocketIC accepts ICRC-1 and ICRC-2 `transfer_from` blocks whose memo is the 8-byte LE `TPUP`/`CREA` for both `notify_top_up` and `notify_create_canister`. See `just demo SP-1`.
 - **Answer:** CMC's `notify_*` methods require legacy ICP transfers with 64-bit memos (`0x50555054` for TPUP, `0x41455243` for CREA); ICRC-2 blocks are rejected.
 - **Confidence:** High.
 - **Evidence:** `dfinity/ic/rs/nns/cmc/src/main.rs`. In `proof-of-burn` (`lib.rs:2206–2246`, PB-148), mainnet requires `call_ledger_legacy_transfer` with `MEMO_TOP_UP = 0x5055_5054`.
@@ -136,7 +137,7 @@ Technical unknowns and spikes resolution for Space Compute.
 
 | Unknown / Spike | Result Summary | Spec / Plan Impact | Fallback Triggered? |
 |---|---|---|---|
-| **SP-1 (CMC Notify)** | CMC rejects ICRC-2; requires legacy memo. | `04 §2`: Use 2-step pull-then-legacy-transfer. | **YES (Confirmed Fallback)** |
+| **SP-1 (CMC Notify)** | ~~CMC rejects ICRC-2~~ Tested: CMC accepts ICRC-2 with 8-byte LE memo. | `04 §2`: pull directly into the CMC deposit account. | No |
 | **SP-2 (OISY Spender)** | Wallet UI consent messages omit spender subaccount. | `04 §1`: Deposit address primary; wallet post-MVP. | **YES (Confirmed Fallback)** |
 | **SP-3 (Frozen Canister)** | Queries and `canister_status` work; inter-canister fails. | `01 §4`: Frontend checks status via platform cache. | No (As Designed) |
 | **SP-4 (`canister_info`)** | Cross-subnet call is 1–2M cycles and 2–4s latency. | `02 §3`: Verify at register/upgrade & 24h timer. | **YES (Confirmed Fallback)** |

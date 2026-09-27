@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — SP-1 CMC + ICRC-2 memo (done)
+- Tested against the real CMC: ICRC-2 transfer_from (and icrc1_transfer) with the 8-byte LE memo TPUP/CREA works for top-up AND create; memo-less → refunded. Legacy transfer also works.
+- Decision in 04 §2 + REVIEW: payments pulls directly into the CMC deposit account; no two-step fallback. research-unknowns Q1 corrected (it said the opposite).
+- Demo: `just demo SP-1`. Harness: L-017 (test spikes, don't trust desk research).
+
 ## 2026-09-27 — T1.4 PocketIC harness (done)
 - `integration_tests::pic::IcpEnv`: PocketIC 16 + `IcpFeatures` (real ICP ledger, CMC, registry; anonymous holds 1B ICP); helpers for install, query/update, icrc1 + legacy transfer, CMC top-up account, notify_top_up; `canister_wasm()` builds wasms once.
 - Demo: `just demo T1.4` → mint 10 ICP, install platform, 1 ICP → CMC (memo TPUP) → +3.52T cycles.

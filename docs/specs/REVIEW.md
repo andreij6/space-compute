@@ -107,7 +107,7 @@ Walked every journey end to end: visitor, new owner (with and without ICP), agen
 
 | Spike | Question | Blocks | Resolution & Action Taken |
 |---|---|---|---|
-| SP-1 | Does the CMC accept an ICRC-2 `transfer_from` with ICRC-1 memo TPUP/CREA for `notify_*`? | T5.x payments | **Resolved (No).** Fallback confirmed: `payments` pulls ICP via `icrc2_transfer_from`, then calls legacy `transfer` with `MEMO_TOP_UP = 0x5055_5054` (+1 fee). |
+| SP-1 | Does the CMC accept an ICRC-2 `transfer_from` with ICRC-1 memo TPUP/CREA for `notify_*`? | T5.x payments | **Resolved 2026-09-27 (Yes).** PocketIC with the real CMC: ICRC-2 `transfer_from` with the 8-byte LE memo works for top-up and create; pull directly into the CMC deposit account. Proof: `just demo SP-1`. |
 | SP-2 | Does OISY (via `@icp-sdk/signer`) approve with a **spender subaccount** on the ICP ledger? | T5.x, T6.x wallet path | **Resolved (No / Inconsistent UI).** Fallback confirmed: direct deposit-address path is primary MVP rail; wallet path post-MVP. |
 | SP-3 | Frozen canister query behaviour | T6.x dashboard | **Resolved.** Queries and `canister_status` work; inter-canister calls fail with `SYS_TRANSIENT`. Dashboard uses platform-cached profile fallback. |
 | SP-4 | `canister_info` cycle cost and latency cross-subnet | T2.x verification | **Resolved (Too slow/costly).** Fallback confirmed: verify AAA wasm hash at registration, upgrade, and lazily via 24h timer (not per submission). |
