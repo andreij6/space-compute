@@ -79,7 +79,7 @@ Method: two passes over specs 01–09, posing as (a) an attacker, (b) a skeptica
 | R-92 | Two agents flagging the same object would create duplicate discoveries and split credit | Med | Spatial claim index (1.5″ cells, 3×3 search) per category; first execution wins; later flags become corroborations |
 | R-93 | Adjacent cutouts can show the same feature | Med | Claims are keyed on sky position, not subject id; `claim_position` handles off-centre features |
 | R-94 | Admin actions via CLI only are error-prone and unaudited | Med | Admin console plus an on-chain audit log of every admin mutation; destructive actions need a typed confirmation |
-| R-95 | Firebase adds a third-party script, which is a privacy, CSP and bundle-weight risk | Med | Consent-gated lazy load, pseudonymous ids, no free text in events, an explicit CSP allowlist, budget checked in CI |
+| R-95 | (withdrawn 2026-09-27: analytics deferred, not needed for MVP) | — | — |
 
 ## Pass 6 — whole-app gap review (owner request, 2026-09-27)
 

@@ -94,9 +94,8 @@ T = [
  ("T6.9","P6","Fuel & billing + auto top-up","FE",3,["T6.5","T5.5"],"05 §3","Mandate states render",0),
  ("T6.11","P6","BTC & ETH methods + feature-flag gating","FE",4,["T6.5","T5.9","T5.10"],"05 §3","Mock BTC/ETH e2e",0),
  ("T6.12","P6","Admin console (8 screens)","FE",5,["T6.1","T4.10","T5.15"],"05 §2b","Non-admin gets 404/Unauthorized",0),
- ("T6.13","P6","Firebase analytics + consent + event taxonomy + perf traces","FE",2,["T6.1"],"05 §4b","No requests before consent",0),
  ("T6.14","P6","About/legal/practice pages, invite spawn UI, admin invites/treasury/moderation","FE",3,["T6.12","T5.16","T5.18"],"05 §2, §2b","E2E: invite spawn; non-admin blocked",0),
- ("T6.10","P6","States, accessibility, Playwright smoke","FE",3,["T6.4","T6.6","T6.8","T6.9","T6.11","T6.12","T6.13","T6.14"],"05 §5","Lighthouse a11y ≥90",0),
+ ("T6.10","P6","States, accessibility, Playwright smoke","FE",3,["T6.4","T6.6","T6.8","T6.9","T6.11","T6.12","T6.14"],"05 §5","Lighthouse a11y ≥90",0),
  ("T7.1","P7","Upgrade tests for all canisters","BE-A",2,["T4.8","T5.6"],"09 §1","vN-1→vN state intact",0),
  ("T7.2","P7","Load test: 200 AAAs × 100 tasks","BE-A",2,["T7.1"],"09 §1","Report committed",0),
  ("T7.3","P7","Cycle cost measurement & fee retune","BE-A",2,["T7.2"],"01 §7, SP-5","Params updated",0),
@@ -122,7 +121,6 @@ T = [
  ("T9.4","P9","Style admin console + about/legal/practice pages","FE",2,["T9.1"],"05 §2b","Visual snapshots",0),
  ("T9.5","P9","Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run","FE",2,["T9.2","T9.3","T9.4"],"05 §4-5","Lighthouse a11y ≥90, perf ≥80; baseline committed",0),
  ("T8.13","P8","Custom domain + II alternative origins","Owner",1,["T8.1"],"05 §1","Domain serves frontend; II principal stable",0),
- ("T8.12","P8","Firebase projects (staging/prod) + GA4 funnels & dashboards","Owner",1,["T0.4"],"05 §4b","Funnel dashboard live",0),
  ("T8.15","P8","Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits)","Owner",1,["T0.4"],"02 §5, 03, 06, 07 §4","Agree/changes recorded in OKR.md; spec edits filed as tasks",0),
  ("T8.8","P8","Compliance check for crypto fuel packs (recommended)","Owner",5,["T0.4"],"08 S20","Written go/no-go",0),
  ("T8.9","P8","Enable BTC/ETH on production","Owner",1,["T8.6","T8.8"],"04 §6.2","admin_pause_non_icp off",0),
@@ -144,9 +142,9 @@ T2.1:M T2.2:H T2.3:M T2.4:H T2.5:M T2.6:L T2.7:M T2.8:H T2.9:H
 T3.1:M T3.2:H T3.3:L T3.4:M T3.5:L T3.6:M T3.7:H T3.8:L T3.9:L
 T4.1:M T4.2:H T4.3:M T4.4:H T4.5:H T4.6:M T4.7:L T4.8:M T4.9:H T4.10:L T4.11:L
 T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.8:H T5.9:H T5.10:M T5.13:M T5.15:L T5.16:M T5.17:H T5.18:M
-T6.1:M T6.3:M T6.4:L T6.5:M T6.6:L T6.7:M T6.8:L T6.9:L T6.10:M T6.11:M T6.12:M T6.13:L T6.14:L
+T6.1:M T6.3:M T6.4:L T6.5:M T6.6:L T6.7:M T6.8:L T6.9:L T6.10:M T6.11:M T6.12:M T6.14:L
 T7.1:M T7.2:M T7.3:M T7.4:M T7.5:- T7.6:H T7.7:H T7.9:L T7.10:L T7.11:M
-T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.8:- T8.9:- T8.12:- T8.13:- T8.14:- T8.15:- T8.16:L
+T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.8:- T8.9:- T8.13:- T8.14:- T8.15:- T8.16:L
 T9.1:M T9.2:M T9.3:M T9.4:L T9.5:L""".split())
 MODEL = {"H": "opus-5.5 (high)", "M": "sonnet-5", "L": "haiku-4.5", "-": "human"}
 def demo(tid, ph, name):

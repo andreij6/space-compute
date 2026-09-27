@@ -108,9 +108,8 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T6.9 | Fuel & billing + auto top-up | L | 2 | 3 | T6.5, T5.5 | 2026-12-28 | 2026-12-30 | 05 §3 | Mandate states render | shots: docs/demos/T6.9/*.png (Playwright) |
 | T6.11 | BTC & ETH methods + feature-flag gating | M | 3 | 4 | T6.5, T5.9, T5.10 | 2026-12-30 | 2027-01-06 | 05 §3 | Mock BTC/ETH e2e | shots: docs/demos/T6.11/*.png (Playwright) |
 | T6.12 | Admin console (8 screens) | M | 2 | 5 | T6.1, T4.10, T5.15 | 2027-01-04 | 2027-01-08 | 05 §2b | Non-admin gets 404/Unauthorized | shots: docs/demos/T6.12/*.png (Playwright) |
-| T6.13 | Firebase analytics + consent + event taxonomy + perf traces | L | 1 | 2 | T6.1 | 2027-01-06 | 2027-01-07 | 05 §4b | No requests before consent | shots: docs/demos/T6.13/*.png (Playwright) |
 | T6.14 | About/legal/practice pages, invite spawn UI, admin invites/treasury/moderation | L | 1 | 3 | T6.12, T5.16, T5.18 | 2027-01-11 | 2027-01-13 | 05 §2, §2b | E2E: invite spawn; non-admin blocked | shots: docs/demos/T6.14/*.png (Playwright) |
-| T6.10 | States, accessibility, Playwright smoke | M | 1 | 3 | T6.4, T6.6, T6.8, T6.9, T6.11, T6.12, T6.13, T6.14 | 2027-01-14 | 2027-01-18 | 05 §5 | Lighthouse a11y ≥90 | shots: docs/demos/T6.10/*.png (Playwright) |
+| T6.10 | States, accessibility, Playwright smoke | M | 1 | 3 | T6.4, T6.6, T6.8, T6.9, T6.11, T6.12, T6.14 | 2027-01-14 | 2027-01-18 | 05 §5 | Lighthouse a11y ≥90 | shots: docs/demos/T6.10/*.png (Playwright) |
 
 ## P7 — Hardening
 
@@ -141,7 +140,6 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-02-08 | 2027-02-09 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
 | T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-11 | 2027-02-11 | OKR | Launch announced | note: 3-line summary in chat |
 | T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-22 | 2027-01-22 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
-| T8.12 | Firebase projects (staging/prod) + GA4 funnels & dashboards | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 05 §4b | Funnel dashboard live | note: 3-line summary in chat |
 | T8.15 | Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits) | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 02 §5, 03, 06, 07 §4 | Agree/changes recorded in OKR.md; spec edits filed as tasks | note: 3-line summary in chat |
 | T8.8 | Compliance check for crypto fuel packs (recommended) | - | you | 5 | T0.4 | 2026-10-01 | 2026-10-07 | 08 S20 | Written go/no-go | note: 3-line summary in chat |
 | T8.9 | Enable BTC/ETH on production | - | you | 1 | T8.6, T8.8 | 2027-02-10 | 2027-02-10 | 04 §6.2 | admin_pause_non_icp off | note: 3-line summary in chat |

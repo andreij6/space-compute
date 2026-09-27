@@ -78,45 +78,15 @@ The console is visible only when `msg_caller()` is in the platform or payments a
 - **Empty and loading states** exactly as the brief lists. Every update call shows pending state for ≥ 300 ms and handles rejects with a human message mapped from `ApiError`.
 - **Accessibility:** keyboard navigable, visible focus, alt text from category and subject, WCAG AA contrast.
 
-## 4b. Analytics — Firebase (GA4) event tracking
-- **Setup:** Firebase project `space-compute-prod` (and a separate `-staging`). Use the modular Web SDK (`firebase/app`, `firebase/analytics`, `firebase/performance`), **lazy-loaded after consent**, outside the initial bundle.
-- **Consent:** a banner offers "Allow analytics" or "Essential only". Consent Mode v2 defaults are denied; the choice is stored in `localStorage`. Admin routes are never tracked.
-- **Identity:** `setUserId(hmac_sha256(principal, SITE_SALT))`, where `SITE_SALT` is a build-time constant. Principals, AAA names, rationales and any free text are **never** sent.
-- **Per-route `document.title`**, otherwise GA4 lumps every view under one title (a proof-of-burn lesson).
-- **User properties:** `is_admin` (so admin traffic can be filtered out), `has_aaa`, `aaa_tier`, `auto_topup_enabled`, `payment_methods_used` (set of enums).
-- **Event taxonomy** (snake_case; parameters are enums or numbers only):
-
-| Event | Params |
-|---|---|
-| `page_view` (automatic, SPA router hook) | `route` (template, e.g. `/d/:id`) |
-| `sign_in` / `sign_out` | `method: ii` |
-| `spawn_started` / `spawn_completed` / `spawn_failed` | `method: icp_wallet \| icp_deposit \| card \| btc \| eth`, `error_code` |
-| `payment_started` / `payment_completed` / `payment_failed` | `method`, `kind: topup \| pack \| subscription \| auto_topup`, `usd_bucket` |
-| `auto_topup_set` / `auto_topup_revoked` | `method` |
-| `agent_connect_viewed` / `operator_added` / `operator_removed` | — |
-| `agent_first_activity` | `minutes_since_spawn` (fired once when the dashboard first sees agent activity) |
-| `discovery_viewed` / `citation_copied` / `citation_verified` | `category`, `status`, `verified: bool` |
-| `leaderboard_viewed` / `profile_viewed` | — |
-| `fuel_low_banner_shown` / `fuel_paused_banner_shown` | — |
-| `error_shown` | `error_code` (ApiError variant), `route` |
-
-- **Performance Monitoring:** web vitals, plus custom traces for `ic_update_call` (method name as an attribute) and `dossier_fetch`.
-- **Dashboards (owner):**
-  - GA4 funnels: sign-in → spawn → agent connected → first activity → first top-up
-  - payment method mix and failure rates
-  - retention (7/30-day owners returning)
-  - on-chain science metrics stay in `/admin` (source of truth), not Firebase
-- **CSP additions:** `script-src https://www.googletagmanager.com`; `connect-src https://*.google-analytics.com https://*.analytics.google.com https://firebaseinstallations.googleapis.com https://firebaselogging-pa.googleapis.com https://firebaseremoteconfig.googleapis.com`.
-- **Budget:** analytics chunk ≤ 60 KB gz, loaded after first paint.
+## 4b. Analytics (deferred, owner 2026-09-27: not needed for MVP; on-chain stats in /admin are the source of truth)
 
 ## 4. Non-functional
 - Bundle ≤ 350 KB gz initial; routes code-split.
-- Third-party scripts: only Firebase Analytics and Performance (§5), consent-gated and lazy-loaded.
+- Third-party scripts: none.
 - Untrusted text (names, rationales) is rendered as text only. Never `dangerouslySetInnerHTML`.
 
 ## 5. Acceptance
 0. Admin: a non-admin principal gets 404 on `/admin` and `Unauthorized` from every admin method. Every admin mutation appears in the audit view.
-0b. Analytics: no Firebase network requests happen before consent; the event payloads in the debug view contain no principals or free text.
 1. All 10 routes render against a local deployment seeded by `tools/seed-local` (task T1.6), with loading, empty and error states.
 2. Signed-out visitors can browse 1–5; owner routes redirect to sign-in.
 3. Spawn works end-to-end locally via the Deposit path (the wallet path is exercised in staging with OISY).

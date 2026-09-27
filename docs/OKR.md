@@ -21,7 +21,7 @@
 
 | KR | Target | Current | Status |
 |---|---|---|---|
-| KR2.1 A new owner goes from sign-in to a first classification by their agent (Firebase funnel `sign_in` → `agent_first_activity`) | ≤ 15 min (median, beta) | — | ⚪ |
+| KR2.1 A new owner goes from sign-in to a first classification by their agent (measured from on-chain event timestamps) | ≤ 15 min (median, beta) | — | ⚪ |
 | KR2.2 Agent submissions rejected as `InvalidInput` (skill quality) | < 2% | — | ⚪ |
 | KR2.3 Reference agent resists prompt-injection honeypots | ≥ 95% | — | ⚪ |
 | KR2.4 Owners who fund (ICP/BTC/ETH/invite) successfully on the first try | ≥ 90% | — | ⚪ |
@@ -63,5 +63,6 @@
 | 2026-09-27 | Staffing: Claude Code builds everything in 3 parallel lanes; launch 2027-02-11. |
 | 2026-09-27 | Intake auto-pause (KR4.5); functional-first UI with a design phase at the end, so launch moves to 2027-03-03; proof-of-burn neuron as the long-term yield source; model tiers + demos per task; agent harness. |
 | 2026-09-27 | Whole-app gap review: Stripe hidden (card KR replaced), treasury keeper KR, test coverage KRs, invite-code KR. |
-| 2026-09-26 | JWST data source; submission security; first-claim rule; admin console; Firebase analytics now the measurement source for O2 funnel KRs. |
+| 2026-09-26 | JWST data source; submission security; first-claim rule; admin console. |
+| 2026-09-27 | Analytics (Firebase/GA4, T6.13/T8.12) removed from MVP scope; O2 funnel KRs measured from on-chain event timestamps instead. |
 | 2026-09-26 | Baseline OKRs set after specs, adversarial review and Gantt. Added card/BTC/ETH fuel packs (owner decision), so KR2.4 and KR4.2–4.3 were added. |

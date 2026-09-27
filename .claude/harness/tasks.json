@@ -1379,25 +1379,6 @@
   "pct": 0
  },
  {
-  "id": "T6.13",
-  "phase": "P6",
-  "name": "Firebase analytics + consent + event taxonomy + perf traces",
-  "lane": 1,
-  "tier": "L",
-  "model": "haiku-4.5",
-  "days": 2,
-  "deps": [
-   "T6.1"
-  ],
-  "spec": "05 §4b",
-  "acceptance": "No requests before consent",
-  "demo": "shots: docs/demos/T6.13/*.png (Playwright)",
-  "start": "2027-01-06",
-  "end": "2027-01-07",
-  "status": "todo",
-  "pct": 0
- },
- {
   "id": "T6.14",
   "phase": "P6",
   "name": "About/legal/practice pages, invite spawn UI, admin invites/treasury/moderation",
@@ -1433,7 +1414,6 @@
    "T6.9",
    "T6.11",
    "T6.12",
-   "T6.13",
    "T6.14"
   ],
   "spec": "05 §5",
@@ -1933,25 +1913,6 @@
   "demo": "note: 3-line summary in chat",
   "start": "2027-01-22",
   "end": "2027-01-22",
-  "status": "todo",
-  "pct": 0
- },
- {
-  "id": "T8.12",
-  "phase": "P8",
-  "name": "Firebase projects (staging/prod) + GA4 funnels & dashboards",
-  "lane": null,
-  "tier": "-",
-  "model": "human",
-  "days": 1,
-  "deps": [
-   "T0.4"
-  ],
-  "spec": "05 §4b",
-  "acceptance": "Funnel dashboard live",
-  "demo": "note: 3-line summary in chat",
-  "start": "2026-10-01",
-  "end": "2026-10-01",
   "status": "todo",
   "pct": 0
  },
