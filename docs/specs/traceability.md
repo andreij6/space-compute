@@ -116,6 +116,12 @@
 | 02 §5.3 R-10: starved ≥ 3 reviews → weighted majority (ties Rejected); < 3 → flagged awaiting_reviewers (mem 54), cleared when a reviewer appears or it resolves | T4.4 | t4_4_starved_discovery_resolves_by_weighted_majority_or_awaits_reviewers |
 | 02 §5.3 R-10: weighted majority ties resolve Rejected | T4.4 | t4_4_weighted_majority_breaks_ties_to_rejected |
 | 02 §10: hourly timer applies the starvation rule — 3/5 reviews, no eligible reviewer, resolves Confirmed only after review_starvation_days (PocketIC) | T4.4 | t4_4_starved_discovery_resolves_by_weighted_majority_on_hourly_timer |
+| 02 §8.3: citation `text` format string | T4.5 | t4_5_text_matches_spec_format |
+| 02 §8.3: Credit/ReviewerCredit populated for discoverer and every reviewer (dissenters included), cycles_contributed and total, subject copied at resolution | T4.5 | t4_5_citation_credits_every_reviewer_with_cycles_and_subject |
+| 02 §8.3: citations frozen (no overwrite); RbTree<public_id, sha256(candid)> rebuilt from mem 42 reproduces the root | T4.5 | t4_5_insert_is_frozen_and_rebuild_reproduces_root |
+| 02 §8.3: witness + certificate verification rejects tampered citation, stale certified_data, wrong canister, junk CBOR | T4.5 | t4_5_verify_accepts_witness_and_rejects_tampering |
+| 02 §7: get_citation unknown public_id → None | T4.5 | t4_5_certified_unknown_public_id_is_none |
+| 02 §11 #7: after an upgrade citations are intact and get_citation still verifies (PocketIC) | T4.5 | t4_5_witness_verifies_after_upgrade |
 | 04 §5 #2: Deposit spawn reaches Done, platform shows the AAA registered, and the deposit account is swept to zero | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §5 #4: platform can't register mid-saga → op stays Notified with no double charge; resume completes it; a duplicate resume on a Done op is a no-op | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §4: top_up(aaa, path) — anyone may gift fuel to any registered AAA, no owner check; min 0.1 ICP enforced before any funds move | T5.4 | t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_is_rejected |
@@ -139,3 +145,10 @@
 | 04 §0b: one sponsored AAA per owner principal, ever | T5.16 | t5_16_one_sponsored_aaa_per_owner_ever |
 | 04 §0b: a daily sponsor budget cap rejects further sponsored spawns once exhausted | T5.16 | t5_16_daily_sponsor_budget_cap_rejects_once_exceeded |
 | 04 §0b: unknown or expired invite codes are rejected | T5.16 | t5_16_expired_and_unknown_invite_codes_are_rejected |
+| 04 §4: admin_overview reports the payments canister's main and TREASURY ICP balances, matching a direct icrc1_balance_of query after real ledger ops | T5.15 | t5_15_admin_overview_icp_balance_matches_a_real_icrc1_balance_query |
+| 04 §4: admin_overview aggregates 24h op counts/spend by kind and failed/stuck op counts | T5.15 | t5_15_stats_since_buckets_count_and_spend_by_kind_within_window |
+| 04 §4: admin_overview counts failed ops and ops stuck (non-terminal, idle past the threshold) | T5.15 | t5_15_failed_and_stuck_counts |
+| 04 §4: admin_list_ops filters by kind/state (variant-only match) and since, and pages with a next_cursor | T5.15 | t5_15_list_filtered_by_kind_state_and_since_pages_correctly |
+| 04 §4: admin_list_ops filters/paginates end-to-end over PocketIC and is admin-gated | T5.15 | t5_15_admin_list_ops_filters_by_kind_and_paginates |
+| 04 §4: admin_audit_log pages with a next_cursor (Page_AuditEntry) | T5.15 | t5_1_audit_log_appends_digests_and_pages |
+| 04 §6.2: admin_treasury_withdraw is team-only, logged, and moves real ICP from the TREASURY subaccount via icrc1_transfer | T5.15 | t5_15_admin_treasury_withdraw_moves_icp_and_is_admin_gated |

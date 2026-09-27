@@ -593,6 +593,14 @@ fn admin_list_protocols() -> Result<Vec<sc_types::Protocol>, ApiError> {
 }
 
 #[ic_cdk::query]
+fn get_citation(public_id: String) -> Option<crate::citations::CertifiedCitation> {
+    crate::citations::certified(
+        &public_id,
+        ic_cdk::api::data_certificate().unwrap_or_default(),
+    )
+}
+
+#[ic_cdk::query]
 fn get_protocol(version: u16) -> Option<sc_types::Protocol> {
     catalog::get_protocol(version)
 }

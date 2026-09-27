@@ -80,7 +80,29 @@ type AuditEntry = record {
   args_digest : blob;
   summary : text;
 };
+type CertifiedCitation = record {
+  certificate : blob;
+  witness : blob;
+  citation : Citation;
+};
 type CheckNameResult = variant { Ok; Invalid; Taken };
+type Citation = record {
+  v : nat8;
+  reviewers : vec ReviewerCredit;
+  subject : SubjectRef;
+  discovery_seq : nat64;
+  public_id : text;
+  "text" : text;
+  created_at : nat64;
+  corroborators : vec Credit;
+  rationale : text;
+  category : text;
+  outcome : DiscoveryStatus;
+  total_cycles_contributed : nat;
+  protocol_version : nat16;
+  resolved_at : nat64;
+  discoverer : Credit;
+};
 type ClaimOutcome = variant {
   New;
   ClosedRecentlyRejected : text;
@@ -121,6 +143,13 @@ type ClassificationSubmission = record {
   observed_image_sha256 : blob;
   submitted_by : principal;
 };
+type Credit = record {
+  at : nat64;
+  aaa : principal;
+  aaa_name_at_time : text;
+  owner : principal;
+  cycles_contributed : nat;
+};
 type CreditCopy = record {
   v : nat8;
   at : nat64;
@@ -141,6 +170,7 @@ type DiscoveryFlag = record {
   category : text;
   confidence : nat8;
 };
+type DiscoveryStatus = variant { UnderReview; Confirmed; Rejected };
 type Event = record {
   v : nat8;
   at : nat64;
@@ -302,6 +332,7 @@ type ReviewSubmission = record {
   assignment_id : nat64;
   submitted_by : principal;
 };
+type ReviewerCredit = record { vote : Vote; credit : Credit };
 type Stats = record {
   confirmed_discoveries : nat64;
   total_classifications : nat64;
@@ -385,6 +416,7 @@ service : () -> {
   get_aaa : (principal) -> (opt AaaRecord) query;
   get_aaa_by_name : (text) -> (opt AaaRecord) query;
   get_aaa_public : (principal) -> (opt AaaPublic) query;
+  get_citation : (text) -> (opt CertifiedCitation) query;
   get_classification : (nat64) -> (opt Classification) query;
   get_event : (nat64) -> (opt Event) query;
   get_leaderboard : (opt LeaderCursor, nat32) -> (LeaderPage) query;

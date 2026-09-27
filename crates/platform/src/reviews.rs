@@ -442,7 +442,6 @@ fn resolve(mut d: Discovery, outcome: DiscoveryStatus, protocol_version: u16, no
         })
         .map_or_else(|| d.category.clone(), |c| c.label);
     let reviewer_names: Vec<String> = reviews.iter().map(|r| name_of(&r.reviewer_aaa)).collect();
-    let (y, m, day) = discoveries::date_from_ns(now);
     let outcome_str = format!("{outcome:?}");
     let credit = |aaa: Principal, name: String, owner: Principal, at: u64| Credit {
         aaa,
@@ -478,18 +477,22 @@ fn resolve(mut d: Discovery, outcome: DiscoveryStatus, protocol_version: u16, no
         v: 1,
         public_id: d.public_id.clone(),
         discovery_seq: d.seq,
-        subject: catalog::get_subject(d.subject_id).map(|s| s.ref_),
+        subject: catalog::get_subject(d.subject_id)
+            .expect("discovery subject")
+            .ref_,
         protocol_version,
         category: d.category.clone(),
         rationale: d.rationale.clone(),
         outcome,
         created_at: d.created_at,
         resolved_at: now,
-        text: format!(
-            "{} — {label}. Discovered by {}; reviewed by {}. Space Compute, {outcome_str} {y:04}-{m:02}-{day:02}.",
-            d.public_id,
-            d.discoverer_name_at_time,
-            reviewer_names.join(", ")
+        text: citations::text(
+            &d.public_id,
+            &label,
+            &d.discoverer_name_at_time,
+            &reviewer_names,
+            outcome,
+            discoveries::date_from_ns(now),
         ),
         discoverer,
         corroborators,
@@ -890,6 +893,65 @@ mod tests {
         });
         assert_eq!(page.items[0].role, CreditRole::Reviewer);
         assert_eq!(assign_id(p(9), p(109), NOW), None);
+    }
+
+    #[test]
+    fn t4_5_citation_credits_every_reviewer_with_cycles_and_subject() {
+        let d = discovery(1, p(1), p(101), NOW);
+        let pr = params();
+        events::record_event(
+            NOW,
+            p(1),
+            p(101),
+            EventKind::CyclesContributed { amount: 7 },
+        );
+        for (n, v) in [(2, Vote::Agree), (3, Vote::Disagree), (4, Vote::Disagree)] {
+            tier2(p(n));
+            events::record_event(
+                NOW,
+                p(n),
+                p(100 + n),
+                EventKind::CyclesContributed { amount: 10 },
+            );
+            let id = assign_id(p(n), p(100 + n), NOW).unwrap();
+            submit(p(n), p(100 + n), sub(id, v), &pr, 1, NOW, 5).unwrap();
+        }
+        let c = citations::get(d.seq).unwrap();
+        assert_eq!(c.public_id, d.public_id);
+        assert_eq!(c.subject, catalog::get_subject(1).unwrap().ref_);
+        assert_eq!(
+            c.discoverer,
+            Credit {
+                aaa: p(1),
+                aaa_name_at_time: "Secret-Discoverer".into(),
+                owner: p(101),
+                at: NOW,
+                cycles_contributed: 7,
+            }
+        );
+        let votes: Vec<(Principal, Principal, Vote, u128)> = c
+            .reviewers
+            .iter()
+            .map(|r| {
+                (
+                    r.credit.aaa,
+                    r.credit.owner,
+                    r.vote,
+                    r.credit.cycles_contributed,
+                )
+            })
+            .collect();
+        assert_eq!(
+            votes,
+            vec![
+                (p(2), p(102), Vote::Agree, 10),
+                (p(3), p(103), Vote::Disagree, 10),
+                (p(4), p(104), Vote::Disagree, 10)
+            ]
+        );
+        assert_eq!(c.total_cycles_contributed, 37);
+        assert!(c.text.ends_with("Space Compute, Rejected 2026-09-27."));
+        assert!(citations::certified(&d.public_id, vec![]).is_some());
     }
 
     #[test]

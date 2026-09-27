@@ -54,6 +54,7 @@ fn post_upgrade() {
         })
         .expect("bootstrap admin");
     }
+    citations::rebuild();
     timers::start();
 }
 
