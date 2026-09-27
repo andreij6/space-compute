@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Broken Frame / Aperture Frame -->
+  <rect x="50" y="35" width="140" height="130" rx="8" fill="#0B0F19" stroke="#334155" stroke-width="2.5"/>
+  <rect x="56" y="41" width="128" height="118" rx="4" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="6 4"/>
+  
+  <!-- JWST Primary Mirror Outline with Warning -->
+  <polygon points="120,60 145,74 145,104 120,118 95,104 95,74" stroke="#475569" stroke-width="2"/>
+  
+  <!-- Missing Data Diagonal Slash -->
+  <line x1="75" y1="140" x2="165" y2="60" stroke="#64748B" stroke-width="2" stroke-dasharray="4 4" opacity="0.6"/>
+  
+  <!-- Survey Unavailable Alert Symbol -->
+  <circle cx="120" cy="89" r="16" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+  <path d="M120,80 L120,91" stroke="#F59E0B" stroke-width="2.5"/>
+  <circle cx="120" cy="97" r="1.5" fill="#F59E0B"/>
+  
+  <!-- Broken Signal Waves at bottom -->
+  <path d="M90,145 C105,140 135,140 150,145" stroke="#475569" stroke-width="2" stroke-dasharray="3 3"/>
+</svg>

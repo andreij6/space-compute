@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none">
+  <defs>
+    <linearGradient id="t5_gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF3B0"/>
+      <stop offset="40%" stop-color="#FCD34D"/>
+      <stop offset="70%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#92400E"/>
+    </linearGradient>
+    <linearGradient id="t5_prism" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="50%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <radialGradient id="t5_nova" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="25%" stop-color="#FCD34D" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="#818CF8" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1E1B4B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Base Shield -->
+  <polygon points="60,4 112,32 112,88 60,116 8,88 8,32" fill="#0C0A1D" stroke="url(#t5_prism)" stroke-width="3"/>
+  <polygon points="60,11 106,36 106,84 60,109 14,84 14,36" stroke="url(#t5_gold)" stroke-width="1.5" stroke-dasharray="5 3"/>
+  
+  <!-- Outer Hex Laurel Accents -->
+  <path d="M22,40 C16,60 22,80 32,92" stroke="url(#t5_gold)" stroke-width="2" stroke-linecap="round"/>
+  <path d="M98,40 C104,60 98,80 88,92" stroke="url(#t5_gold)" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- JWST Primary Mirror Array Pattern (Honeycomb) -->
+  <g stroke="url(#t5_gold)" stroke-width="1.2" fill="#2E1065" fill-opacity="0.5">
+    <!-- Center Column -->
+    <polygon points="60,38 68,43 68,51 60,56 52,51 52,43"/>
+    <polygon points="60,54 68,59 68,67 60,72 52,67 52,59"/>
+    <polygon points="60,22 68,27 68,35 60,40 52,35 52,27"/>
+    <!-- Left Column -->
+    <polygon points="46,46 54,51 54,59 46,64 38,59 38,51"/>
+    <polygon points="46,30 54,35 54,43 46,48 38,43 38,35"/>
+    <polygon points="46,62 54,67 54,75 46,80 38,75 38,67"/>
+    <!-- Right Column -->
+    <polygon points="74,46 82,51 82,59 74,64 66,59 66,51"/>
+    <polygon points="74,30 82,35 82,43 74,48 66,43 66,35"/>
+    <polygon points="74,62 82,67 82,75 74,80 66,75 66,67"/>
+  </g>
+  
+  <!-- Apex Core Radiant Starburst -->
+  <circle cx="60" cy="54" r="22" fill="url(#t5_nova)"/>
+  <line x1="60" y1="16" x2="60" y2="92" stroke="#FFF" stroke-width="2"/>
+  <line x1="22" y1="54" x2="98" y2="54" stroke="#FFF" stroke-width="2"/>
+  <line x1="33" y1="27" x2="87" y2="81" stroke="#FDE68A" stroke-width="1.5"/>
+  <line x1="33" y1="81" x2="87" y2="27" stroke="#FDE68A" stroke-width="1.5"/>
+  <circle cx="60" cy="54" r="5" fill="#FFFFFF" stroke="#F59E0B" stroke-width="1.5"/>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="vault_gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <linearGradient id="nns_infinity" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="50%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <!-- Vault Outer Geared Hexagon -->
+  <polygon points="60,10 102,34 102,86 60,110 18,86 18,34" fill="#0F172A" stroke="url(#vault_gold)" stroke-width="3"/>
+  <circle cx="60" cy="60" r="38" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 3"/>
+  
+  <!-- NNS Neuron Staked Yield Infinity Loop -->
+  <path d="M42,60 C42,50 52,50 60,60 C68,70 78,70 78,60 C78,50 68,50 60,60 C52,70 42,70 42,60 Z" stroke="url(#nns_infinity)" stroke-width="3"/>
+  
+  <!-- Central Treasury Lock / Star -->
+  <circle cx="60" cy="60" r="4" fill="#FFFFFF"/>
+  <circle cx="42" cy="60" r="2.5" fill="#3B82F6"/>
+  <circle cx="78" cy="60" r="2.5" fill="#F59E0B"/>
+  
+  <!-- Perpetual Yield Arrows -->
+  <path d="M54,26 L60,20 L66,26" stroke="#10B981" stroke-width="2"/>
+  <line x1="60" y1="20" x2="60" y2="34" stroke="#10B981" stroke-width="2"/>
+</svg>

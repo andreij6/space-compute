@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="ticket_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Badge -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#0C101D" stroke="#1E293B" stroke-width="2"/>
+  
+  <!-- Ticket Body with Perforated Notches -->
+  <path d="M15,22 C15,20.5 16.5,19 18,19 L46,19 C47.5,19 49,20.5 49,22 L49,29 C46.5,29 44.5,31 44.5,33.5 C44.5,36 46.5,38 49,38 L49,42 C49,43.5 47.5,45 46,45 L18,45 C16.5,45 15,43.5 15,42 L15,38 C17.5,38 19.5,36 19.5,33.5 C19.5,31 17.5,29 15,29 Z" fill="url(#ticket_grad)" stroke="#34D399" stroke-width="1.5"/>
+  
+  <!-- Star / Gift Icon on Ticket -->
+  <polygon points="32,26 33.5,29.5 37,30 34.5,32.5 35,36 32,34.5 29,36 29.5,32.5 27,30 30.5,29.5" fill="#FFFFFF"/>
+</svg>

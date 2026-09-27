@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 260" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="flow_line" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Flow Connector Lines with Animated Dash style -->
+  <line x1="210" y1="130" x2="270" y2="130" stroke="url(#flow_line)" stroke-width="4" stroke-dasharray="8 6"/>
+  <polygon points="275,130 265,124 265,136" fill="#818CF8"/>
+  
+  <line x1="450" y1="130" x2="510" y2="130" stroke="url(#flow_line)" stroke-width="4" stroke-dasharray="8 6"/>
+  <polygon points="515,130 505,124 505,136" fill="#818CF8"/>
+  
+  <line x1="690" y1="130" x2="750" y2="130" stroke="url(#flow_line)" stroke-width="4" stroke-dasharray="8 6"/>
+  <polygon points="755,130 745,124 745,136" fill="#F59E0B"/>
+  
+  <!-- Step 1: User's Operator Agent (Local Claude Code) -->
+  <rect x="30" y="40" width="180" height="180" rx="16" fill="#0B132B" stroke="#38BDF8" stroke-width="2.5"/>
+  <circle cx="120" cy="95" r="28" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
+  <path d="M108,95 L116,103 L132,87" stroke="#38BDF8" stroke-width="2.5"/>
+  <text x="120" y="150" fill="#F8FAFC" font-family="system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle">Operator Agent</text>
+  <text x="120" y="172" fill="#94A3B8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Claude Code / Local AI</text>
+  <text x="120" y="190" fill="#38BDF8" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">agent-kit skill</text>
+  
+  <!-- Step 2: User's AAA Canister (Smart Contract on ICP) -->
+  <rect x="270" y="40" width="180" height="180" rx="16" fill="#0B132B" stroke="#818CF8" stroke-width="2.5"/>
+  <polygon points="360,70 385,85 385,115 360,130 335,115 335,85" fill="#1E1B4B" stroke="#818CF8" stroke-width="2"/>
+  <circle cx="360" cy="100" r="8" fill="#818CF8"/>
+  <text x="360" y="150" fill="#F8FAFC" font-family="system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle">Personal AAA</text>
+  <text x="360" y="172" fill="#94A3B8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">User Canister on ICP</text>
+  <text x="360" y="190" fill="#818CF8" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Holds Cycles &amp; Proofs</text>
+  
+  <!-- Step 3: Platform Consensus Engine -->
+  <rect x="510" y="40" width="180" height="180" rx="16" fill="#0B132B" stroke="#A855F7" stroke-width="2.5"/>
+  <circle cx="600" cy="95" r="28" fill="#2E1065" stroke="#A855F7" stroke-width="2"/>
+  <circle cx="590" cy="90" r="5" fill="#C084FC"/>
+  <circle cx="610" cy="90" r="5" fill="#C084FC"/>
+  <path d="M588,108 C594,114 606,114 612,108" stroke="#C084FC" stroke-width="2"/>
+  <text x="600" y="150" fill="#F8FAFC" font-family="system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle">Peer Consensus</text>
+  <text x="600" y="172" fill="#94A3B8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Platform Canister</text>
+  <text x="600" y="190" fill="#C084FC" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Independent Reviewers</text>
+  
+  <!-- Step 4: Permanent Certified Citation -->
+  <rect x="750" y="40" width="180" height="180" rx="16" fill="#0B132B" stroke="#F59E0B" stroke-width="2.5"/>
+  <rect x="795" y="70" width="90" height="55" rx="6" fill="#451A03" stroke="#F59E0B" stroke-width="2"/>
+  <line x1="810" y1="84" x2="870" y2="84" stroke="#FDE68A" stroke-width="2"/>
+  <line x1="810" y1="94" x2="860" y2="94" stroke="#FDE68A" stroke-width="1.5"/>
+  <line x1="810" y1="104" x2="840" y2="104" stroke="#FDE68A" stroke-width="1.5"/>
+  <circle cx="870" cy="115" r="6" fill="#10B981"/>
+  <text x="840" y="150" fill="#F8FAFC" font-family="system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle">On-Chain Citation</text>
+  <text x="840" y="172" fill="#94A3B8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Certified Authorship</text>
+  <text x="840" y="190" fill="#F59E0B" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">SC-2026-XXXXXX</text>
+</svg>

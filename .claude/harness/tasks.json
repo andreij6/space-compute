@@ -1,0 +1,1937 @@
+[
+ {
+  "id": "T0.1",
+  "phase": "P0",
+  "name": "Overview & design brief",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 3,
+  "deps": [],
+  "spec": "OVERVIEW, DESIGN_BRIEF",
+  "acceptance": "Approved docs",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-09-21",
+  "end": "2026-09-23",
+  "status": "done",
+  "pct": 1.0
+ },
+ {
+  "id": "T0.2",
+  "phase": "P0",
+  "name": "Detailed specs + adversarial review",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 3,
+  "deps": [
+   "T0.1"
+  ],
+  "spec": "specs/01-09, REVIEW",
+  "acceptance": "All findings resolved or spiked",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-09-24",
+  "end": "2026-09-25",
+  "status": "done",
+  "pct": 1.0
+ },
+ {
+  "id": "T0.3",
+  "phase": "P0",
+  "name": "Gantt, review deck, OKRs",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 1,
+  "deps": [
+   "T0.2"
+  ],
+  "spec": "OKR.md",
+  "acceptance": "Artifacts published",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-09-26",
+  "end": "2026-09-26",
+  "status": "done",
+  "pct": 1.0
+ },
+ {
+  "id": "T0.4",
+  "phase": "P0",
+  "name": "Owner review & sign-off of plan",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 3,
+  "deps": [
+   "T0.3"
+  ],
+  "spec": "—",
+  "acceptance": "Go / no-go recorded in OKR.md",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-09-28",
+  "end": "2026-09-30",
+  "status": "done",
+  "pct": 1
+ },
+ {
+  "id": "T1.1",
+  "phase": "P1",
+  "name": "Repo scaffold: cargo workspace, icp.yaml, toolchain, .gitignore",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T0.4"
+  ],
+  "spec": "01 §3",
+  "acceptance": "`icp build` succeeds for empty canisters",
+  "demo": "test: just demo T1.1  (narrated PocketIC/pytest run)",
+  "start": "2026-10-01",
+  "end": "2026-10-01",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T1.2",
+  "phase": "P1",
+  "name": "sc-types shared crate (types, ApiError, limits)",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T1.1"
+  ],
+  "spec": "02 §2, 08 §3",
+  "acceptance": "Types compile; candid round-trip tests",
+  "demo": "test: just demo T1.2  (narrated PocketIC/pytest run)",
+  "start": "2026-10-02",
+  "end": "2026-10-05",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T1.3",
+  "phase": "P1",
+  "name": "Local verification & deploy harness (verify-local.sh, deploy-local.sh, did drift, wasm size)",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T1.1"
+  ],
+  "spec": "09 §2",
+  "acceptance": "Local verification & deploy scripts pass",
+  "demo": "test: just demo T1.3  (narrated PocketIC/pytest run)",
+  "start": "2026-10-02",
+  "end": "2026-10-05",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T1.4",
+  "phase": "P1",
+  "name": "PocketIC harness with ICP ledger + CMC wasms",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T1.1"
+  ],
+  "spec": "09 §1",
+  "acceptance": "Harness test mints ICP, calls CMC",
+  "demo": "test: just demo T1.4  (narrated PocketIC/pytest run)",
+  "start": "2026-10-02",
+  "end": "2026-10-05",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "SP-7",
+  "phase": "P1",
+  "name": "Spike: Galaxy Zoo JWST (CEERS) labels, licence, mapping",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 1,
+  "deps": [
+   "T0.4"
+  ],
+  "spec": "REVIEW SP-7",
+  "acceptance": "Gold source decided",
+  "demo": "note: decision + 1 proof command",
+  "start": "2026-10-06",
+  "end": "2026-10-06",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T1.5",
+  "phase": "P1",
+  "name": "JWST subject selection + gold (DJA v7 catalogs, 6 fields)",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 5,
+  "deps": [
+   "SP-7"
+  ],
+  "spec": "07 §1,§4,§5.1-2",
+  "acceptance": "20k selected; ≥2k gold",
+  "demo": "image: docs/demos/T1.5/contact-sheet.png",
+  "start": "2026-10-07",
+  "end": "2026-10-13",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T1.7",
+  "phase": "P1",
+  "name": "Render dossiers (cutouts, RGB, dossier.json) + R2 bucket + manifest",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 5,
+  "deps": [
+   "T1.5"
+  ],
+  "spec": "07 §3,§5.3-5",
+  "acceptance": "Hash verify; 40 QA spot-checks",
+  "demo": "image: docs/demos/T1.7/contact-sheet.png",
+  "start": "2026-10-14",
+  "end": "2026-10-20",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "SP-1",
+  "phase": "P1",
+  "name": "Spike: CMC + ICRC-2 memo behaviour",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 1,
+  "deps": [
+   "T1.4"
+  ],
+  "spec": "REVIEW SP-1",
+  "acceptance": "Decision recorded in 04 §2",
+  "demo": "note: decision + 1 proof command",
+  "start": "2026-10-06",
+  "end": "2026-10-06",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "SP-3",
+  "phase": "P1",
+  "name": "Spike: frozen canister query behaviour",
+  "lane": 3,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T1.4"
+  ],
+  "spec": "REVIEW SP-3",
+  "acceptance": "Decision recorded",
+  "demo": "note: decision + 1 proof command",
+  "start": "2026-10-06",
+  "end": "2026-10-06",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "SP-4",
+  "phase": "P1",
+  "name": "Spike: canister_info cost/latency",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T1.4"
+  ],
+  "spec": "REVIEW SP-4",
+  "acceptance": "Decision recorded",
+  "demo": "note: decision + 1 proof command",
+  "start": "2026-10-07",
+  "end": "2026-10-07",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "SP-6",
+  "phase": "P1",
+  "name": "Spike: ckETH helper subaccount deposit + minimum",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 1,
+  "deps": [
+   "T1.4"
+  ],
+  "spec": "REVIEW SP-6",
+  "acceptance": "Decision recorded in 04 §6.6",
+  "demo": "note: decision + 1 proof command",
+  "start": "2026-10-07",
+  "end": "2026-10-07",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "SP-2",
+  "phase": "P1",
+  "name": "Spike: OISY approve w/ spender subaccount",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 1,
+  "deps": [
+   "T0.4"
+  ],
+  "spec": "REVIEW SP-2",
+  "acceptance": "Decision recorded",
+  "demo": "note: decision + 1 proof command",
+  "start": "2026-10-08",
+  "end": "2026-10-08",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T1.8",
+  "phase": "P1",
+  "name": "Test infra: coverage, fuzz, Playwright+axe, bot-agent harness, traceability script, fixture dossiers",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 3,
+  "deps": [
+   "T1.3",
+   "T1.4"
+  ],
+  "spec": "11",
+  "acceptance": "Gates run in just verify on empty suites",
+  "demo": "test: just demo T1.8  (narrated PocketIC/pytest run)",
+  "start": "2026-10-08",
+  "end": "2026-10-12",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T2.1",
+  "phase": "P2",
+  "name": "platform skeleton: config/admin, memory map, timers, RNG",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T1.2"
+  ],
+  "spec": "02 §3, §9-10",
+  "acceptance": "Upgrade keeps config",
+  "demo": "test: just demo T2.1  (narrated PocketIC/pytest run)",
+  "start": "2026-10-09",
+  "end": "2026-10-12",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T2.2",
+  "phase": "P2",
+  "name": "Registry & factory: register/install/verify/upgrade/profile",
+  "lane": 2,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 4,
+  "deps": [
+   "T2.1",
+   "SP-4"
+  ],
+  "spec": "02 §4",
+  "acceptance": "Spawned AAA verified; upgrade works",
+  "demo": "test: just demo T2.2  (narrated PocketIC/pytest run)",
+  "start": "2026-10-13",
+  "end": "2026-10-16",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T2.3",
+  "phase": "P2",
+  "name": "Catalog: subjects, protocol, leases, seen-set, get_task (gold+calibration)",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 4,
+  "deps": [
+   "T2.1"
+  ],
+  "spec": "02 §5.1",
+  "acceptance": "Never same subject twice",
+  "demo": "test: just demo T2.3  (narrated PocketIC/pytest run)",
+  "start": "2026-10-13",
+  "end": "2026-10-16",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T2.4",
+  "phase": "P2",
+  "name": "Scoring: validation, gold, tallies, retirement, consensus",
+  "lane": 2,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 4,
+  "deps": [
+   "T2.3"
+  ],
+  "spec": "02 §5.2, §5.5",
+  "acceptance": "Retire at K=5; idempotent submit",
+  "demo": "test: just demo T2.4  (narrated PocketIC/pytest run)",
+  "start": "2026-10-19",
+  "end": "2026-10-22",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T2.5",
+  "phase": "P2",
+  "name": "Event log + per-AAA index + activity query",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T2.1"
+  ],
+  "spec": "02 §8.1",
+  "acceptance": "Events append; paged activity",
+  "demo": "test: just demo T2.5  (narrated PocketIC/pytest run)",
+  "start": "2026-10-19",
+  "end": "2026-10-20",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T2.6",
+  "phase": "P2",
+  "name": "Public queries: stats, protocol, aaa_by_owner, aaa_public",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T2.2"
+  ],
+  "spec": "02 §7",
+  "acceptance": "Queries paged ≤100",
+  "demo": "test: just demo T2.6  (narrated PocketIC/pytest run)",
+  "start": "2026-10-21",
+  "end": "2026-10-21",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T2.8",
+  "phase": "P2",
+  "name": "Submitter security: strict provenance, operator sync, submitted_by",
+  "lane": 3,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 3,
+  "deps": [
+   "T2.2"
+  ],
+  "spec": "02 §4.6, §5; 08 S21-23",
+  "acceptance": "Foreign/expired/unsynced submitter rejected",
+  "demo": "test: just demo T2.8  (narrated PocketIC/pytest run)",
+  "start": "2026-10-21",
+  "end": "2026-10-23",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T2.7",
+  "phase": "P2",
+  "name": "Platform PocketIC tests (02 §11 #1-3)",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T2.4",
+   "T1.4"
+  ],
+  "spec": "02 §11",
+  "acceptance": "Tests green",
+  "demo": "test: just demo T2.7  (narrated PocketIC/pytest run)",
+  "start": "2026-10-23",
+  "end": "2026-10-26",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.1",
+  "phase": "P3",
+  "name": "AAA skeleton: roles, operators, config, inspect_message",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T1.2"
+  ],
+  "spec": "03 §1-3",
+  "acceptance": "Role matrix enforced",
+  "demo": "test: just demo T3.1  (narrated PocketIC/pytest run)",
+  "start": "2026-10-23",
+  "end": "2026-10-26",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.2",
+  "phase": "P3",
+  "name": "AAA forwarding w/ fees, retries, idempotency, low-cycles guard",
+  "lane": 1,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 3,
+  "deps": [
+   "T3.1",
+   "T2.4"
+  ],
+  "spec": "03 §4.1",
+  "acceptance": "One record per task under SYS_UNKNOWN",
+  "demo": "test: just demo T3.2  (narrated PocketIC/pytest run)",
+  "start": "2026-10-27",
+  "end": "2026-10-29",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.3",
+  "phase": "P3",
+  "name": "AAA repository records + queries + credits copy",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T3.2"
+  ],
+  "spec": "03 §5",
+  "acceptance": "Records survive upgrade",
+  "demo": "test: just demo T3.3  (narrated PocketIC/pytest run)",
+  "start": "2026-10-30",
+  "end": "2026-11-02",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.4",
+  "phase": "P3",
+  "name": "AAA timers: burn EMA, heartbeat, credits sync, auto top-up trigger",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T3.3"
+  ],
+  "spec": "03 §6",
+  "acceptance": "Timer tests pass",
+  "demo": "test: just demo T3.4  (narrated PocketIC/pytest run)",
+  "start": "2026-11-03",
+  "end": "2026-11-04",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.5",
+  "phase": "P3",
+  "name": "get_api_doc + wasm size budget ≤1.5 MiB gz",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T3.2"
+  ],
+  "spec": "03 §4.3",
+  "acceptance": "Size check in just verify",
+  "demo": "test: just demo T3.5  (narrated PocketIC/pytest run)",
+  "start": "2026-10-30",
+  "end": "2026-10-30",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.6",
+  "phase": "P3",
+  "name": "AAA PocketIC tests (03 §8)",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T3.4"
+  ],
+  "spec": "03 §8",
+  "acceptance": "Tests green",
+  "demo": "test: just demo T3.6  (narrated PocketIC/pytest run)",
+  "start": "2026-11-05",
+  "end": "2026-11-06",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.8",
+  "phase": "P3",
+  "name": "Local seed script + dev loop (tools/seed-local)",
+  "lane": 3,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T2.2",
+   "T3.2",
+   "T1.7",
+   "T1.8"
+  ],
+  "spec": "05 §5",
+  "acceptance": "One command seeds local net",
+  "demo": "test: just demo T3.8  (narrated PocketIC/pytest run)",
+  "start": "2026-10-30",
+  "end": "2026-10-30",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.7",
+  "phase": "P3",
+  "name": "Operator skill + JWST protocol primer + analyze.py",
+  "lane": 2,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 4,
+  "deps": [
+   "T3.5",
+   "T1.7"
+  ],
+  "spec": "06",
+  "acceptance": "10 local tasks by Claude Code",
+  "demo": "test: just demo T3.7  (narrated PocketIC/pytest run)",
+  "start": "2026-11-02",
+  "end": "2026-11-05",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T3.9",
+  "phase": "P3",
+  "name": "Headless runner recipe + practice.py self-eval",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T3.7"
+  ],
+  "spec": "06 §2b-2c",
+  "acceptance": "Runner stops at fuel guard",
+  "demo": "test: just demo T3.9  (narrated PocketIC/pytest run)",
+  "start": "2026-11-06",
+  "end": "2026-11-06",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.3",
+  "phase": "P4",
+  "name": "Progression: XP, reputation, tiers, badges, leaderboard, replay",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 4,
+  "deps": [
+   "T2.5",
+   "T2.7"
+  ],
+  "spec": "02 §8.2",
+  "acceptance": "Replay == incremental",
+  "demo": "test: just demo T4.3  (narrated PocketIC/pytest run)",
+  "start": "2026-11-02",
+  "end": "2026-11-05",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.1",
+  "phase": "P4",
+  "name": "Discoveries: flagging, rate limit, public IDs",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T2.4"
+  ],
+  "spec": "02 §6",
+  "acceptance": "Flag rate enforced",
+  "demo": "test: just demo T4.1  (narrated PocketIC/pytest run)",
+  "start": "2026-11-06",
+  "end": "2026-11-09",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.9",
+  "phase": "P4",
+  "name": "First-claim rule: sky claim index + corroborations",
+  "lane": 1,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 2,
+  "deps": [
+   "T4.1"
+  ],
+  "spec": "02 §6.4",
+  "acceptance": "Concurrent flags → one discovery",
+  "demo": "test: just demo T4.9  (narrated PocketIC/pytest run)",
+  "start": "2026-11-10",
+  "end": "2026-11-11",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.2",
+  "phase": "P4",
+  "name": "Review assignment: eligibility, blind, leases, honeypots",
+  "lane": 2,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 3,
+  "deps": [
+   "T4.1",
+   "T4.3"
+  ],
+  "spec": "02 §5.3, §6.3",
+  "acceptance": "Same-owner never assigned",
+  "demo": "test: just demo T4.2  (narrated PocketIC/pytest run)",
+  "start": "2026-11-10",
+  "end": "2026-11-12",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.4",
+  "phase": "P4",
+  "name": "evaluate(), atomic resolution, starvation rule",
+  "lane": 1,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 3,
+  "deps": [
+   "T4.2"
+  ],
+  "spec": "02 §6.2",
+  "acceptance": "Atomic resolution test",
+  "demo": "test: just demo T4.4  (narrated PocketIC/pytest run)",
+  "start": "2026-11-13",
+  "end": "2026-11-17",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.5",
+  "phase": "P4",
+  "name": "Citations + certification tree + get_citation",
+  "lane": 1,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 3,
+  "deps": [
+   "T4.4"
+  ],
+  "spec": "02 §8.3",
+  "acceptance": "Witness verifies after upgrade",
+  "demo": "test: just demo T4.5  (narrated PocketIC/pytest run)",
+  "start": "2026-11-18",
+  "end": "2026-11-20",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.6",
+  "phase": "P4",
+  "name": "Visibility rules & public discovery queries",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T4.5"
+  ],
+  "spec": "02 §7",
+  "acceptance": "Under-review hidden from non-owners",
+  "demo": "test: just demo T4.6  (narrated PocketIC/pytest run)",
+  "start": "2026-11-23",
+  "end": "2026-11-24",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.7",
+  "phase": "P4",
+  "name": "Honeypot seeding (120 specs)",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T4.2",
+   "T1.7"
+  ],
+  "spec": "07 §3.6",
+  "acceptance": "Honeypots uploaded locally",
+  "demo": "image: docs/demos/T4.7/contact-sheet.png",
+  "start": "2026-11-13",
+  "end": "2026-11-13",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.10",
+  "phase": "P4",
+  "name": "Admin read APIs + audit log (platform)",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T4.6"
+  ],
+  "spec": "02 §9",
+  "acceptance": "Admin queries paged; audit on every mutation",
+  "demo": "test: just demo T4.10  (narrated PocketIC/pytest run)",
+  "start": "2026-11-25",
+  "end": "2026-11-30",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.11",
+  "phase": "P4",
+  "name": "Name blocklist, admin_rename_aaa, house AAAs",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T4.10"
+  ],
+  "spec": "02 §9",
+  "acceptance": "Renamed AAA keeps historical citation name",
+  "demo": "test: just demo T4.11  (narrated PocketIC/pytest run)",
+  "start": "2026-12-01",
+  "end": "2026-12-01",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T4.8",
+  "phase": "P4",
+  "name": "Review/credits tests + proptests (02 §11 #4-9)",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 3,
+  "deps": [
+   "T4.6",
+   "T4.9"
+  ],
+  "spec": "02 §11, 09 §1",
+  "acceptance": "Tests green",
+  "demo": "test: just demo T4.8  (narrated PocketIC/pytest run)",
+  "start": "2026-11-25",
+  "end": "2026-12-01",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.1",
+  "phase": "P5",
+  "name": "payments skeleton: config, journal, guards, admin",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T1.2",
+   "SP-1"
+  ],
+  "spec": "04 §3",
+  "acceptance": "Journal persisted pre-await",
+  "demo": "test: just demo T5.1  (narrated PocketIC/pytest run)",
+  "start": "2026-11-10",
+  "end": "2026-11-11",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.2",
+  "phase": "P5",
+  "name": "CMC integration, XDR cache, quotes, deposit accounts",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T5.1"
+  ],
+  "spec": "04 §2, §4",
+  "acceptance": "Quotes within 2%",
+  "demo": "test: just demo T5.2  (narrated PocketIC/pytest run)",
+  "start": "2026-11-12",
+  "end": "2026-11-13",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.3",
+  "phase": "P5",
+  "name": "Spawn saga (wallet + deposit) + resume timer",
+  "lane": 3,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 4,
+  "deps": [
+   "T5.2",
+   "T2.2"
+  ],
+  "spec": "04 §4",
+  "acceptance": "04 §5 #1,#2,#4",
+  "demo": "test: just demo T5.3  (narrated PocketIC/pytest run)",
+  "start": "2026-11-16",
+  "end": "2026-11-19",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.4",
+  "phase": "P5",
+  "name": "One-time top-up (wallet + deposit sweep)",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T5.2"
+  ],
+  "spec": "04 §4",
+  "acceptance": "Gift top-up works",
+  "demo": "test: just demo T5.4  (narrated PocketIC/pytest run)",
+  "start": "2026-11-20",
+  "end": "2026-11-23",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.5",
+  "phase": "P5",
+  "name": "Auto top-up mandates, rolling 30-day cap",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 3,
+  "deps": [
+   "T5.4",
+   "T3.4"
+  ],
+  "spec": "04 §4",
+  "acceptance": "04 §5 #5",
+  "demo": "test: just demo T5.5  (narrated PocketIC/pytest run)",
+  "start": "2026-11-24",
+  "end": "2026-11-30",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.6",
+  "phase": "P5",
+  "name": "Payments PocketIC tests — ICP paths (04 §5)",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 3,
+  "deps": [
+   "T5.3",
+   "T5.5"
+  ],
+  "spec": "04 §5",
+  "acceptance": "All 7 green",
+  "demo": "test: just demo T5.6  (narrated PocketIC/pytest run)",
+  "start": "2026-12-01",
+  "end": "2026-12-03",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.8",
+  "phase": "P5",
+  "name": "XRC rates, fuel treasury guard rails + auto intake pause",
+  "lane": 1,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 4,
+  "deps": [
+   "T5.2"
+  ],
+  "spec": "04 §6.1-6.3, §6.2b",
+  "acceptance": "04 §6.7 #11-13, #15-17",
+  "demo": "test: just demo T5.8  (narrated PocketIC/pytest run)",
+  "start": "2026-12-02",
+  "end": "2026-12-07",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.12",
+  "phase": "P5",
+  "name": "stripe_credit endpoint (flag-gated, mock-relay tests)",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T5.8"
+  ],
+  "spec": "04 §6.4, 04b §3",
+  "acceptance": "Idempotent on stripe_ref",
+  "demo": "test: just demo T5.12  (narrated PocketIC/pytest run)",
+  "start": "2026-12-08",
+  "end": "2026-12-09",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.9",
+  "phase": "P5",
+  "name": "ckBTC fuel-pack deposits (address, update_balance, sweep)",
+  "lane": 2,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 3,
+  "deps": [
+   "T5.8"
+  ],
+  "spec": "04 §6.5",
+  "acceptance": "04 §6.7 #10",
+  "demo": "test: just demo T5.9  (narrated PocketIC/pytest run)",
+  "start": "2026-12-08",
+  "end": "2026-12-10",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.10",
+  "phase": "P5",
+  "name": "ckETH fuel-pack deposits",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T5.8",
+   "SP-6"
+  ],
+  "spec": "04 §6.6",
+  "acceptance": "Mock mint → top-up",
+  "demo": "test: just demo T5.10  (narrated PocketIC/pytest run)",
+  "start": "2026-12-08",
+  "end": "2026-12-09",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.13",
+  "phase": "P5",
+  "name": "Non-ICP payment tests (04 §6.7)",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T5.9",
+   "T5.10",
+   "T5.12"
+  ],
+  "spec": "04 §6.7",
+  "acceptance": "All green",
+  "demo": "test: just demo T5.13  (narrated PocketIC/pytest run)",
+  "start": "2026-12-11",
+  "end": "2026-12-14",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.15",
+  "phase": "P5",
+  "name": "Payments admin APIs + audit log",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T5.13"
+  ],
+  "spec": "04 §4 admin",
+  "acceptance": "Overview matches ledger balances",
+  "demo": "test: just demo T5.15  (narrated PocketIC/pytest run)",
+  "start": "2026-12-15",
+  "end": "2026-12-15",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.16",
+  "phase": "P5",
+  "name": "Feature flags + invite codes (sponsored spawn)",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T5.3"
+  ],
+  "spec": "04 §0-0b",
+  "acceptance": "card=false → FeatureDisabled; invite single-use",
+  "demo": "test: just demo T5.16  (narrated PocketIC/pytest run)",
+  "start": "2026-12-10",
+  "end": "2026-12-11",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.17",
+  "phase": "P5",
+  "name": "treasury canister: owner-funded reserve, cycles keeper, health()",
+  "lane": 2,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 3,
+  "deps": [
+   "T2.1",
+   "T1.4"
+  ],
+  "spec": "12 §1-4",
+  "acceptance": "Keeper tops up; health() drives intake pause",
+  "demo": "test: just demo T5.17  (narrated PocketIC/pytest run)",
+  "start": "2026-12-11",
+  "end": "2026-12-15",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.18",
+  "phase": "P5",
+  "name": "treasury PocketIC tests (ICP ledger + CMC, no NNS)",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 1,
+  "deps": [
+   "T5.17"
+  ],
+  "spec": "12 §5",
+  "acceptance": "12 §5 #1-6 green",
+  "demo": "test: just demo T5.18  (narrated PocketIC/pytest run)",
+  "start": "2026-12-16",
+  "end": "2026-12-16",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T5.7",
+  "phase": "P5",
+  "name": "Internal payments security review",
+  "lane": 3,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 2,
+  "deps": [
+   "T5.6",
+   "T5.13",
+   "T5.16"
+  ],
+  "spec": "08 §4",
+  "acceptance": "Checklist signed",
+  "demo": "test: just demo T5.7  (narrated PocketIC/pytest run)",
+  "start": "2026-12-15",
+  "end": "2026-12-16",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.1",
+  "phase": "P6",
+  "name": "App scaffold: routing, bindgen, II auth, ic_env, CSP",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 3,
+  "deps": [
+   "T1.1"
+  ],
+  "spec": "05 §1",
+  "acceptance": "Sign-in works locally",
+  "demo": "shots: docs/demos/T6.1/*.png (Playwright)",
+  "start": "2026-12-16",
+  "end": "2026-12-18",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.3",
+  "phase": "P6",
+  "name": "Landing, Discovery Museum feed, Discovery detail + citation verify",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 5,
+  "deps": [
+   "T6.1"
+  ],
+  "spec": "05 §2-3",
+  "acceptance": "Verified mark fails closed",
+  "demo": "shots: docs/demos/T6.3/*.png (Playwright)",
+  "start": "2026-12-21",
+  "end": "2026-12-29",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.4",
+  "phase": "P6",
+  "name": "AAA profile + Leaderboard",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 3,
+  "deps": [
+   "T6.3"
+  ],
+  "spec": "05 §2",
+  "acceptance": "Tier/badges render",
+  "demo": "shots: docs/demos/T6.4/*.png (Playwright)",
+  "start": "2026-12-30",
+  "end": "2027-01-05",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.5",
+  "phase": "P6",
+  "name": "Payment component (wallet + deposit)",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 4,
+  "deps": [
+   "T6.1",
+   "SP-2",
+   "T5.4"
+  ],
+  "spec": "05 §3",
+  "acceptance": "Deposit path e2e local",
+  "demo": "shots: docs/demos/T6.5/*.png (Playwright)",
+  "start": "2026-12-21",
+  "end": "2026-12-28",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.6",
+  "phase": "P6",
+  "name": "Spawn flow",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T6.5",
+   "T5.3"
+  ],
+  "spec": "05 §2",
+  "acceptance": "Spawn e2e local",
+  "demo": "shots: docs/demos/T6.6/*.png (Playwright)",
+  "start": "2026-12-29",
+  "end": "2026-12-30",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.7",
+  "phase": "P6",
+  "name": "Owner dashboard",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 4,
+  "deps": [
+   "T6.1",
+   "T3.3",
+   "T4.6"
+  ],
+  "spec": "05 §2-3",
+  "acceptance": "Frozen fallback works",
+  "demo": "shots: docs/demos/T6.7/*.png (Playwright)",
+  "start": "2026-12-21",
+  "end": "2026-12-28",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.8",
+  "phase": "P6",
+  "name": "Connect your agent + Activity & records",
+  "lane": 3,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 3,
+  "deps": [
+   "T6.7"
+  ],
+  "spec": "05 §3",
+  "acceptance": "Operator add/revoke",
+  "demo": "shots: docs/demos/T6.8/*.png (Playwright)",
+  "start": "2026-12-29",
+  "end": "2027-01-04",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.9",
+  "phase": "P6",
+  "name": "Fuel & billing + auto top-up",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 3,
+  "deps": [
+   "T6.5",
+   "T5.5"
+  ],
+  "spec": "05 §3",
+  "acceptance": "Mandate states render",
+  "demo": "shots: docs/demos/T6.9/*.png (Playwright)",
+  "start": "2027-01-04",
+  "end": "2027-01-06",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.11",
+  "phase": "P6",
+  "name": "BTC & ETH methods + feature-flag gating (card hidden)",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 4,
+  "deps": [
+   "T6.5",
+   "T5.9",
+   "T5.10"
+  ],
+  "spec": "05 §3",
+  "acceptance": "Test-mode card + mock BTC/ETH e2e",
+  "demo": "shots: docs/demos/T6.11/*.png (Playwright)",
+  "start": "2027-01-05",
+  "end": "2027-01-08",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.12",
+  "phase": "P6",
+  "name": "Admin console (8 screens)",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 5,
+  "deps": [
+   "T6.1",
+   "T4.10",
+   "T5.15"
+  ],
+  "spec": "05 §2b",
+  "acceptance": "Non-admin gets 404/Unauthorized",
+  "demo": "shots: docs/demos/T6.12/*.png (Playwright)",
+  "start": "2027-01-06",
+  "end": "2027-01-12",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.13",
+  "phase": "P6",
+  "name": "Firebase analytics + consent + event taxonomy + perf traces",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T6.1"
+  ],
+  "spec": "05 §4b",
+  "acceptance": "No requests before consent",
+  "demo": "shots: docs/demos/T6.13/*.png (Playwright)",
+  "start": "2027-01-07",
+  "end": "2027-01-08",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.14",
+  "phase": "P6",
+  "name": "About/legal/practice pages, invite spawn UI, admin invites/treasury/moderation",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 3,
+  "deps": [
+   "T6.12",
+   "T5.16",
+   "T5.18"
+  ],
+  "spec": "05 §2, §2b",
+  "acceptance": "E2E: invite spawn; non-admin blocked",
+  "demo": "shots: docs/demos/T6.14/*.png (Playwright)",
+  "start": "2027-01-13",
+  "end": "2027-01-15",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T6.10",
+  "phase": "P6",
+  "name": "States, accessibility, Playwright smoke",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 3,
+  "deps": [
+   "T6.4",
+   "T6.6",
+   "T6.8",
+   "T6.9",
+   "T6.11",
+   "T6.12",
+   "T6.13",
+   "T6.14"
+  ],
+  "spec": "05 §5",
+  "acceptance": "Lighthouse a11y ≥90",
+  "demo": "shots: docs/demos/T6.10/*.png (Playwright)",
+  "start": "2027-01-18",
+  "end": "2027-01-20",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.1",
+  "phase": "P7",
+  "name": "Upgrade tests for all canisters",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T4.8",
+   "T5.6"
+  ],
+  "spec": "09 §1",
+  "acceptance": "vN-1→vN state intact",
+  "demo": "test: just demo T7.1  (narrated PocketIC/pytest run)",
+  "start": "2027-01-11",
+  "end": "2027-01-12",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.2",
+  "phase": "P7",
+  "name": "Load test: 200 AAAs × 100 tasks",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T7.1"
+  ],
+  "spec": "09 §1",
+  "acceptance": "Report committed",
+  "demo": "test: just demo T7.2  (narrated PocketIC/pytest run)",
+  "start": "2027-01-13",
+  "end": "2027-01-14",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.3",
+  "phase": "P7",
+  "name": "Cycle cost measurement & fee retune",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T7.2"
+  ],
+  "spec": "01 §7, SP-5",
+  "acceptance": "Params updated",
+  "demo": "test: just demo T7.3  (narrated PocketIC/pytest run)",
+  "start": "2027-01-15",
+  "end": "2027-01-18",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.4",
+  "phase": "P7",
+  "name": "Reproducible AAA build + manual upgrade docs",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T3.6",
+   "T5.7"
+  ],
+  "spec": "08 §7",
+  "acceptance": "Hash reproducible on 2 machines",
+  "demo": "test: just demo T7.4  (narrated PocketIC/pytest run)",
+  "start": "2027-01-11",
+  "end": "2027-01-12",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.7",
+  "phase": "P7",
+  "name": "Prompt-injection test with reference agent",
+  "lane": 3,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 1,
+  "deps": [
+   "T3.7",
+   "T4.7"
+  ],
+  "spec": "06 §5",
+  "acceptance": "≥95% non-compliance",
+  "demo": "test: just demo T7.7  (narrated PocketIC/pytest run)",
+  "start": "2027-01-13",
+  "end": "2027-01-13",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.9",
+  "phase": "P7",
+  "name": "Traceability audit + coverage gates to thresholds",
+  "lane": 3,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T7.1"
+  ],
+  "spec": "11 §2",
+  "acceptance": "Every acceptance item mapped; coverage ≥ gates",
+  "demo": "test: just demo T7.9  (narrated PocketIC/pytest run)",
+  "start": "2027-01-14",
+  "end": "2027-01-15",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.10",
+  "phase": "P7",
+  "name": "Practice set + open data release tooling",
+  "lane": 3,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T1.7",
+   "T4.8"
+  ],
+  "spec": "07 §5b",
+  "acceptance": "Release v0 reproducible",
+  "demo": "image: docs/demos/T7.10/contact-sheet.png",
+  "start": "2027-01-18",
+  "end": "2027-01-19",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.5",
+  "phase": "P7",
+  "name": "External security review (payments + platform)",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 5,
+  "deps": [
+   "T5.7",
+   "T4.8"
+  ],
+  "spec": "08 §4",
+  "acceptance": "Report received",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-12-17",
+  "end": "2026-12-23",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T7.6",
+  "phase": "P7",
+  "name": "Fix security findings",
+  "lane": 2,
+  "tier": "H",
+  "model": "opus-5.5 (high)",
+  "days": 3,
+  "deps": [
+   "T7.5"
+  ],
+  "spec": "08",
+  "acceptance": "All high/critical closed",
+  "demo": "test: just demo T7.6  (narrated PocketIC/pytest run)",
+  "start": "2027-01-19",
+  "end": "2027-01-21",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.1",
+  "phase": "P8",
+  "name": "Staging deploy, deploy workflow, snapshots, cycles monitoring",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T7.1"
+  ],
+  "spec": "09 §2-3",
+  "acceptance": "Staging live",
+  "demo": "test: just demo T8.1  (narrated PocketIC/pytest run)",
+  "start": "2027-01-20",
+  "end": "2027-01-21",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.2",
+  "phase": "P8",
+  "name": "Upload subjects/protocol/honeypots to staging",
+  "lane": 1,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T8.1",
+   "T7.6"
+  ],
+  "spec": "07",
+  "acceptance": "Counts verified",
+  "demo": "test: just demo T8.2  (narrated PocketIC/pytest run)",
+  "start": "2027-01-22",
+  "end": "2027-01-22",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.5",
+  "phase": "P8",
+  "name": "Fund prod treasury with ICP float (10–20 ICP) + confirm runway",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 1,
+  "deps": [
+   "T8.6"
+  ],
+  "spec": "12 §4",
+  "acceptance": "status() shows ≥ 90 days runway",
+  "demo": "note: 3-line summary in chat",
+  "start": "2027-02-10",
+  "end": "2027-02-10",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.3",
+  "phase": "P8",
+  "name": "Closed beta (10-20 owners)",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 10,
+  "deps": [
+   "T8.2",
+   "T6.10"
+  ],
+  "spec": "OKR KR",
+  "acceptance": "Beta KRs measured",
+  "demo": "note: 3-line summary in chat",
+  "start": "2027-01-25",
+  "end": "2027-02-05",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.4",
+  "phase": "P8",
+  "name": "Beta fixes & tuning",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 10,
+  "deps": [
+   "T8.2",
+   "T6.10"
+  ],
+  "spec": "—",
+  "acceptance": "No open P0/P1 bugs",
+  "demo": "test: just demo T8.4  (narrated PocketIC/pytest run)",
+  "start": "2027-01-25",
+  "end": "2027-02-05",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.6",
+  "phase": "P8",
+  "name": "Production deploy, II metadata, treasury watch list",
+  "lane": 1,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 2,
+  "deps": [
+   "T8.3",
+   "T8.4",
+   "T8.13"
+  ],
+  "spec": "09 §2",
+  "acceptance": "Prod live",
+  "demo": "test: just demo T8.6  (narrated PocketIC/pytest run)",
+  "start": "2027-02-08",
+  "end": "2027-02-09",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.7",
+  "phase": "P8",
+  "name": "Public launch",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 1,
+  "deps": [
+   "T8.6",
+   "T8.5",
+   "T9.5"
+  ],
+  "spec": "OKR",
+  "acceptance": "Launch announced",
+  "demo": "note: 3-line summary in chat",
+  "start": "2027-02-11",
+  "end": "2027-02-11",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T9.1",
+  "phase": "P9",
+  "name": "Import mockups (Claude Design), reconcile, design tokens + shared components",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 4,
+  "deps": [
+   "T6.10"
+  ],
+  "spec": "05 intro",
+  "acceptance": "05a-design-reconciliation.md + component page",
+  "demo": "shots: docs/demos/T9.1/*.png (Playwright)",
+  "start": "2027-01-22",
+  "end": "2027-01-27",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T9.2",
+  "phase": "P9",
+  "name": "Style public pages: landing, museum, discovery, profile, leaderboard",
+  "lane": 2,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 4,
+  "deps": [
+   "T9.1"
+  ],
+  "spec": "05 §2-3, mockups",
+  "acceptance": "Visual snapshots approved by owner",
+  "demo": "shots: docs/demos/T9.2/*.png (Playwright)",
+  "start": "2027-01-28",
+  "end": "2027-02-02",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T9.3",
+  "phase": "P9",
+  "name": "Style owner flows: spawn, dashboard, connect agent, fuel, payments",
+  "lane": 3,
+  "tier": "M",
+  "model": "sonnet-5",
+  "days": 4,
+  "deps": [
+   "T9.1"
+  ],
+  "spec": "05 §2-3, mockups",
+  "acceptance": "Visual snapshots approved by owner",
+  "demo": "shots: docs/demos/T9.3/*.png (Playwright)",
+  "start": "2027-01-28",
+  "end": "2027-02-02",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T9.4",
+  "phase": "P9",
+  "name": "Style admin console + about/legal/practice pages",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T9.1"
+  ],
+  "spec": "05 §2b",
+  "acceptance": "Visual snapshots",
+  "demo": "shots: docs/demos/T9.4/*.png (Playwright)",
+  "start": "2027-02-03",
+  "end": "2027-02-04",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T9.5",
+  "phase": "P9",
+  "name": "Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 2,
+  "deps": [
+   "T9.2",
+   "T9.3",
+   "T9.4"
+  ],
+  "spec": "05 §4-5",
+  "acceptance": "Lighthouse a11y ≥90, perf ≥80; baseline committed",
+  "demo": "shots: docs/demos/T9.5/*.png (Playwright)",
+  "start": "2027-02-05",
+  "end": "2027-02-08",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.13",
+  "phase": "P8",
+  "name": "Custom domain + II alternative origins",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 1,
+  "deps": [
+   "T8.1"
+  ],
+  "spec": "05 §1",
+  "acceptance": "Domain serves frontend; II principal stable",
+  "demo": "note: 3-line summary in chat",
+  "start": "2027-01-22",
+  "end": "2027-01-22",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.12",
+  "phase": "P8",
+  "name": "Firebase projects (staging/prod) + GA4 funnels & dashboards",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 1,
+  "deps": [
+   "T0.4"
+  ],
+  "spec": "05 §4b",
+  "acceptance": "Funnel dashboard live",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-10-01",
+  "end": "2026-10-01",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.8",
+  "phase": "P8",
+  "name": "Compliance check for card & crypto fuel packs (recommended)",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 5,
+  "deps": [
+   "T0.4"
+  ],
+  "spec": "08 S20",
+  "acceptance": "Written go/no-go",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-10-01",
+  "end": "2026-10-07",
+  "status": "todo",
+  "pct": 0
+ },
+ {
+  "id": "T8.9",
+  "phase": "P8",
+  "name": "Enable BTC/ETH on production (card stays off)",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 1,
+  "deps": [
+   "T8.6",
+   "T8.8"
+  ],
+  "spec": "04 §6.2",
+  "acceptance": "admin_pause_non_icp off",
+  "demo": "note: 3-line summary in chat",
+  "start": "2027-02-10",
+  "end": "2027-02-10",
+  "status": "todo",
+  "pct": 0
+ }
+]

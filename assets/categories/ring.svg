@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="100%" height="100%" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Outer Brilliant Stellar Ring -->
+  <circle cx="24" cy="24" r="18" stroke="#38BDF8" stroke-width="3"/>
+  <circle cx="24" cy="24" r="18" stroke="#BAE6FD" stroke-width="1" stroke-dasharray="2 4"/>
+  
+  <!-- Clear Gap / Void Space -->
+  <circle cx="24" cy="24" r="12" stroke="#0F172A" stroke-width="1" opacity="0.3"/>
+  
+  <!-- Detached Golden Central Bulge/Nucleus -->
+  <circle cx="24" cy="24" r="5" fill="#F59E0B" stroke="#FDE68A" stroke-width="1.5"/>
+  <circle cx="24" cy="24" r="1.5" fill="#FFFFFF"/>
+</svg>
