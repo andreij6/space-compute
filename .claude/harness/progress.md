@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T2.1 platform skeleton (done)
+- Config (mem 0 StableCell: admins, 22 bounded params, pause flags, protocol version), audit log (mem 52/53 StableLog, sha256 args digest), admin API (add/remove admin, set_params, pause, list, audit page, overview), public get_params.
+- Installer becomes first admin (anonymous install traps); ChaCha20 RNG seeded from raw_rand by a 0 s timer + hourly, retries every 30 s on failure.
+- PocketIC: upgrade keeps params/admins/pause/audit and reseeds RNG. Opus review: 3 fixes (param upper bounds, anonymous install, reseed retry).
+- Coverage gate now excludes canister glue (lib/api/timers.rs), covered by PocketIC; platform 97.6%.
+
 ## 2026-09-27 — Review of the parallel session's frontend (T6.1 reset to in_progress 30%)
 - Real: Vite/React build, 25 routed screens, static-site recipe, _redirects/_headers. Missing: II auth, ic_env, bindgen, tests (lint/test are echo stubs).
 - All 25 screens run on mockData.ts; no canister calls. Misleading: citation block always shows "BLS Verified" (spec: fail closed); spawn "provisioning" is setTimeout; connect page shows a "Secret Operator API Key" (design uses revocable principals, no shared secrets); no admin guard; card (Stripe) tab always visible.

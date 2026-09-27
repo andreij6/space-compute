@@ -23,7 +23,7 @@
 
 ## 2. Gates (`just verify` must pass before a task is committed)
 1. All tests pass: unit, property, integration, security, compat, pytest, vitest, Playwright, the bot agent.
-2. **Coverage:** `cargo llvm-cov` ≥ 90% lines on `platform`, `payments` and `treasury`, and ≥ 85% on `aaa` and `sc-types`; vitest ≥ 80% lines on `frontend/src/lib`. Coverage may not drop more than 0.5% per task. A crate is gated once it has ≥ 50 measurable lines (`scripts/coverage.py`, `just coverage`).
+2. **Coverage:** `cargo llvm-cov` ≥ 90% lines on `platform`, `payments` and `treasury`, and ≥ 85% on `aaa` and `sc-types`; vitest ≥ 80% lines on `frontend/src/lib`. Coverage may not drop more than 0.5% per task. A crate is gated once it has ≥ 50 measurable lines (`scripts/coverage.py`, `just coverage`). Canister glue (`src/lib.rs`, `src/api.rs`, `src/timers.rs`: endpoints, `msg_caller`, timers, management calls) is excluded from the line gate because it only runs inside a replica; it must stay thin and is covered by the task's PocketIC acceptance tests. Logic lives in unit-tested modules.
 3. **Traceability:** `docs/specs/traceability.md` maps every acceptance item (e.g. `02§11#4`, `04§6.7#10`, `S21`) to named tests. A script fails `just verify` when an acceptance item has no test, or a test ID points at nothing.
 4. **A skipped test is a failed test.** PocketIC suites must `panic!` when the wasm or the PocketIC binary is missing; in proof-of-burn they printed a skip message and CI stayed green. `verify-local.sh` also greps test output for `skipped`/`ignored`.
 5. `.did` drift check, AAA wasm ≤ 1.5 MiB gz, frontend bundle budgets, and no `dfx`/`fetchRootKey` strings in the repo.

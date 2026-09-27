@@ -4,10 +4,11 @@ from collections import defaultdict
 
 THRESHOLDS = {"platform": 90, "payments": 90, "treasury": 90, "aaa": 85, "sc-types": 85}
 MEASURABLE_LINES = 50
+GLUE = r"crates/[^/]+/src/(lib|api|timers)\.rs$"
 
 out = subprocess.run(
     ["cargo", "llvm-cov", "--workspace", "--exclude", "integration-tests", "--exclude", "spike-probe",
-     "--json", "--summary-only", "-q"],
+     "--ignore-filename-regex", GLUE, "--json", "--summary-only", "-q"],
     capture_output=True, text=True,
 )
 if out.returncode != 0:

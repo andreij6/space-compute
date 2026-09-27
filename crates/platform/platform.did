@@ -1,1 +1,71 @@
-service : () -> { version : () -> (text) query }
+type ApiError = variant {
+  Internal : text;
+  NotRegistered;
+  InvalidInput : text;
+  InsufficientFee : record { required : nat };
+  NotFound;
+  Suspended;
+  LeaseExpired;
+  LeaseNotFound;
+  Unauthorized;
+  RateLimited : record { retry_after_secs : nat32 };
+  NotEligible : text;
+  Conflict : text;
+};
+type AuditEntry = record {
+  v : nat8;
+  at : nat64;
+  method : text;
+  admin : principal;
+  args_digest : blob;
+  summary : text;
+};
+type Overview = record {
+  current_protocol_version : nat16;
+  cycles : nat;
+  admins : vec principal;
+  rng_seeded_at : opt nat64;
+  params : Params;
+  paused : PauseFlags;
+  audit_entries : nat64;
+};
+type Params = record {
+  claim_cell_arcsec : float64;
+  max_tasks_per_aaa_per_hour : nat32;
+  claim_reopen_days : nat32;
+  max_flag_rate_bp : nat16;
+  fee_submit_review : nat;
+  max_open_leases_per_aaa : nat16;
+  calibration_gold_rate_bp : nat16;
+  reviews_max : nat16;
+  reviews_min : nat16;
+  aaa_initial_cycles : nat;
+  gold_rate_bp : nat16;
+  review_starvation_days : nat32;
+  heartbeat_min_interval_secs : nat64;
+  retire_after_k : nat16;
+  lease_task_secs : nat64;
+  lease_review_secs : nat64;
+  fee_submit_classification : nat;
+  honeypot_rate_bp : nat16;
+  data_refresh_interval_days : nat32;
+  fee_get_review : nat;
+  calibration_tasks : nat32;
+  fee_get_task : nat;
+};
+type PauseFlags = record { tasks : bool; reviews : bool; spawns : bool };
+type Result = variant { Ok; Err : ApiError };
+type Result_1 = variant { Ok : vec AuditEntry; Err : ApiError };
+type Result_2 = variant { Ok : vec principal; Err : ApiError };
+type Result_3 = variant { Ok : Overview; Err : ApiError };
+service : () -> {
+  admin_add_admin : (principal) -> (Result);
+  admin_audit_log : (opt nat64, nat32) -> (Result_1) query;
+  admin_list_admins : () -> (Result_2) query;
+  admin_overview : () -> (Result_3) query;
+  admin_pause : (PauseFlags) -> (Result);
+  admin_remove_admin : (principal) -> (Result);
+  admin_set_params : (Params) -> (Result);
+  get_params : () -> (Params) query;
+  version : () -> (text) query;
+}
