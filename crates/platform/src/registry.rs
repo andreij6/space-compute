@@ -5,7 +5,7 @@ use candid::{CandidType, Principal};
 use flate2::read::GzDecoder;
 use ic_stable_structures::StableBTreeMap;
 use sc_types::ApiError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::memory::{self, Memory};
@@ -22,7 +22,7 @@ pub struct WasmMeta {
 
 crate::candid_storable!(WasmMeta);
 
-#[derive(CandidType, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AaaStatus {
     Installing,
     Active,
@@ -581,6 +581,14 @@ pub fn get_operators(aaa: &Principal) -> Option<OperatorSet> {
     AAA_OPERATORS.with_borrow(|m| m.get(aaa))
 }
 
+pub fn active_aaas_count() -> u64 {
+    AAA_REGISTRY.with_borrow(|m| {
+        m.iter()
+            .filter(|e| e.value().status == AaaStatus::Active)
+            .count() as u64
+    })
+}
+
 pub fn get_provenance(aaa: &Principal) -> Option<Provenance> {
     AAA_PROVENANCE.with_borrow(|m| m.get(aaa))
 }
@@ -991,5 +999,6 @@ mod tests {
             10,
         );
         assert_eq!(list.len(), 1);
+        assert!(active_aaas_count() >= 1);
     }
 }

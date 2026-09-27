@@ -43,4 +43,5 @@
 | Catalog dispatch: subjects, protocol, leases, seen-set (never same subject twice) | T2.3 | t2_3_never_same_subject_twice_and_pool_dispatch |
 | Retire at K=5; idempotent submit | T2.4 | t2_4_retire_at_k5_and_idempotent_submit |
 | Events append; paged activity | T2.5 | t2_5_events_append_and_paged_activity |
+| Queries paged ≤100 | T2.6 | t2_6_public_queries_paged_limit_100 |
 

@@ -1,3 +1,21 @@
+type AaaCounters = record {
+  reviews : nat64;
+  discoveries : nat64;
+  confirmed : nat64;
+  classifications : nat64;
+};
+type AaaPublic = record {
+  xp : nat64;
+  status : AaaStatus;
+  name : text;
+  badges : nat64;
+  tier : nat8;
+  next_tier_xp : nat64;
+  created_at : nat64;
+  reputation_bp : nat32;
+  counters : AaaCounters;
+  avatar_seed : nat64;
+};
 type AaaRecord = record {
   v : nat8;
   status : AaaStatus;
@@ -142,6 +160,15 @@ type EventKind = variant {
   AaaUnsuspended;
 };
 type Heartbeat = record { wasm_version : nat32; cycles : nat };
+type LeaderRow = record {
+  xp : nat64;
+  aaa : principal;
+  reviews : nat64;
+  confirmed_discoveries : nat64;
+  name : text;
+  rank : nat64;
+  tier : nat8;
+};
 type Lease = record {
   aaa : principal;
   issued_at : nat64;
@@ -162,7 +189,8 @@ type Overview = record {
   paused : PauseFlags;
   audit_entries : nat64;
 };
-type Page = record { next_cursor : opt nat64; items : vec ActivityItem };
+type Page = record { next_cursor : opt nat64; items : vec LeaderRow };
+type Page_1 = record { next_cursor : opt nat64; items : vec ActivityItem };
 type Params = record {
   claim_cell_arcsec : float64;
   max_tasks_per_aaa_per_hour : nat32;
@@ -213,6 +241,14 @@ type Result_6 = variant { Ok : vec Protocol; Err : ApiError };
 type Result_7 = variant { Ok : vec Subject; Err : ApiError };
 type Result_8 = variant { Ok : vec record { nat32; WasmMeta }; Err : ApiError };
 type Result_9 = variant { Ok : Overview; Err : ApiError };
+type Stats = record {
+  confirmed_discoveries : nat64;
+  total_classifications : nat64;
+  under_review_count : nat64;
+  total_subjects : nat32;
+  active_aaas : nat64;
+  retired_subjects : nat32;
+};
 type Subject = record {
   active : bool;
   gold : opt vec Answer;
@@ -280,16 +316,19 @@ service : () -> {
   check_name : (text) -> (CheckNameResult) query;
   get_aaa : (principal) -> (opt AaaRecord) query;
   get_aaa_by_name : (text) -> (opt AaaRecord) query;
+  get_aaa_public : (principal) -> (opt AaaPublic) query;
   get_classification : (nat64) -> (opt Classification) query;
   get_event : (nat64) -> (opt Event) query;
+  get_leaderboard : (opt nat64, nat32) -> (Page) query;
   get_lease : (nat64) -> (opt Lease) query;
   get_params : () -> (Params) query;
   get_protocol : (nat16) -> (opt Protocol) query;
+  get_stats : () -> (Stats) query;
   get_subject : (nat32) -> (opt Subject) query;
   get_subject_consensus : (nat32) -> (opt SubjectConsensus) query;
   get_task : () -> (Result_10);
   heartbeat : (Heartbeat) -> (Result);
-  list_aaa_activity : (principal, opt nat64, nat32) -> (Page) query;
+  list_aaa_activity : (principal, opt nat64, nat32) -> (Page_1) query;
   list_subject_classifications : (nat32) -> (vec Classification) query;
   register_aaa : (RegisterArgs) -> (Result);
   submit_classification : (ClassificationSubmission) -> (Result_11);

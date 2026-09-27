@@ -148,6 +148,7 @@ pub fn record_event(at: u64, aaa: Principal, owner: Principal, kind: EventKind) 
         AAA_ACTIVITY_MAP.with_borrow_mut(|m| {
             m.insert(AaaActivityKey { aaa, event_id: id }, ());
         });
+        crate::progression::apply_event(&entry);
     }
 
     id

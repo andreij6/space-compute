@@ -250,6 +250,18 @@ pub fn list_subjects(
     })
 }
 
+pub fn total_subjects_count() -> u32 {
+    SUBJECTS.with_borrow(|m| m.len() as u32)
+}
+
+pub fn retired_subjects_count() -> u32 {
+    SUBJECTS.with_borrow(|m| {
+        m.iter()
+            .filter(|e| !e.value().active && e.value().gold.is_none())
+            .count() as u32
+    })
+}
+
 pub fn has_seen(aaa: Principal, subject_id: u32) -> bool {
     SEEN_SET.with_borrow(|m| m.contains_key(&SeenKey { aaa, subject_id }))
 }

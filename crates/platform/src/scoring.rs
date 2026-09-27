@@ -194,6 +194,10 @@ pub fn get_subject_classifications(subject_id: u32) -> Vec<Classification> {
     CLASSIFICATIONS.with_borrow(|m| keys.into_iter().filter_map(|cid| m.get(&cid)).collect())
 }
 
+pub fn classifications_count() -> u64 {
+    CLASSIFICATIONS.with_borrow(|m| m.len())
+}
+
 pub fn evaluate_consensus(subject_id: u32, retired_at: u64) -> Option<SubjectConsensus> {
     let list = get_subject_classifications(subject_id);
     let valid_classifications: Vec<&Classification> =

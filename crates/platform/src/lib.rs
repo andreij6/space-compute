@@ -4,6 +4,7 @@ pub mod catalog;
 pub mod config;
 pub mod events;
 mod memory;
+pub mod progression;
 pub mod registry;
 mod rng;
 pub mod scoring;

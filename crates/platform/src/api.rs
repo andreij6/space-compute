@@ -7,6 +7,7 @@ use crate::audit::{self, AuditEntry};
 use crate::catalog::{self, AdminListSubjectsFilter, Lease, Subject, SubjectInput};
 use crate::config::{self, Params, PauseFlags};
 use crate::events;
+use crate::progression;
 use crate::registry::{
     self, AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput,
     RegisterArgs, UpdateAaaProfileArgs, WasmMeta,
@@ -734,4 +735,19 @@ fn list_aaa_activity(
 #[ic_cdk::query]
 fn get_event(id: u64) -> Option<events::Event> {
     events::get_event(id)
+}
+
+#[ic_cdk::query]
+fn get_stats() -> progression::Stats {
+    progression::get_stats()
+}
+
+#[ic_cdk::query]
+fn get_aaa_public(aaa: Principal) -> Option<progression::AaaPublic> {
+    progression::get_aaa_public(&aaa)
+}
+
+#[ic_cdk::query]
+fn get_leaderboard(cursor: Option<u64>, limit: u32) -> events::Page<progression::LeaderRow> {
+    progression::get_leaderboard(cursor, limit)
 }

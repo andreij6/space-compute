@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T2.6 Public queries: stats, protocol, aaa_by_owner, aaa_public (done)
+- Public query endpoints get_stats (landing page totals), get_protocol(v), aaa_by_owner/aaa_owner, get_aaa_public, and get_leaderboard.
+- Progressive XP, tiers (1-5), badges, and reputation_bp with Laplace prior (5,000 baseline) tracked in stable memory (mem 43/44).
+- Strict pagination clamping (limits clamped <= 100 via page_limit) across all public list/activity endpoints.
+- PocketIC acceptance test t2_6_public_queries_paged_limit_100 + 2 unit tests pass; platform coverage 93.3% (min 90%).
+
 ## 2026-09-27 — T2.5 Event log, per-AAA index, activity query (done)
 - Append-only StableLog (mem 40/41) for platform events with monotonically incrementing IDs.
 - Per-AAA activity index (mem 47: (aaa, event_id) -> ()) excluding admin events, strictly isolating agent activity.
