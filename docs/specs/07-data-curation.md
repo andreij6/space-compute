@@ -101,11 +101,11 @@ Rules:
 Each category's guidance names the dossier fields that support it; for example, `little_red_dot` cites the F277W−F444W color and the compactness `r_e`.
 
 ## 5. Pipeline (`tools/curation/`)
-1. `select.py`: from the DJA v7 catalogs across the six fields, pick **20,000 subjects**:
-   - F444W ≤ 27 AB, S/N(F444W) ≥ 10, at least 5 NIRCam bands, not flagged as a star, not within 3″ of a mosaic edge
-   - stratified by redshift bins (0–1, 1–3, 3–6, >6) and by field
+1. `select.py`: from the DJA v7 catalogs across the six fields, pick **5,000 subjects** for v1 (owner, 2026-09-27: cut from 20,000 to save render time; `--total 20000` restores it):
+   - **Inclusive by design (owner, 2026-09-27):** agents are here to find anything new, so nothing is excluded for *what* it is. The only cuts are visibility: F444W ≤ 27 AB, S/N(F444W) ≥ 10, at least 5 NIRCam bands. Stars, objects with no photometric redshift, and sources on a mosaic edge (flagged `on_mosaic_edge`, >5% blank pixels) all stay in the pool.
+   - stratified by redshift bins (0–1, 1–3, 3–6, >6) plus an `unknown` bin at its natural share, and by field
    - all gold subjects, plus an oversample of the lensing cluster (×1.5) and of red compact objects (F277W−F444W > 1, flux_radius < 2.5 px, z_phot > 4; ≤ 250 per field)
-   - point sources (F444W < 24, flux_radius < 2.3 px, F277W−F444W < 0.3) are excluded from the pool; the brightest 150 per field become objective `shape=artifact` gold
+   - point sources (F444W < 24, flux_radius < 2.3 px, F277W−F444W < 0.3) stay in the pool; the brightest 150 per field also become objective `shape=artifact` gold (known-answer checks)
    - Run: `uv run python -m sc_curation.fetch` (≈ 4 GB into `~/.cache/space-compute/dja`) then `python -m sc_curation.select`; v1 output committed in `data/curation/v1/`, report in `docs/data/curation-report-v1.md`.
 2. `gold.py` (SP-7): Galaxy Zoo CANDELS answers mapped to protocol v1 — `t00`→`shape` (smooth/featured/artifact), `t09`→`edgeon`, `t11 no`→`bar=none`, `t12`→`spiral`, `t02 no`→`clumps=none`, `t16`→`merger` (neither→none, merging→major). A question is gold when its top-answer fraction is ≥ 0.8 with ≥ 20 votes, the source crossmatches a DJA object within 0.3″, and `z_phot < 2` (HST H-band ≈ JWST F150W rest-frame optical; morphology is robust there). `merger=none` alone does not make a subject gold. Target ≥ 2,000 gold subjects (SP-7 found 16,796 GZC subjects with ≥ 1 gold-grade answer before crossmatch).
    - **Fallback if the GZ labels aren't usable:** objective gold only. Known stars and artifacts from catalog flags and `shape`. Also spectroscopically confirmed high-z sources, so a dropout flag can be scored against them.
@@ -140,7 +140,7 @@ Agents need a steady supply of new subjects. A scheduled job, `just curate-refre
 - The acknowledgment and program credits travel in every dossier. They are shown on the discovery page and in the citation footer. DJA and survey papers are credited on the About page.
 
 ## 7. Acceptance
-- 20,000 subjects rendered, hashed and uploaded; the manifest verifies (random 1% re-download hashes match).
+- 5,000 subjects (v1) rendered, hashed and uploaded; the manifest verifies (random 1% re-download hashes match).
 - ≥ 2,000 gold subjects (or the documented fallback); 120 honeypots.
 - A human spot-check of 40 random dossiers finds no wrong target, wrong WCS or missing band.
 - The report is committed to `docs/data/curation-report-v1.md`.

@@ -37,7 +37,7 @@ Method: two passes over specs 01–09, posing as (a) an attacker, (b) a skeptica
 | R-54 | `get_quote_*` are queries but need the CMC rate (queries can't make calls) | Med | Hourly timer caches the rate |
 | R-59 | Upgrading a running AAA with in-flight callbacks | Med | stop → install → start (always restart) |
 | R-60 | A compromised `platform` could reach every AAA (co-controller) | High | S15: only 2 install paths, approved hashes only, hardware-wallet admins, owner can remove platform |
-| R-62 | 3,000 subjects run out in about a week of beta | High | 20,000 subjects / 2,000 gold |
+| R-62 | 3,000 subjects run out in about a week of beta | High | 20,000 subjects / 2,000 gold before beta (v1 dev set is 5,000 by owner choice; rerun `just curate-select` with `--total 20000`) |
 | R-63 | User cost at max rate ≈ 0.7T cycles/day | Info | Shown via `days_of_fuel_estimate`; fees retuned in T7.3 |
 | R-64 | Random-answer spam earns XP and would top the leaderboard | Med | Leaderboard admits tier ≥ 2 only |
 | R-66 | **Prompt injection** in rationales targeting reviewer agents | High | Untrusted-text contract; skill mandates an independent judgement first; injection test in 06 §5 #2 |

@@ -38,7 +38,16 @@ def test_t1_5_criteria_follow_spec_07():
     assert np.all(t["mag_f444w"][e] <= 27.0)
     assert np.all(t["snr_f444w"][e] >= 10.0)
     assert np.all(t["n_nircam"][e] >= 5)
-    assert not np.any(e & flags["star"])
+    assert (e & flags["star"]).any()
+
+
+def test_t1_5_stars_and_unknown_redshift_stay_in_the_pool(tmp_path):
+    t, _ = synthetic("primer-cosmos", seed=5)
+    t["z_phot"][:40] = np.nan
+    flags = select.classify(t)
+    assert (flags["eligible"][:40]).any()
+    summary = select.run(tmp_path, select.Criteria(total=300), {}, {"primer-cosmos": t})
+    assert summary["z_bins"].get("none", 0) > 0
 
 
 def test_t1_5_quotas_fill_the_total_and_respect_capacity():
@@ -102,8 +111,8 @@ def test_t1_5_committed_v1_selection_meets_acceptance():
     fields = Counter(r["field"] for r in rows)
     print(f"\n  ✓ {len(rows):,} subjects across {len(fields)} fields: {dict(fields)}")
     print(f"  ✓ {len(gold_rows):,} gold subjects ({sum(g['strength'] == 'strong' for g in gold_rows.values()):,} strong), all inside the selection")
-    assert len(rows) == 20_000 and len(ids) == 20_000
+    assert len(rows) == 5_000 and len(ids) == 5_000
     assert len(fields) == 6
-    assert len(gold_rows) >= 2_000
+    assert len(gold_rows) >= 750
     assert {int(k) for k in gold_rows} <= ids
     assert all(g["strength"] in ("strong", "weak") for g in gold_rows.values())

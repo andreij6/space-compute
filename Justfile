@@ -60,7 +60,7 @@ curate-fetch:
 
 # Select 20k subjects + gold into data/curation/v1
 curate-select:
-    @cd tools/curation && uv run -q python -m sc_curation.select --out ../../data/curation/v1
+    @cd tools/curation && uv run -q python -m sc_curation.select --out ../../data/curation/v1 --total 5000
 
 # Stream mosaics and render every dossier into target/bucket (resumable per root)
 curate-dossiers *ARGS:

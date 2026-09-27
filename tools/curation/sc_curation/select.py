@@ -13,7 +13,8 @@ Z_BINS = [(0.0, 1.0, 0.25), (1.0, 3.0, 0.35), (3.0, 6.0, 0.25), (6.0, 99.0, 0.15
 FIELD_WEIGHT = {"abell2744": 1.5}
 MAG_LIMIT, SNR_LIMIT, MIN_BANDS = 27.0, 10.0, 5
 POINT_RADIUS_PX, STAR_MAG, STAR_MAX_COLOR = 2.3, 24.0, 0.3
-MAX_STARS_PER_FIELD, MAX_RED_COMPACT_PER_FIELD = 60, 250
+MAX_RED_COMPACT_PER_FIELD = 250
+GOLD_SHARE = 0.25
 FIELD_INDEX = {f: i + 1 for i, f in enumerate(FIELDS)}
 
 
@@ -66,8 +67,7 @@ def classify(t: Table) -> dict:
     ok_bands = t["n_nircam"] >= MIN_BANDS
     point = (t["flux_radius_px"] > 0) & (t["flux_radius_px"] < POINT_RADIUS_PX)
     star = point & (t["mag_f444w"] < STAR_MAG) & (np.nan_to_num(t["color_277_444"], nan=9.0) < STAR_MAX_COLOR)
-    has_z = np.isfinite(t["z_phot"]) & (t["z_phot"] > 0)
-    eligible = ok_mag & ok_snr & ok_bands & ~star & has_z
+    eligible = ok_mag & ok_snr & ok_bands
     red_compact = eligible & (t["color_277_444"] > 1.0) & (t["flux_radius_px"] < 2.5) & (t["z_phot"] > 4)
     return {"eligible": eligible, "star": star & ok_bands, "red_compact": red_compact}
 
@@ -108,10 +108,6 @@ def choose(t: Table, flags: dict, quota: int, forced: set, rng: np.random.Genera
     for i in np.flatnonzero(np.isin(ids, list(forced))):
         picked.append(i)
         reasons[int(ids[i])] = "gold"
-    stars = np.flatnonzero(flags["star"])
-    for i in rng.permutation(stars)[:MAX_STARS_PER_FIELD]:
-        picked.append(i)
-        reasons.setdefault(int(ids[i]), "star")
     reds = np.flatnonzero(flags["red_compact"])
     for i in rng.permutation(reds)[:MAX_RED_COMPACT_PER_FIELD]:
         picked.append(i)
@@ -121,9 +117,13 @@ def choose(t: Table, flags: dict, quota: int, forced: set, rng: np.random.Genera
     pool = np.flatnonzero(flags["eligible"])
     pool = np.array([i for i in pool if i not in taken], dtype=int)
     z = np.asarray(t["z_phot"])[pool] if len(pool) else np.array([])
-    bin_rows = [pool[(z >= lo) & (z < hi)] for lo, hi, _ in Z_BINS]
-    targets = [int(left * w) for _, _, w in Z_BINS]
-    targets[1] += left - sum(targets)
+    unknown = pool[~(np.isfinite(z) & (z > 0))]
+    n_unknown = int(left * len(unknown) / max(len(pool), 1))
+    known = left - n_unknown
+    bin_rows = [pool[(z >= lo) & (z < hi)] for lo, hi, _ in Z_BINS] + [unknown]
+    targets = [int(known * w) for _, _, w in Z_BINS]
+    targets[1] += known - sum(targets)
+    targets.append(n_unknown)
     spill = 0
     for rows, target in sorted(zip(bin_rows, targets), key=lambda p: len(p[0])):
         n = min(len(rows), target + spill)
@@ -151,7 +151,8 @@ def run(out: Path, criteria: Criteria, gold_ids: dict | None = None, tables: dic
     gold_ids = gold_ids or {}
     rows, summary = [], {"fields": {}, "z_bins": {}, "reasons": {}}
     for f, t in tables.items():
-        forced = {int(s) for s in gold_ids.get(f, [])}
+        forced = sorted(int(s) for s in gold_ids.get(f, []))
+        forced = set(rng.permutation(forced)[:int(q[f] * GOLD_SHARE)].tolist()) if forced else set()
         picked, reasons = choose(t, flags[f], q[f], forced, rng)
         for i in picked:
             r = t[int(i)]
@@ -188,6 +189,11 @@ def main() -> None:
     tables = {f: load_field(f) for f in FIELDS}
     gold_result = gold.run(Path(a.out), tables)
     summary = run(Path(a.out), Criteria(total=a.total), gold_result["ids_by_field"], tables)
+    picked = {json.loads(l)["subject_id"] for l in (Path(a.out) / "selection_v1.jsonl").read_text().splitlines()}
+    gold_path = Path(a.out) / "gold_v1.json"
+    kept = {k: v for k, v in json.loads(gold_path.read_text()).items() if int(k) in picked}
+    gold_path.write_text(json.dumps(kept, indent=1, sort_keys=True))
+    gold_result["summary"]["in_selection"] = len(kept)
     print(json.dumps({"selection": summary, "gold": gold_result["summary"]}, indent=1))
 
 

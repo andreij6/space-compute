@@ -29,7 +29,7 @@
 | Selection criteria (07 §5.1) | T1.5 | test_t1_5_criteria_follow_spec_07 |
 | Field quotas and z-stratification, deterministic | T1.5 | test_t1_5_selection_is_deterministic_and_ids_unique |
 | Gold mapping, thresholds, 0.3″ match, z < 2 guard | T1.5 | test_t1_5_gold_mapping_thresholds_and_z_guard |
-| 20k selected; ≥ 2k gold (committed v1 data) | T1.5 | test_t1_5_committed_v1_selection_meets_acceptance |
+| 5k selected; ≥ 750 gold (committed v1 data; 20k before beta) | T1.5 | test_t1_5_committed_v1_selection_meets_acceptance |
 | Streamed cutouts equal direct slices (incl. edges) | T1.7 | test_t1_7_streamed_cutouts_equal_direct_slices_including_edges |
 | Cutout WCS points at the target | T1.7 | test_t1_7_cutout_wcs_points_at_the_target |
 | RICE FITS round-trip keeps the signal | T1.7 | test_t1_7_rice_fits_round_trip_keeps_signal |
