@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T1.4 PocketIC harness (done)
+- `integration_tests::pic::IcpEnv`: PocketIC 16 + `IcpFeatures` (real ICP ledger, CMC, registry; anonymous holds 1B ICP); helpers for install, query/update, icrc1 + legacy transfer, CMC top-up account, notify_top_up; `canister_wasm()` builds wasms once.
+- Demo: `just demo T1.4` → mint 10 ICP, install platform, 1 ICP → CMC (memo TPUP) → +3.52T cycles.
+- Harness: POCKET_IC_MUTE_SERVER=1 in demo/verify (system-canister logs drowned the demo). Server binary auto-downloads to $TMPDIR on first run.
+
 ## 2026-09-27 — T1.3 Local verify & deploy harness (done)
 - `just verify`: fmt, clippy -D warnings, candid drift (`scripts/check-candid.sh`, `just candid` to rewrite), aaa ≤ 1.5 MiB gz, cargo test with ignored/skip = fail, no dfx/fetchRootKey; pytest/frontend/traceability steps activate when those exist. ~7 s today.
 - `just deploy-local` rewritten for icp 1.6: dedicated `sc-deployer/sc-admin/sc-user` identities, auto-funding from the seeded anonymous account, env-var wiring (no setters), random gateway port.

@@ -1,3 +1,5 @@
+pub mod pic;
+
 use std::path::PathBuf;
 
 pub fn repo_root() -> PathBuf {

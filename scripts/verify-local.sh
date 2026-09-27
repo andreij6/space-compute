@@ -26,7 +26,7 @@ GZ_SIZE=$(ic-wasm "$AAA_WASM" -o /tmp/sc-aaa-shrunk.wasm shrink >/dev/null 2>&1 
 [ "$GZ_SIZE" -le "$MAX_BYTES" ] || fail "aaa wasm ${GZ_SIZE} B gz exceeds 1.5 MiB"
 ok "aaa wasm ${GZ_SIZE} B gz (≤ 1.5 MiB)"
 
-OUT=$(cargo test --workspace -- --test-threads=4 2>&1)
+OUT=$(POCKET_IC_MUTE_SERVER=1 cargo test --workspace -- --test-threads=4 2>&1)
 STATUS=$?
 if [ $STATUS -ne 0 ]; then echo "$OUT" | grep -E "FAILED|panicked|error" | head -30; fail "cargo test"; fi
 PASSED=$(echo "$OUT" | grep -oE '[0-9]+ passed' | awk '{s+=$1} END {print s+0}')
