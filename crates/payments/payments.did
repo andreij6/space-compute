@@ -27,6 +27,17 @@ type FuelSource = variant {
   Eth : record { wei : nat };
 };
 type JournalDemoArg = record { aaa : principal; trap_after_await : bool };
+type MandateView = record {
+  aaa : principal;
+  topup_e8s : nat64;
+  last_auto_at : nat64;
+  enabled : bool;
+  cap_30d_e8s : nat64;
+  spent_30d_e8s : nat64;
+  payer : Account;
+  remaining_30d_e8s : nat64;
+  needs_attention : bool;
+};
 type NotifiedInfo = variant { Canister : principal; Cycles : nat };
 type Op = record {
   v : nat8;
@@ -119,6 +130,13 @@ type Result_4 = variant { Ok : vec Op; Err : ApiError };
 type Result_5 = variant { Ok : Overview; Err : ApiError };
 type Result_6 = variant { Ok : RateCache; Err : ApiError };
 type Result_7 = variant { Ok : Quote; Err : ApiError };
+type SetMandateArgs = record {
+  aaa : principal;
+  topup_e8s : nat64;
+  enabled : bool;
+  cap_30d_e8s : nat64;
+  payer : Account;
+};
 type SpawnArgs = record { name : text; path : PayPath; avatar_seed : nat64 };
 type TopUpArgs = record { aaa : principal; path : PayPath };
 service : () -> {
@@ -136,12 +154,15 @@ service : () -> {
   admin_set_platform_id : (principal) -> (Result);
   get_deposit_account : (Purpose, principal) -> (text, Account) query;
   get_features : () -> (Features) query;
+  get_mandate : (principal) -> (opt MandateView) query;
   get_op : (nat64) -> (opt Op) query;
   get_params : () -> (Params) query;
   get_quote_spawn : () -> (Result_7) query;
   get_quote_topup : (nat) -> (Result_7) query;
   get_rate : () -> (RateCache) query;
+  request_auto_topup : () -> (Result_2);
   resume : (nat64) -> (Result);
+  set_mandate : (SetMandateArgs) -> (Result);
   spawn_aaa : (SpawnArgs) -> (Result_2);
   top_up : (TopUpArgs) -> (Result_2);
   version : () -> (text) query;

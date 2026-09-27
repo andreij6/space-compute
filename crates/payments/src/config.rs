@@ -111,8 +111,8 @@ pub struct Features {
 impl Default for Features {
     fn default() -> Self {
         Features {
-            btc: true,
-            eth: true,
+            btc: false,
+            eth: false,
             sponsored_spawn: true,
         }
     }
@@ -226,7 +226,7 @@ mod tests {
         assert_eq!(p.treasury_reserve_floor_e8s, 5_000_000_000);
         p.validate().unwrap();
         let f = Features::default();
-        assert!(f.btc && f.eth && f.sponsored_spawn);
+        assert!(!f.btc && !f.eth && f.sponsored_spawn);
     }
 
     #[test]

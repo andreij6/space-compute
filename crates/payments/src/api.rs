@@ -10,6 +10,7 @@ use crate::deposit::{self, Purpose};
 use crate::guard::{self, CallerGuard};
 use crate::journal::{self, Account, NotifiedInfo, Op, OpKind, OpState, PayPath};
 use crate::ledger;
+use crate::mandate::{self, MandateView};
 use crate::owners;
 use crate::platform_client;
 use crate::quote::{self, Quote};
@@ -618,6 +619,193 @@ async fn top_up(args: TopUpArgs) -> Result<u64, ApiError> {
     Ok(op.id)
 }
 
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SetMandateArgs {
+    pub aaa: Principal,
+    pub payer: Account,
+    pub topup_e8s: u64,
+    pub cap_30d_e8s: u64,
+    pub enabled: bool,
+}
+
+#[ic_cdk::update]
+async fn set_mandate(args: SetMandateArgs) -> Result<(), ApiError> {
+    let caller = ic_cdk::api::msg_caller();
+    if caller == Principal::anonymous() {
+        return Err(ApiError::Unauthorized);
+    }
+    let platform = config::platform_id()?;
+    let owner = platform_aaa_owner(platform, args.aaa).await?;
+    if owner != Some(caller) {
+        return Err(ApiError::Unauthorized);
+    }
+    mandate::set(
+        args.aaa,
+        args.payer,
+        args.topup_e8s,
+        args.cap_30d_e8s,
+        args.enabled,
+    )?;
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn get_mandate(aaa: Principal) -> Option<MandateView> {
+    mandate::view(aaa, ic_cdk::api::time())
+}
+
+enum AutoTopupPull {
+    Block(u64),
+    NeedsAttention(String),
+}
+
+async fn pull_auto_topup(aaa: Principal, payer: Account) -> Result<AutoTopupPull, ApiError> {
+    let params = config::get().params;
+    let sub = deposit::spender_subaccount(Purpose::Auto, aaa);
+    let to = cmc::deposit_account(rate::cmc_id(), aaa);
+    let now = ic_cdk::api::time();
+    let memo = cmc::MEMO_TOP_UP.to_le_bytes().to_vec();
+    let mandate = mandate::get(aaa).ok_or(ApiError::NotFound)?;
+    let amount = mandate.topup_e8s;
+    let fee = params.icp_ledger_fee_e8s;
+    match ledger_transfer_from_once(
+        Some(sub),
+        payer.clone(),
+        to.clone(),
+        amount,
+        fee,
+        memo.clone(),
+        now,
+    )
+    .await?
+    {
+        Ok(block) => Ok(AutoTopupPull::Block(block)),
+        Err(ledger::TransferFromError::Duplicate { duplicate_of }) => {
+            Ok(AutoTopupPull::Block(nat_u64(duplicate_of)))
+        }
+        Err(ref e) if ledger::expected_fee_from(e).is_some() => {
+            let corrected = ledger::expected_fee_from(e).unwrap();
+            match ledger_transfer_from_once(Some(sub), payer, to, amount, corrected, memo, now)
+                .await?
+            {
+                Ok(block) => Ok(AutoTopupPull::Block(block)),
+                Err(e2) => auto_topup_pull_result(e2),
+            }
+        }
+        Err(e) => auto_topup_pull_result(e),
+    }
+}
+
+fn auto_topup_pull_result(e: ledger::TransferFromError) -> Result<AutoTopupPull, ApiError> {
+    match e {
+        ledger::TransferFromError::InsufficientAllowance { .. }
+        | ledger::TransferFromError::InsufficientFunds { .. } => {
+            Ok(AutoTopupPull::NeedsAttention(format!("{e:?}")))
+        }
+        e => Err(ApiError::Internal(format!(
+            "icrc2_transfer_from rejected: {e:?}"
+        ))),
+    }
+}
+
+async fn advance_auto_topup_saga(op_id: u64) -> Result<(), ApiError> {
+    loop {
+        let op = journal::get(op_id).ok_or(ApiError::NotFound)?;
+        if op.state.is_terminal() {
+            return Ok(());
+        }
+        let aaa = op.auto_topup_fields()?;
+        match op.state.clone() {
+            OpState::Pending => {
+                let mandate = mandate::get(aaa).ok_or(ApiError::NotFound)?;
+                match pull_auto_topup(aaa, mandate.payer.clone()).await? {
+                    AutoTopupPull::Block(block) => {
+                        journal::advance(op_id, OpState::Pulled { block }, ic_cdk::api::time())?;
+                    }
+                    AutoTopupPull::NeedsAttention(reason) => {
+                        journal::advance(
+                            op_id,
+                            OpState::Failed {
+                                reason: reason.clone(),
+                            },
+                            ic_cdk::api::time(),
+                        )?;
+                        mandate::mark_needs_attention(aaa, true)?;
+                        return Err(ApiError::invalid(format!(
+                            "auto top-up needs attention: {reason}"
+                        )));
+                    }
+                }
+            }
+            OpState::Pulled { block } => match cmc_notify_top_up(block, aaa).await? {
+                Ok(cycles) => {
+                    journal::advance(
+                        op_id,
+                        OpState::Notified {
+                            canister_or_cycles: NotifiedInfo::Cycles(cycles),
+                        },
+                        ic_cdk::api::time(),
+                    )?;
+                }
+                Err(cmc::CmcNotifyError::Refunded { block_index, .. }) => {
+                    journal::advance(
+                        op_id,
+                        OpState::Refunded {
+                            block: block_index.unwrap_or(block),
+                        },
+                        ic_cdk::api::time(),
+                    )?;
+                    return Err(ApiError::Internal(
+                        "the CMC refunded the auto top-up transfer".into(),
+                    ));
+                }
+                Err(e) => return Err(ApiError::Internal(format!("notify_top_up: {e}"))),
+            },
+            OpState::Notified {
+                canister_or_cycles: NotifiedInfo::Cycles(_),
+            } => {
+                journal::advance(op_id, OpState::Done, ic_cdk::api::time())?;
+                let mandate = mandate::get(aaa).ok_or(ApiError::NotFound)?;
+                let done_at = ic_cdk::api::time();
+                mandate::set_last_auto_at(aaa, done_at)?;
+                mandate::record_spend(aaa, op_id, done_at, mandate.topup_e8s);
+                mandate::mark_needs_attention(aaa, false)?;
+            }
+            OpState::Notified { .. } => {
+                return Err(ApiError::Internal(
+                    "auto top-up op notified with a canister instead of cycles".into(),
+                ));
+            }
+            _ => return Err(ApiError::Internal("unexpected auto top-up op state".into())),
+        }
+    }
+}
+
+#[ic_cdk::update]
+async fn request_auto_topup() -> Result<u64, ApiError> {
+    let aaa = ic_cdk::api::msg_caller();
+    if aaa == Principal::anonymous() {
+        return Err(ApiError::Unauthorized);
+    }
+    let _guard = CallerGuard::acquire(guard::key("auto", aaa))?;
+    let mandate = mandate::get(aaa).ok_or(ApiError::NotFound)?;
+    let now = ic_cdk::api::time();
+    let params = config::get().params;
+    mandate::check_eligible(&mandate, now, params.auto_topup_min_interval_secs)?;
+
+    let op = journal::create(
+        OpKind::AutoTopUp { aaa },
+        PayPath::Wallet {
+            payer: mandate.payer.clone(),
+        },
+        mandate.topup_e8s,
+        aaa,
+        now,
+    );
+    advance_auto_topup_saga(op.id).await?;
+    Ok(op.id)
+}
+
 async fn pull_or_sweep_spawn(op: &Op) -> Result<u64, ApiError> {
     let (owner, _, _) = op.spawn_fields()?;
     let params = config::get().params;
@@ -789,6 +977,11 @@ pub(crate) async fn resume(op_id: u64) -> Result<(), ApiError> {
             let aaa = *aaa;
             let _guard = CallerGuard::acquire(guard::key("topup", aaa))?;
             advance_topup_saga(op_id).await
+        }
+        OpKind::AutoTopUp { aaa } => {
+            let aaa = *aaa;
+            let _guard = CallerGuard::acquire(guard::key("auto", aaa))?;
+            advance_auto_topup_saga(op_id).await
         }
         _ => Err(ApiError::Internal(
             "resume: this op kind is not implemented yet".into(),

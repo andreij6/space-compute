@@ -99,3 +99,8 @@
 | 04 §5 #4: platform can't register mid-saga → op stays Notified with no double charge; resume completes it; a duplicate resume on a Done op is a no-op | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §4: top_up(aaa, path) — anyone may gift fuel to any registered AAA, no owner check; min 0.1 ICP enforced before any funds move | T5.4 | t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_is_rejected |
 | 04 §2: Top-up transfer to (CMC, subaccount = principal_to_subaccount(aaa)) with memo TPUP, then notify_top_up; Deposit path sweeps D(topup, aaa) to zero and the AAA's real cycle balance increases | T5.4 | t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_is_rejected |
+| 04 §5 #5: auto top-up respects the interval and the monthly cap, and flags a revoked allowance | T5.5 | t5_5_request_auto_topup_succeeds_within_cap_and_interval_then_second_call_rejected_by_interval |
+| 04 §5 #5: exceeding cap_30d_e8s is rejected without moving funds | T5.5 | t5_5_request_auto_topup_rejects_when_it_would_exceed_the_rolling_30d_cap |
+| 04 §4/§57: rolling 30-day spend window sums only entries within the window, per aaa | T5.5 | t5_5_rolling_window_sums_only_entries_within_30_days |
+| 04 §4: request_auto_topup eligibility — disabled mandate, min interval, rolling cap | T5.5 | t5_5_check_eligible_rejects_disabled_mandate |
+| 04 §4: InsufficientAllowance/InsufficientFunds fails the op and marks the mandate needs_attention | T5.5 | t5_5_mark_needs_attention_round_trips |

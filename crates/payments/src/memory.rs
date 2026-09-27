@@ -8,9 +8,7 @@ pub type Memory = VirtualMemory<DefaultMemoryImpl>;
 pub const CONFIG: u8 = 0;
 pub const OPS: u8 = 1;
 pub const OWNER_AAA: u8 = 2;
-#[allow(dead_code)]
 pub const MANDATE: u8 = 3;
-#[allow(dead_code)]
 pub const AUTO_TOPUP_HISTORY: u8 = 4;
 pub const XDR_RATE: u8 = 5;
 #[allow(dead_code)]

@@ -147,6 +147,13 @@ impl Op {
             _ => Err(ApiError::Internal("op is not a TopUp op".into())),
         }
     }
+
+    pub fn auto_topup_fields(&self) -> Result<Principal, ApiError> {
+        match &self.kind {
+            OpKind::AutoTopUp { aaa } => Ok(*aaa),
+            _ => Err(ApiError::Internal("op is not an AutoTopUp op".into())),
+        }
+    }
 }
 
 thread_local! {
@@ -331,6 +338,23 @@ mod tests {
             2,
         );
         assert!(matches!(spawn.topup_fields(), Err(ApiError::Internal(_))));
+    }
+
+    #[test]
+    fn t5_5_auto_topup_fields_extracts_from_auto_topup_kind_only() {
+        let auto = create(
+            OpKind::AutoTopUp { aaa: p(11) },
+            PayPath::Deposit,
+            0,
+            p(11),
+            1,
+        );
+        assert_eq!(auto.auto_topup_fields(), Ok(p(11)));
+        let topup = create(OpKind::TopUp { aaa: p(12) }, PayPath::Deposit, 0, p(12), 2);
+        assert!(matches!(
+            topup.auto_topup_fields(),
+            Err(ApiError::Internal(_))
+        ));
     }
 
     #[test]
