@@ -176,7 +176,7 @@ notify_btc_deposit : (principal /*aaa*/) -> (Result_OpIds);          // anyone; 
   - create a `FuelPack{Btc}` op with `usd_cents = sats × btc_usd`
   - sweep the ckBTC from `D(btc, aaa)` into `TREASURY`
   - then run `fund_from_treasury`
-- `Checked`/pending statuses are returned to the UI as "waiting for N confirmations".
+- `Checked`/pending statuses are returned to the UI as "waiting for N confirmations". Mainnet today (SP-6): 4 confirmations (~40 min), minimum deposit 300 sats, 100-sat check fee; read these from the minter's `get_minter_info`, never hard-code them.
 - A deposit below the minimum is still minted and swept to the treasury, then credited at its value (no minimum is enforced after minting, so no funds are stranded).
 - Frontend polling calls `notify_btc_deposit` every 5 min while the fuel page is open. A payments timer also calls it every 30 min for addresses issued in the last 7 days.
 
@@ -188,7 +188,7 @@ notify_eth_deposit : (principal /*aaa*/) -> (Result_OpIds);   // reads ckETH bal
 ```
 - The user deposits through the **ckETH helper contract** with principal = payments and subaccount = `D(eth, aaa)`. The frontend builds the transaction for any EIP-1193 wallet, such as MetaMask. Minting takes about 20 min.
 - Balance > 0 → create a `FuelPack{Eth}` op (`usd_cents = wei × eth_usd`), sweep into `TREASURY`, then `fund_from_treasury`.
-- **Spike SP-6:** confirm that the helper contract supports subaccount deposits, and find the minimum deposit. If the minimum is above $5, the ETH pack price becomes that minimum, and the UI shows it.
+- **Spike SP-6 — resolved 2026-09-27 (mainnet minter, read-only query).** Subaccount deposits are supported via the minter's `deposit_with_subaccount_helper_contract_address` (read it from `get_minter_info` at runtime; never hard-code it). The minimum ETH deposit is **0.005 ETH** (`minimum_eth_deposit_amount`, ≈ $15 at $3,000/ETH), so the ETH path has no fixed "$5 pack": the UI shows "any amount ≥ 0.005 ETH", read live from the minter, and the whole deposit is credited at its USD value. Proof: `scripts/spikes/sp-6-minters.sh`.
 
 ### 6.6b Spawning with card, BTC or ETH
 New users without ICP can spawn with a fuel pack:

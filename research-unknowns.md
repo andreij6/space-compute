@@ -22,6 +22,7 @@ Technical unknowns and spikes resolution for Space Compute.
 - **Canary / Unknowns:** Test OISY pop-up rendering with an explicit 32-byte subaccount before enabling.
 
 ### Q3 (SP-6): ckETH & ckBTC Subaccounts, Fees, and Latency
+> **Correction 2026-09-27 (SP-6, live minter query):** ETH minimum is 0.005 ETH (not ~0.002); ckBTC needs 4 confirmations (not 12), 300-sat minimum, 100-sat fee. See `scripts/spikes/sp-6-minters.sh`.
 - **Answer:** ckETH supports subaccounts via `deposit_with_subaccount(bytes32, bytes32)`; ckBTC supports subaccounts via `get_btc_address({owner, subaccount})`. ckETH takes ~20 min (min ~0.002 ETH); ckBTC takes ~2h (12 confirmations, 10-sat fee).
 - **Confidence:** High.
 - **Evidence:** DFINITY ckETH minter docs; ckBTC minter candid interface.

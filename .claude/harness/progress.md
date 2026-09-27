@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — SP-6 ckETH/ckBTC deposits (done)
+- Read-only mainnet minter queries: ckETH subaccount deposits supported (helper contract); ETH minimum 0.005 ETH ≈ $15 → ETH path is "any amount ≥ minimum", credited at full value. ckBTC: 4 confirmations, 300-sat min, 100-sat fee.
+- Recorded in 04 §6.5/§6.6 + REVIEW; research Q3 corrected. Values must be read from `get_minter_info` at runtime.
+- Proof: `bash scripts/spikes/sp-6-minters.sh` (mainnet read-only; can't run in PocketIC).
+
 ## 2026-09-27 — SP-4 canister_info cost/latency (done)
 - Measured with a probe canister (`crates/spike-probe`, test-only, not deployed): ~5.9M cycles and +1–2 rounds, same or cross subnet.
 - Decision (02 §5 step 4, REVIEW): strict per-call provenance on submit_*; get_* cached ≤ 1 h. Reverses the research-driven "lazy 24 h" fallback.
