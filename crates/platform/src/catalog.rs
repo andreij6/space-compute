@@ -277,6 +277,25 @@ pub fn get_lease(task_id: u64) -> Option<Lease> {
     LEASES.with_borrow(|m| m.get(&task_id))
 }
 
+pub fn update_lease(task_id: u64, lease: Lease) {
+    LEASES.with_borrow_mut(|m| m.insert(task_id, lease));
+}
+
+pub fn update_subject(subject: Subject, retire_after_k: u16) {
+    let id = subject.ref_.subject_id;
+    let active = subject.active;
+    let is_gold = subject.gold.is_some();
+    let tally_count = subject.tally_count;
+    SUBJECTS.with_borrow_mut(|m| m.insert(id, subject));
+    TASK_POOL.with_borrow_mut(|pool| {
+        if !active || is_gold || tally_count >= retire_after_k {
+            pool.remove(&id);
+        } else {
+            pool.insert(id, ());
+        }
+    });
+}
+
 pub fn issue_task(
     aaa: Principal,
     classifications_count: u32,

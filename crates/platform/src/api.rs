@@ -11,6 +11,7 @@ use crate::registry::{
     RegisterArgs, UpdateAaaProfileArgs, WasmMeta,
 };
 use crate::rng;
+use crate::scoring;
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct Overview {
@@ -632,4 +633,72 @@ async fn get_task() -> Result<sc_types::Task, ApiError> {
         now,
         roll,
     )
+}
+
+#[ic_cdk::update]
+async fn submit_classification(
+    submission: sc_types::ClassificationSubmission,
+) -> Result<sc_types::ClassificationReceipt, ApiError> {
+    let cfg = config::get();
+    if cfg.paused.tasks {
+        return Err(ApiError::Unauthorized);
+    }
+    let caller = ic_cdk::api::msg_caller();
+    let record = registry::get_aaa(&caller).ok_or(ApiError::NotRegistered)?;
+    if record.status == registry::AaaStatus::Suspended {
+        return Err(ApiError::Suspended);
+    }
+    if record.status != registry::AaaStatus::Active
+        && record.status != registry::AaaStatus::SelfManaged
+    {
+        return Err(ApiError::NotRegistered);
+    }
+    let fee = cfg.params.fee_submit_classification;
+    if fee > 0 {
+        let available = ic_cdk::api::msg_cycles_available();
+        if available < fee {
+            return Err(ApiError::InsufficientFee {
+                required: fee.into(),
+            });
+        }
+        ic_cdk::api::msg_cycles_accept(fee);
+    }
+    let now = ic_cdk::api::time();
+    let is_owner = submission.submitted_by == record.owner;
+    let is_operator = registry::get_operators(&caller).is_some_and(|op_set| {
+        op_set
+            .operators
+            .iter()
+            .any(|(op, exp)| op == &submission.submitted_by && exp.is_none_or(|e| e > now))
+    });
+    if !is_owner && !is_operator {
+        return Err(ApiError::Unauthorized);
+    }
+
+    verify(caller).await?;
+
+    scoring::process_submission(
+        caller,
+        record.owner,
+        submission,
+        &cfg.params,
+        cfg.current_protocol_version,
+        now,
+        fee,
+    )
+}
+
+#[ic_cdk::query]
+fn get_classification(id: u64) -> Option<scoring::Classification> {
+    scoring::get_classification(id)
+}
+
+#[ic_cdk::query]
+fn get_subject_consensus(subject_id: u32) -> Option<scoring::SubjectConsensus> {
+    scoring::get_subject_consensus(subject_id)
+}
+
+#[ic_cdk::query]
+fn list_subject_classifications(subject_id: u32) -> Vec<scoring::Classification> {
+    scoring::get_subject_classifications(subject_id)
 }

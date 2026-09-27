@@ -54,7 +54,52 @@ type AuditEntry = record {
   summary : text;
 };
 type CheckNameResult = variant { Ok; Invalid; Taken };
+type ClaimOutcome = variant {
+  New;
+  ClosedRecentlyRejected : text;
+  Corroborates : text;
+};
+type ClaimPosition = record { ra_deg : float64; dec_deg : float64 };
+type Classification = record {
+  at : nat64;
+  aaa : principal;
+  fee : nat;
+  is_gold : bool;
+  consensus_score : opt record { nat8; nat8 };
+  task_id : nat64;
+  xp_awarded : nat32;
+  discovery_seq : opt nat64;
+  owner : principal;
+  agent_label : opt text;
+  answers : vec Answer;
+  classification_id : nat64;
+  subject_id : nat32;
+  gold_score : opt record { nat8; nat8 };
+  observed_image_sha256 : blob;
+  image_mismatch : bool;
+};
+type ClassificationReceipt = record {
+  xp_awarded : nat32;
+  claim : opt ClaimOutcome;
+  classification_id : nat64;
+  duplicate : bool;
+  discovery_id : opt text;
+};
+type ClassificationSubmission = record {
+  task_id : nat64;
+  agent_label : opt text;
+  answers : vec Answer;
+  discovery : opt DiscoveryFlag;
+  observed_image_sha256 : blob;
+  submitted_by : principal;
+};
 type DiscoveryCategory = record { id : text; description : text; label : text };
+type DiscoveryFlag = record {
+  claim_position : opt ClaimPosition;
+  rationale : text;
+  category : text;
+  confidence : nat8;
+};
 type Heartbeat = record { wasm_version : nat32; cycles : nat };
 type Lease = record {
   aaa : principal;
@@ -117,6 +162,7 @@ type RegisterArgs = record {
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : nat32; Err : ApiError };
 type Result_10 = variant { Ok : Task; Err : ApiError };
+type Result_11 = variant { Ok : ClassificationReceipt; Err : ApiError };
 type Result_2 = variant { Ok : vec AuditEntry; Err : ApiError };
 type Result_3 = variant { Ok : AaaRecord; Err : ApiError };
 type Result_4 = variant { Ok : vec AaaRecord; Err : ApiError };
@@ -130,6 +176,11 @@ type Subject = record {
   gold : opt vec Answer;
   ref_ : SubjectRef;
   tally_count : nat16;
+};
+type SubjectConsensus = record {
+  subject_id : nat32;
+  consensus : vec record { text; text };
+  resolved_at : nat64;
 };
 type SubjectInput = record { subject : SubjectRef; gold : opt vec Answer };
 type SubjectRef = record {
@@ -187,13 +238,17 @@ service : () -> {
   check_name : (text) -> (CheckNameResult) query;
   get_aaa : (principal) -> (opt AaaRecord) query;
   get_aaa_by_name : (text) -> (opt AaaRecord) query;
+  get_classification : (nat64) -> (opt Classification) query;
   get_lease : (nat64) -> (opt Lease) query;
   get_params : () -> (Params) query;
   get_protocol : (nat16) -> (opt Protocol) query;
   get_subject : (nat32) -> (opt Subject) query;
+  get_subject_consensus : (nat32) -> (opt SubjectConsensus) query;
   get_task : () -> (Result_10);
   heartbeat : (Heartbeat) -> (Result);
+  list_subject_classifications : (nat32) -> (vec Classification) query;
   register_aaa : (RegisterArgs) -> (Result);
+  submit_classification : (ClassificationSubmission) -> (Result_11);
   sync_operators : (OperatorSetInput) -> (Result);
   update_aaa_profile : (UpdateAaaProfileArgs) -> (Result);
   upgrade_aaa : (principal) -> (Result);

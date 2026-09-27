@@ -5,6 +5,7 @@ pub mod config;
 mod memory;
 pub mod registry;
 mod rng;
+pub mod scoring;
 mod timers;
 
 use api::Overview;

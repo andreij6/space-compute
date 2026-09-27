@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T2.4 Scoring, validation, gold, tallies, retirement, consensus (done)
+- Full protocol tree validation (root-to-leaf, required answers, valid options, no orphan answers) and gold scoring along visited path.
+- Idempotent submit_classification (same classification_id, duplicate=true, 0 XP, unmutated tally); subject retirement at K=5 with automatic task pool removal.
+- Consensus evaluation on normal subjects with ≥3 classifications, majority vote per question, retroactively updating past classification scores.
+- PocketIC acceptance test t2_4_retire_at_k5_and_idempotent_submit + 3 unit tests pass; platform coverage 93.3% (min 90%).
+
 ## 2026-09-27 — T2.3 Catalog, protocol, leases, seen-set, get_task (done)
 - Pure state logic in platform (mem 10 Subjects, 11 Protocols, 12 Leases, 13 SeenSet, 14 TaskPool) with rotating cursor dispatch.
 - Never same subject twice: seen-set tracks (aaa, subject_id); unconsumed expired leases swept before open-lease rate limit check.
