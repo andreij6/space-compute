@@ -11,6 +11,17 @@ const RETRY: Duration = Duration::from_secs(30);
 pub fn start() {
     ic_cdk_timers::set_timer(Duration::ZERO, reseed());
     ic_cdk_timers::set_timer_interval(HOURLY, reseed);
+    ic_cdk_timers::set_timer_interval(HOURLY, starvation_sweep);
+}
+
+async fn starvation_sweep() {
+    let cfg = crate::config::get();
+    crate::reviews::apply_starvation(
+        &crate::registry::reviewer_candidates(),
+        &cfg.params,
+        cfg.current_protocol_version,
+        ic_cdk::api::time(),
+    );
 }
 
 async fn raw_rand() -> Option<[u8; 32]> {

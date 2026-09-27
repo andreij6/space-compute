@@ -833,7 +833,7 @@ async fn submit_review(
     let (caller, record, cfg) = review_prelude(fee)?;
     registry::check_submitter(&caller, &submission.submitted_by, ic_cdk::api::time())?;
     verify(caller).await?;
-    reviews::submit(
+    let receipt = reviews::submit(
         caller,
         record.owner,
         submission,
@@ -841,7 +841,25 @@ async fn submit_review(
         cfg.current_protocol_version,
         ic_cdk::api::time(),
         fee,
-    )
+    );
+    #[cfg(feature = "fault-injection")]
+    if FAULT_AFTER_REVIEW.get() {
+        ic_cdk::trap("injected fault after review resolution");
+    }
+    receipt
+}
+
+#[cfg(feature = "fault-injection")]
+thread_local! {
+    static FAULT_AFTER_REVIEW: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(feature = "fault-injection")]
+#[ic_cdk::update]
+fn debug_set_review_fault(armed: bool) -> Result<(), ApiError> {
+    require_admin()?;
+    FAULT_AFTER_REVIEW.set(armed);
+    Ok(())
 }
 
 #[ic_cdk::update]

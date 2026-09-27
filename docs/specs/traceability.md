@@ -110,6 +110,12 @@
 | 02 §11 #4 / §6.2: 3 agreeing reviewers → Confirmed; citation with all reviewers, events, progression, credits; open assignments expire (LeaseExpired) | T4.2 | t4_2_three_agreeing_reviewers_confirm_with_citation_credits_and_expiry |
 | 02 §11 #4 / §6.2: 3 agreeing reviewers → Confirmed; citation with all reviewers, events, progression, credits; open assignments expire (LeaseExpired) | T4.2 | t4_2_review_assignment_tier_gate_blind_record_and_three_agrees_confirm |
 | 02 §6.3: admin_add_honeypots (gold subjects only); honeypot_rate_bp picks a honeypot; review scored immediately vs truth, discovery state untouched | T4.2 | t4_2_honeypots_are_assigned_by_rate_and_scored_immediately |
+| 02 §11 #4: 3 equal-weight agreeing reviewers → Confirmed, all 3 credited, XP applied; a fault trapped after the resolution code rolls back review, citation, credits and XP as a whole (fault-injection feature wasm, never in release) | T4.4 | t4_4_injected_fault_after_resolution_rolls_back_the_whole_message |
+| 02 §6.2: submit → evaluate → resolve (citation, events, progression, credits, assignment expiry) and the starvation sweep are plain synchronous fns — one message, no await | T4.4 | t4_4_resolution_path_is_synchronous_within_one_message |
+| 02 §5.3 R-10: starvation eligibility — no tier-2 AAA outside discoverer, same owner, previously assigned, corroborators, and no open assignment | T4.4 | t4_4_starvation_eligibility_check |
+| 02 §5.3 R-10: starved ≥ 3 reviews → weighted majority (ties Rejected); < 3 → flagged awaiting_reviewers (mem 54), cleared when a reviewer appears or it resolves | T4.4 | t4_4_starved_discovery_resolves_by_weighted_majority_or_awaits_reviewers |
+| 02 §5.3 R-10: weighted majority ties resolve Rejected | T4.4 | t4_4_weighted_majority_breaks_ties_to_rejected |
+| 02 §10: hourly timer applies the starvation rule — 3/5 reviews, no eligible reviewer, resolves Confirmed only after review_starvation_days (PocketIC) | T4.4 | t4_4_starved_discovery_resolves_by_weighted_majority_on_hourly_timer |
 | 04 §5 #2: Deposit spawn reaches Done, platform shows the AAA registered, and the deposit account is swept to zero | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §5 #4: platform can't register mid-saga → op stays Notified with no double charge; resume completes it; a duplicate resume on a Done op is a no-op | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §4: top_up(aaa, path) — anyone may gift fuel to any registered AAA, no owner check; min 0.1 ICP enforced before any funds move | T5.4 | t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_is_rejected |
@@ -126,3 +132,10 @@
 | 04 §5 #5: auto top-up respects the interval and the monthly cap, and flags a revoked allowance | T5.6 | t5_6_auto_topup_flags_a_revoked_allowance_without_moving_funds |
 | 04 §5 #6: a CMC refund path (simulated invalid canister) ends in Refunded | T5.6 | t5_6_cmc_refunds_a_topup_notify_for_a_canister_that_does_not_exist |
 | 04 §5 #7: concurrent top_up calls for the same AAA can't both pull from the same allowance past its amount (guard) | T5.6 | t5_6_concurrent_topups_for_the_same_aaa_cannot_both_pull_the_allowance |
+| 04 §0: get_features() is public; card=false, btc=false, eth=false, sponsored_spawn=true at launch | T5.16 | t5_16_get_features_reports_card_btc_eth_off_by_default |
+| 04 §0: admin_set_features(Features) is admin-only and audit-logged; a disabled feature returns FeatureDisabled | T5.16 | t5_16_admin_set_features_updates_and_is_audit_logged |
+| 04 §0b: admin_mint_invites(count, sponsor_cycles, expires_at) stores only sha256(code); plaintext codes are returned once | T5.16 | t5_16_mint_returns_plaintext_codes_stores_only_hash |
+| 04 §0b: spawn_aaa{Invite{code}} burns the code and creates the AAA with treasury-sponsored cycles from payments.TREASURY; the code is single-use | T5.16 | t5_16_invite_path_spawn_reaches_done_with_treasury_cycles_and_burns_the_code |
+| 04 §0b: one sponsored AAA per owner principal, ever | T5.16 | t5_16_one_sponsored_aaa_per_owner_ever |
+| 04 §0b: a daily sponsor budget cap rejects further sponsored spawns once exhausted | T5.16 | t5_16_daily_sponsor_budget_cap_rejects_once_exceeded |
+| 04 §0b: unknown or expired invite codes are rejected | T5.16 | t5_16_expired_and_unknown_invite_codes_are_rejected |

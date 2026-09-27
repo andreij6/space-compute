@@ -84,6 +84,14 @@ pub fn find_queued(status: u8, mut pred: impl FnMut(&Discovery) -> bool) -> Opti
     })
 }
 
+pub fn under_review_created_before(cutoff: u64) -> Vec<Discovery> {
+    QUEUE.with_borrow(|q| {
+        q.range((0, 0, 0)..=(0, cutoff, u64::MAX))
+            .filter_map(|e| get(e.key().2))
+            .collect()
+    })
+}
+
 pub fn create_honeypot(
     subject_id: u32,
     category: String,

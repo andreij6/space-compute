@@ -710,6 +710,18 @@ pub fn get_aaa(aaa: &Principal) -> Option<AaaRecord> {
     AAA_REGISTRY.with_borrow(|m| m.get(aaa))
 }
 
+pub fn reviewer_candidates() -> Vec<(Principal, Principal)> {
+    AAA_REGISTRY.with_borrow(|m| {
+        m.iter()
+            .map(|e| (*e.key(), e.value()))
+            .filter(|(_, r)| {
+                !r.admin_suspended && matches!(r.status, AaaStatus::Active | AaaStatus::SelfManaged)
+            })
+            .map(|(aaa, r)| (aaa, r.owner))
+            .collect()
+    })
+}
+
 pub fn get_aaa_by_owner(owner: &Principal) -> Option<Principal> {
     AAA_OWNERS.with_borrow(|m| m.get(owner))
 }

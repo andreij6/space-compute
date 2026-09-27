@@ -70,6 +70,17 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory::get(memory::ASSIGNED_SET)));
     static BY_DISCOVERY: RefCell<StableBTreeMap<(u64, u64), (), Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::DISCOVERY_ASSIGNMENTS)));
+    static AWAITING: RefCell<StableBTreeMap<u64, u64, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::AWAITING_REVIEWERS)));
+}
+
+const NS_PER_DAY: u64 = 86_400_000_000_000;
+const STARVATION_MIN_REVIEWS: usize = 3;
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct Starvation {
+    pub resolved: u32,
+    pub awaiting: u32,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -79,17 +90,30 @@ pub enum Decision {
     Resolve(DiscoveryStatus),
 }
 
-pub fn decide(votes: &[(Vote, u32)], needed: u8, reviews_max: u16) -> Decision {
-    if votes.len() < needed as usize {
-        return Decision::Pending;
-    }
-    let (a, d) = votes.iter().fold((0u64, 0u64), |(a, d), (vote, w)| {
+fn tally(votes: &[(Vote, u32)]) -> (u64, u64) {
+    votes.iter().fold((0u64, 0u64), |(a, d), (vote, w)| {
         let w = u64::from((*w).max(MIN_WEIGHT_BP));
         match vote {
             Vote::Agree => (a + w, d),
             Vote::Disagree => (a, d + w),
         }
-    });
+    })
+}
+
+pub fn majority(votes: &[(Vote, u32)]) -> DiscoveryStatus {
+    let (a, d) = tally(votes);
+    if a > d {
+        DiscoveryStatus::Confirmed
+    } else {
+        DiscoveryStatus::Rejected
+    }
+}
+
+pub fn decide(votes: &[(Vote, u32)], needed: u8, reviews_max: u16) -> Decision {
+    if votes.len() < needed as usize {
+        return Decision::Pending;
+    }
+    let (a, d) = tally(votes);
     let t = a + d;
     if a * 3 >= t * 2 {
         Decision::Resolve(DiscoveryStatus::Confirmed)
@@ -97,10 +121,8 @@ pub fn decide(votes: &[(Vote, u32)], needed: u8, reviews_max: u16) -> Decision {
         Decision::Resolve(DiscoveryStatus::Rejected)
     } else if u16::from(needed) < reviews_max {
         Decision::Extend(u16::from(needed).saturating_add(2).min(reviews_max) as u8)
-    } else if a > d {
-        Decision::Resolve(DiscoveryStatus::Confirmed)
     } else {
-        Decision::Resolve(DiscoveryStatus::Rejected)
+        Decision::Resolve(majority(votes))
     }
 }
 
@@ -154,14 +176,63 @@ fn was_assigned(aaa: Principal, seq: u64) -> bool {
     ASSIGNED.with_borrow(|m| m.contains_key(&(aaa, seq)))
 }
 
-fn eligible(d: &Discovery, caller: Principal, owner: Principal, now: u64) -> bool {
-    d.discoverer_aaa != caller
+fn may_review(d: &Discovery, aaa: Principal, owner: Principal) -> bool {
+    d.discoverer_aaa != aaa
         && d.discoverer_owner != owner
-        && !was_assigned(caller, d.seq)
+        && !was_assigned(aaa, d.seq)
         && !claims::corroborations(d.seq)
             .iter()
-            .any(|c| c.aaa == caller || c.owner == owner)
-        && taken_slots(d.seq, now) < d.needed_reviews as usize
+            .any(|c| c.aaa == aaa || c.owner == owner)
+}
+
+fn eligible(d: &Discovery, caller: Principal, owner: Principal, now: u64) -> bool {
+    may_review(d, caller, owner) && taken_slots(d.seq, now) < d.needed_reviews as usize
+}
+
+pub fn has_eligible_reviewer(
+    d: &Discovery,
+    candidates: &[(Principal, Principal)],
+    now: u64,
+) -> bool {
+    discovery_assignments(d.seq)
+        .iter()
+        .any(|(_, a)| is_open(a, now))
+        || candidates.iter().any(|&(aaa, owner)| {
+            progression::get_progress(&aaa).tier >= 2 && may_review(d, aaa, owner)
+        })
+}
+
+pub fn is_awaiting_reviewers(seq: u64) -> bool {
+    AWAITING.with_borrow(|m| m.contains_key(&seq))
+}
+
+pub fn apply_starvation(
+    candidates: &[(Principal, Principal)],
+    params: &Params,
+    protocol_version: u16,
+    now: u64,
+) -> Starvation {
+    let cutoff = now.saturating_sub(u64::from(params.review_starvation_days) * NS_PER_DAY);
+    let mut out = Starvation::default();
+    for d in discoveries::under_review_created_before(cutoff) {
+        if has_eligible_reviewer(&d, candidates, now) {
+            AWAITING.with_borrow_mut(|m| m.remove(&d.seq));
+            continue;
+        }
+        let votes: Vec<(Vote, u32)> = reviews_of(d.seq)
+            .iter()
+            .map(|r| (r.vote, r.weight_bp))
+            .collect();
+        if votes.len() >= STARVATION_MIN_REVIEWS {
+            let outcome = majority(&votes);
+            resolve(d, outcome, protocol_version, now);
+            out.resolved += 1;
+        } else {
+            AWAITING.with_borrow_mut(|m| m.insert(d.seq, now));
+            out.awaiting += 1;
+        }
+    }
+    out
 }
 
 pub fn add_honeypots(specs: Vec<HoneypotSpec>, now: u64) -> Result<u32, ApiError> {
@@ -360,6 +431,7 @@ fn resolve(mut d: Discovery, outcome: DiscoveryStatus, protocol_version: u16, no
     d.status = outcome;
     d.resolved_at = Some(now);
     discoveries::update(&d);
+    AWAITING.with_borrow_mut(|m| m.remove(&d.seq));
 
     let reviews = reviews_of(d.seq);
     let label = catalog::get_protocol(protocol_version)
@@ -959,5 +1031,144 @@ mod tests {
         assert_eq!(progression::get_progress(&r2).rev_hits, 0);
         let fallback = assign(r2, p(103), &pr, 1, NOW, 0).unwrap().unwrap();
         assert_eq!(fallback.subject.subject_id, 1);
+    }
+
+    #[test]
+    fn t4_4_resolution_path_is_synchronous_within_one_message() {
+        let _: fn(_, _, _, _, _, _, _) -> Result<ReviewReceipt, ApiError> = submit;
+        let _: fn(_, _, _, _) = resolve;
+        let _: fn(_, _, _, _) -> Starvation = apply_starvation;
+    }
+
+    #[test]
+    fn t4_4_weighted_majority_breaks_ties_to_rejected() {
+        use DiscoveryStatus::*;
+        let a = |w| (Vote::Agree, w);
+        let d = |w| (Vote::Disagree, w);
+        assert_eq!(majority(&[a(1000), a(1000), d(5000)]), Rejected);
+        assert_eq!(majority(&[a(6000), d(3000), d(2000)]), Confirmed);
+        assert_eq!(majority(&[a(5000), d(5000)]), Rejected);
+        assert_eq!(majority(&[a(0), d(0), a(0)]), Confirmed);
+    }
+
+    #[test]
+    fn t4_4_starvation_eligibility_check() {
+        let d = discovery(1, p(1), p(101), NOW);
+        let sibling = p(50);
+        tier2(sibling);
+        tier2(p(1));
+        let assigned = p(3);
+        tier2(assigned);
+        assert!(assign_id(assigned, p(103), NOW).is_some());
+        let corroborator = p(4);
+        tier2(corroborator);
+        claims::corroborate(
+            d.seq,
+            claims::Corroboration {
+                aaa: corroborator,
+                owner: p(104),
+                classification_id: 9,
+                at: NOW,
+            },
+        );
+        let rookie = p(2);
+        let blocked = [
+            (p(1), p(101)),
+            (sibling, p(101)),
+            (rookie, p(102)),
+            (assigned, p(103)),
+            (corroborator, p(104)),
+        ];
+        assert!(has_eligible_reviewer(&d, &blocked, NOW));
+        let later = NOW + 86_401 * SEC;
+        assert!(!has_eligible_reviewer(&d, &blocked, later));
+        tier2(p(6));
+        let mut open = blocked.to_vec();
+        open.push((p(6), p(106)));
+        assert!(has_eligible_reviewer(&d, &open, later));
+    }
+
+    #[test]
+    fn t4_4_starved_discovery_resolves_by_weighted_majority_or_awaits_reviewers() {
+        let pr = params();
+        let mut d1 = discovery(1, p(1), p(101), NOW);
+        d1.needed_reviews = 5;
+        discoveries::update(&d1);
+        for (n, v) in [(2, Vote::Agree), (3, Vote::Agree), (4, Vote::Disagree)] {
+            tier2(p(n));
+            let id = assign_id(p(n), p(100 + n), NOW).unwrap();
+            submit(p(n), p(100 + n), sub(id, v), &pr, 1, NOW, 5).unwrap();
+        }
+        let d2 = discovery(2, p(1), p(101), NOW + 1);
+        let id = assign_id(p(2), p(102), NOW).unwrap();
+        submit(p(2), p(102), sub(id, Vote::Agree), &pr, 1, NOW, 5).unwrap();
+        assert_eq!(
+            discoveries::get(d1.seq).unwrap().status,
+            DiscoveryStatus::UnderReview
+        );
+        let candidates = [(p(1), p(101)), (p(2), p(102)), (p(5), p(105))];
+        let xp_before = progression::get_progress(&p(1)).xp;
+        let edge = NOW + 7 * 86_400 * SEC;
+        assert_eq!(
+            apply_starvation(&candidates, &pr, 1, edge - 1),
+            Starvation::default()
+        );
+        assert_eq!(
+            apply_starvation(&candidates, &pr, 1, edge),
+            Starvation {
+                resolved: 1,
+                awaiting: 0
+            }
+        );
+        let r1 = discoveries::get(d1.seq).unwrap();
+        assert_eq!(r1.status, DiscoveryStatus::Confirmed);
+        assert_eq!(r1.resolved_at, Some(edge));
+        let c = citations::get(d1.seq).unwrap();
+        assert_eq!(c.reviewers.len(), 3);
+        assert_eq!(c.outcome, DiscoveryStatus::Confirmed);
+        assert_eq!(progression::get_progress(&p(1)).xp, xp_before + 50);
+        assert_eq!(progression::get_progress(&p(4)).rev_hits, 0);
+
+        assert_eq!(
+            apply_starvation(&candidates, &pr, 1, edge + 1),
+            Starvation {
+                resolved: 0,
+                awaiting: 1
+            }
+        );
+        assert!(is_awaiting_reviewers(d2.seq));
+        assert_eq!(
+            discoveries::get(d2.seq).unwrap().status,
+            DiscoveryStatus::UnderReview
+        );
+        tier2(p(6));
+        let mut more = candidates.to_vec();
+        more.push((p(6), p(106)));
+        assert_eq!(
+            apply_starvation(&more, &pr, 1, edge + 2),
+            Starvation::default()
+        );
+        assert!(!is_awaiting_reviewers(d2.seq));
+        apply_starvation(&candidates, &pr, 1, edge + 3);
+        assert!(is_awaiting_reviewers(d2.seq));
+        for n in [6, 7] {
+            tier2(p(n));
+            let id = assign_id(p(n), p(100 + n), edge + 3).unwrap();
+            submit(
+                p(n),
+                p(100 + n),
+                sub(id, Vote::Disagree),
+                &pr,
+                1,
+                edge + 3,
+                5,
+            )
+            .unwrap();
+        }
+        assert_eq!(
+            discoveries::get(d2.seq).unwrap().status,
+            DiscoveryStatus::Rejected
+        );
+        assert!(!is_awaiting_reviewers(d2.seq));
     }
 }
