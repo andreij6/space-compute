@@ -60,9 +60,15 @@
 | Per-AAA CallerGuard for awaiting mutations | T2.9 | t2_9_guard_blocks_same_aaa_until_dropped |
 | Registered AAA task receipt, fees, and duplicate idempotency | T2.7 | t2_7_registered_aaa_task_receipt_and_idempotent_duplicate |
 | 5th classification retires subject; seen-set never reissues | T2.7 | t2_7_fifth_classification_retires_and_seen_set_never_reissues |
-| One record per task under SYS_UNKNOWN | T3.2 | t3_2_one_record_per_task_under_sys_unknown |
+| One record per task under retry | T3.2 | t3_2_one_record_per_task_under_retry |
 | Records survive upgrade | T3.3 | t3_3_records_and_credits_survive_canister_upgrade |
 | get_api_doc documents every public method; wasm ≤ 1.5 MiB gz (verify gate) | T3.5 | t3_5_api_doc_lists_every_public_method_in_the_candid |
+| Burn EMA excludes top-ups and converges to the sampled daily rate | T3.4 | t3_4_steady_burn_converges_toward_the_daily_rate |
+| 6h timer samples burn EMA and triggers payments.request_auto_topup below threshold | T3.4 | t3_4_burn_ema_heartbeat_credits_and_auto_topup_timers |
+| 24h timer refreshes cached fees, heartbeats platform, and pulls credits without trapping | T3.4 | t3_4_burn_ema_heartbeat_credits_and_auto_topup_timers |
+| Idempotency keys are independent for tasks and reviews sharing a numeric id | T3.4 | t3_4_idempotency_is_independent_for_tasks_and_reviews |
+| Credit copies are matched by public_id, never by subject_id-as-task-id | T3.4 | t3_4_upsert_credit_updates_the_correct_record_by_public_id_not_subject_id |
+| sync_credit_copy and simulate_sys_unknown_once removed from the production interface | T3.4 | t3_4_burn_ema_heartbeat_credits_and_auto_topup_timers |
 | Keeper tops up low canisters via ledger→CMC, skips healthy ones; reserve floor stops top-ups and flags health() | T5.17 | t5_17_keeper_tops_up_low_canisters_and_health_flags_the_reserve |
 | Reserve floor never crossed; transfer retry reuses created_at; burn EMA ignores top-ups | T5.17 | t5_17_reserve_floor_is_never_crossed |
 | Sensitive config changes (admins, lower reserve) need a second admin | T5.17 | t5_17_sensitive_config_changes_need_a_second_admin |

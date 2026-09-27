@@ -91,6 +91,26 @@ pub fn update_fee_submit_review(fee: u128) {
     });
 }
 
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub struct PlatformParams {
+    pub fee_get_task: u128,
+    pub fee_submit_classification: u128,
+    pub fee_get_review: u128,
+    pub fee_submit_review: u128,
+}
+
+pub fn apply_platform_params(new: PlatformParams, now: u64) {
+    CELL.with_borrow_mut(|c| {
+        let mut p = c.get().clone();
+        p.fee_get_task = new.fee_get_task;
+        p.fee_submit_classification = new.fee_submit_classification;
+        p.fee_get_review = new.fee_get_review;
+        p.fee_submit_review = new.fee_submit_review;
+        p.last_refreshed_at = now;
+        c.set(p);
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,5 +134,24 @@ mod tests {
         assert_eq!(get().fee_get_review, 70_000_000);
         update_fee_submit_review(220_000_000);
         assert_eq!(get().fee_submit_review, 220_000_000);
+    }
+
+    #[test]
+    fn t3_4_apply_platform_params_updates_fees_and_refresh_time() {
+        apply_platform_params(
+            PlatformParams {
+                fee_get_task: 111,
+                fee_submit_classification: 222,
+                fee_get_review: 333,
+                fee_submit_review: 444,
+            },
+            999,
+        );
+        let p = get();
+        assert_eq!(p.fee_get_task, 111);
+        assert_eq!(p.fee_submit_classification, 222);
+        assert_eq!(p.fee_get_review, 333);
+        assert_eq!(p.fee_submit_review, 444);
+        assert_eq!(p.last_refreshed_at, 999);
     }
 }

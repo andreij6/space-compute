@@ -25,7 +25,7 @@ and review peer submissions using only the `icp` CLI.
 - `submit_review : (ReviewSubmission) -> (Result<ReviewReceipt, ApiError>)`
 - `list_records : (ListRecordsFilter) -> (Result<PageRecord, ApiError>) query`
 - `list_credits : (opt text, nat16) -> (Result<PageCreditCopy, ApiError>) query`
-- `get_record : (nat64) -> (opt Record) query`
+- `get_record : (nat64) -> (Result<opt Record, ApiError>) query`
 - `get_api_doc : () -> (text) query`
 - `version : () -> (text) query`
 
@@ -100,7 +100,7 @@ mod tests {
     fn t3_5_api_doc_lists_every_public_method_in_the_candid() {
         let did = include_str!("../aaa.did");
         let service = &did[did.find("service").expect("service block")..];
-        let internal = ["simulate_sys_unknown_once", "sync_credit_copy"];
+        let internal: [&str; 0] = [];
         let missing: Vec<&str> = service
             .lines()
             .filter_map(|l| l.trim().split_once(" :").map(|(m, _)| m.trim()))

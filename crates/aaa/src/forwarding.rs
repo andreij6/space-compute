@@ -1,6 +1,16 @@
 use candid::Principal;
 use sc_types::{ApiError, ClassificationSubmission, ReviewSubmission};
 
+pub fn is_sys_unknown(err: &ic_cdk::call::CallFailed) -> bool {
+    match err {
+        ic_cdk::call::CallFailed::CallRejected(rejected) => {
+            rejected.reject_code() == Ok(ic_cdk::call::RejectCode::SysUnknown)
+                || rejected.raw_reject_code() == 5
+        }
+        _ => false,
+    }
+}
+
 pub fn verify_caller(
     caller: Principal,
     owner: Principal,
@@ -111,5 +121,22 @@ mod tests {
         assert_eq!(calculate_fuel_days(10_000, 5_000, 0), f64::INFINITY);
         assert_eq!(calculate_fuel_days(5_000, 10_000, 1_000), 0.0);
         assert_eq!(calculate_fuel_days(15_000, 5_000, 2_000), 5.0);
+    }
+
+    #[test]
+    fn t3_4_is_sys_unknown_matches_reject_code_6_and_raw_5() {
+        use ic_cdk::call::{CallFailed, CallRejected};
+
+        let sys_unknown =
+            CallFailed::CallRejected(CallRejected::with_rejection(6, "uncertain outcome".into()));
+        assert!(is_sys_unknown(&sys_unknown));
+
+        let raw_five =
+            CallFailed::CallRejected(CallRejected::with_rejection(5, "canister error".into()));
+        assert!(is_sys_unknown(&raw_five));
+
+        let canister_reject =
+            CallFailed::CallRejected(CallRejected::with_rejection(4, "explicit reject".into()));
+        assert!(!is_sys_unknown(&canister_reject));
     }
 }

@@ -10,9 +10,10 @@ pub const OPERATORS: u8 = 1;
 pub const RECORDS: u8 = 2;
 pub const IDEMPOTENCY: u8 = 3;
 pub const STATS: u8 = 4;
-#[allow(dead_code)]
 pub const CREDITS: u8 = 5;
 pub const PARAMS: u8 = 6;
+pub const DISCOVERY_INDEX: u8 = 7;
+pub const PENDING_SUBJECTS: u8 = 8;
 
 thread_local! {
     static MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =

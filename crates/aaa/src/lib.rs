@@ -1,5 +1,7 @@
 pub mod api;
+pub mod burn;
 pub mod config;
+pub mod credits;
 pub mod doc;
 pub mod forwarding;
 mod memory;
@@ -8,13 +10,12 @@ pub mod params;
 pub mod record;
 pub mod repository;
 pub mod roles;
+mod timers;
 
 use candid::Principal;
 use config::AaaInit;
 use operators::Operator;
-use record::{
-    CreditCopy, ListRecordsFilter, PageCreditCopy, PageRecord, PublicStatus, Record, Status,
-};
+use record::{ListRecordsFilter, PageCreditCopy, PageRecord, PublicStatus, Record, Status};
 use roles::Role;
 use sc_types::ApiError;
 
@@ -23,10 +24,13 @@ fn init(init_arg: AaaInit) {
     let cfg = config::Config::from_init(init_arg)
         .unwrap_or_else(|e| ic_cdk::trap(format!("invalid aaa init: {e}")));
     config::set(cfg);
+    timers::start();
 }
 
 #[ic_cdk::post_upgrade]
-fn post_upgrade() {}
+fn post_upgrade() {
+    timers::start();
+}
 
 #[ic_cdk::inspect_message]
 fn inspect_message() {

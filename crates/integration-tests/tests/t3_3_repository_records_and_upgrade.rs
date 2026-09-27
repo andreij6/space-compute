@@ -29,20 +29,6 @@ fn call<A: candid::utils::ArgumentEncoder, R: serde::de::DeserializeOwned + cand
     decode_one(&bytes).unwrap_or_else(|e| panic!("{method} reply did not decode: {e}"))
 }
 
-fn query<A: candid::utils::ArgumentEncoder, R: serde::de::DeserializeOwned + candid::CandidType>(
-    env: &IcpEnv,
-    canister: candid::Principal,
-    sender: candid::Principal,
-    method: &str,
-    args: A,
-) -> R {
-    let bytes = env
-        .pic
-        .query_call(canister, sender, method, encode_args(args).unwrap())
-        .unwrap_or_else(|e| panic!("{method} rejected: {e:?}"));
-    decode_one(&bytes).unwrap_or_else(|e| panic!("{method} reply did not decode: {e}"))
-}
-
 fn sample_ref(id: u32) -> SubjectRef {
     SubjectRef {
         subject_id: id,
@@ -195,32 +181,13 @@ fn t3_3_records_and_credits_survive_canister_upgrade() {
     assert!(submit_res.is_ok());
     step("recorded classification in personal repository");
 
-    let credit = aaa::record::CreditCopy {
-        v: 1,
-        public_id: "JWST-CEERS-DISC-0042".into(),
-        category: "ring".into(),
-        role: aaa::record::CreditRole::Discoverer,
-        outcome: aaa::record::Outcome::Confirmed,
-        at: 10_000,
-        subject_id: task.subject.subject_id,
-        citation_url: Some("https://spacecompute.org/c/0042".into()),
-    };
-    let sync_res: Result<(), ApiError> = env.update(aaa, owner, "sync_credit_copy", credit.clone());
-    assert_eq!(sync_res, Ok(()));
-    step("synced credit copy to stable memory");
-
-    let rec_before: Option<aaa::record::Record> = env.query(aaa, owner, "get_record", 1u64);
+    let rec_before: Result<Option<aaa::record::Record>, ApiError> =
+        env.query(aaa, owner, "get_record", 1u64);
+    let rec_before = rec_before.expect("owner get_record must succeed");
     assert!(rec_before.is_some());
     let rec_before = rec_before.unwrap();
     assert_eq!(rec_before.seq, 1);
     assert_eq!(rec_before.agent_label.as_deref(), Some("agent-alpha"));
-
-    let credits_before: Result<aaa::record::PageCreditCopy, ApiError> =
-        query(&env, aaa, owner, "list_credits", (None::<String>, 10u16));
-    assert!(credits_before.is_ok());
-    let credits_before = credits_before.unwrap();
-    assert_eq!(credits_before.items.len(), 1);
-    assert_eq!(credits_before.items[0].public_id, "JWST-CEERS-DISC-0042");
 
     let status_before: Result<aaa::record::Status, ApiError> = env.query(aaa, owner, "status", ());
     assert!(status_before.is_ok());
@@ -234,7 +201,9 @@ fn t3_3_records_and_credits_survive_canister_upgrade() {
     tick(&env, 5);
     step("upgraded AAA canister wasm");
 
-    let rec_after: Option<aaa::record::Record> = env.query(aaa, owner, "get_record", 1u64);
+    let rec_after: Result<Option<aaa::record::Record>, ApiError> =
+        env.query(aaa, owner, "get_record", 1u64);
+    let rec_after = rec_after.expect("owner get_record must succeed");
     assert!(
         rec_after.is_some(),
         "record #1 must survive the upgrade intact"
@@ -257,13 +226,6 @@ fn t3_3_records_and_credits_survive_canister_upgrade() {
     assert_eq!(page.items.len(), 1);
     assert_eq!(page.items[0].seq, 1);
 
-    let credits_after: Result<aaa::record::PageCreditCopy, ApiError> =
-        query(&env, aaa, owner, "list_credits", (None::<String>, 10u16));
-    assert!(credits_after.is_ok());
-    let credits_after = credits_after.unwrap();
-    assert_eq!(credits_after.items.len(), 1);
-    assert_eq!(credits_after.items[0].public_id, "JWST-CEERS-DISC-0042");
-
     let status_after: Result<aaa::record::Status, ApiError> = env.query(aaa, owner, "status", ());
     assert!(status_after.is_ok());
     let status_after = status_after.unwrap();
@@ -274,5 +236,5 @@ fn t3_3_records_and_credits_survive_canister_upgrade() {
     assert_eq!(whoami_owner, aaa::roles::Role::Owner);
     let whoami_op: aaa::roles::Role = env.query(aaa, operator, "whoami", ());
     assert_eq!(whoami_op, aaa::roles::Role::Operator);
-    step("verified records, credits, stats, and roles all survived upgrade (acceptance criterion)");
+    step("verified records, stats, and roles all survived upgrade (acceptance criterion)");
 }

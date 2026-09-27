@@ -70,7 +70,13 @@ pub struct Stats {
     pub credits_cursor: u64,
     pub auto_topup_failures: u64,
     pub burn_ema_daily: u128,
+    pub last_balance_sample: Option<u128>,
 }
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct StoredSubject(pub sc_types::SubjectRef);
+
+crate::candid_storable!(StoredSubject);
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ListRecordsFilter {

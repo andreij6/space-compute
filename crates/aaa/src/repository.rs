@@ -1,24 +1,41 @@
 use std::cell::RefCell;
 
+use candid::CandidType;
 use ic_stable_structures::{StableBTreeMap, StableCell};
 use sc_types::ApiError;
+use serde::{Deserialize, Serialize};
 
 use crate::memory::{self, Memory};
 use crate::record::{
     CreditCopy, ListRecordsFilter, Outcome, PageCreditCopy, PageRecord, Record, RecordKind, Stats,
+    StoredSubject,
 };
 
 pub const MAX_RECORDS_QUOTA: u64 = 1_000_000;
 
+#[derive(
+    CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord,
+)]
+pub struct IdemKey {
+    pub review: bool,
+    pub id: u64,
+}
+
+crate::candid_storable!(IdemKey);
+
 thread_local! {
     static RECORDS: RefCell<StableBTreeMap<u64, Record, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::RECORDS)));
-    static IDEMPOTENCY: RefCell<StableBTreeMap<u64, u64, Memory>> =
+    static IDEMPOTENCY: RefCell<StableBTreeMap<IdemKey, u64, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::IDEMPOTENCY)));
     static STATS: RefCell<StableCell<Stats, Memory>> =
         RefCell::new(StableCell::init(memory::get(memory::STATS), Stats::default()));
     static CREDITS: RefCell<StableBTreeMap<String, CreditCopy, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::CREDITS)));
+    static DISCOVERY_INDEX: RefCell<StableBTreeMap<String, u64, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::DISCOVERY_INDEX)));
+    static PENDING_SUBJECTS: RefCell<StableBTreeMap<u64, StoredSubject, Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::PENDING_SUBJECTS)));
 }
 
 pub fn insert_record(mut record: Record) -> u64 {
@@ -47,8 +64,18 @@ pub fn insert_record(mut record: Record) -> u64 {
         s.set(stats);
 
         if let Some(id) = record.task_or_assignment_id {
+            let key = IdemKey {
+                review: record.kind == RecordKind::Review,
+                id,
+            };
             IDEMPOTENCY.with_borrow_mut(|idx| {
-                idx.insert(id, seq);
+                idx.insert(key, seq);
+            });
+        }
+
+        if let Some(public_id) = record.discovery_public_id.clone() {
+            DISCOVERY_INDEX.with_borrow_mut(|idx| {
+                idx.insert(public_id, seq);
             });
         }
 
@@ -66,8 +93,26 @@ pub fn get_record(seq: u64) -> Option<Record> {
     RECORDS.with_borrow(|r| r.get(&seq))
 }
 
-pub fn get_seq_by_task(task_or_assignment_id: u64) -> Option<u64> {
-    IDEMPOTENCY.with_borrow(|idx| idx.get(&task_or_assignment_id))
+fn get_seq(review: bool, id: u64) -> Option<u64> {
+    IDEMPOTENCY.with_borrow(|idx| idx.get(&IdemKey { review, id }))
+}
+
+pub fn get_seq_by_task(task_id: u64) -> Option<u64> {
+    get_seq(false, task_id)
+}
+
+pub fn get_seq_by_review(assignment_id: u64) -> Option<u64> {
+    get_seq(true, assignment_id)
+}
+
+pub fn remember_subject(task_or_assignment_id: u64, subject: sc_types::SubjectRef) {
+    PENDING_SUBJECTS.with_borrow_mut(|m| {
+        m.insert(task_or_assignment_id, StoredSubject(subject));
+    });
+}
+
+pub fn take_subject(task_or_assignment_id: u64) -> Option<sc_types::SubjectRef> {
+    PENDING_SUBJECTS.with_borrow_mut(|m| m.remove(&task_or_assignment_id).map(|s| s.0))
 }
 
 pub fn count_records() -> u64 {
@@ -77,30 +122,32 @@ pub fn count_records() -> u64 {
 pub fn list_records(filter: ListRecordsFilter) -> PageRecord {
     let limit = (filter.limit as usize).clamp(1, 100);
     RECORDS.with_borrow(|r| {
-        let mut items = Vec::new();
+        let mut items = Vec::with_capacity(limit);
         let mut next_cursor = None;
 
-        let entries: Vec<(u64, Record)> = match filter.cursor {
-            Some(cur) => r
-                .range(..cur)
-                .rev()
-                .map(|e| (*e.key(), e.value()))
-                .collect(),
-            None => r.iter().rev().map(|e| (*e.key(), e.value())).collect(),
-        };
-
-        for (seq, rec) in entries {
-            if let Some(kind) = filter.kind {
-                if rec.kind != kind {
-                    continue;
+        macro_rules! collect {
+            ($iter:expr) => {
+                for entry in $iter {
+                    let seq = *entry.key();
+                    let rec = entry.value();
+                    if let Some(kind) = filter.kind {
+                        if rec.kind != kind {
+                            continue;
+                        }
+                    }
+                    if items.len() < limit {
+                        items.push(rec);
+                    } else {
+                        next_cursor = Some(seq);
+                        break;
+                    }
                 }
-            }
-            if items.len() < limit {
-                items.push(rec);
-            } else {
-                next_cursor = Some(seq);
-                break;
-            }
+            };
+        }
+
+        match filter.cursor {
+            Some(cur) => collect!(r.range(..cur).rev()),
+            None => collect!(r.iter().rev()),
         }
 
         PageRecord { items, next_cursor }
@@ -117,7 +164,7 @@ pub fn update_record_outcome(seq: u64, outcome: Outcome) -> Result<(), ApiError>
 }
 
 pub fn upsert_credit(credit: CreditCopy) {
-    if let Some(seq) = get_seq_by_task(credit.subject_id as u64) {
+    if let Some(seq) = DISCOVERY_INDEX.with_borrow(|idx| idx.get(&credit.public_id)) {
         let _ = update_record_outcome(seq, credit.outcome);
     }
     CREDITS.with_borrow_mut(|c| {
@@ -175,7 +222,18 @@ pub fn prune_oldest_classifications_if_needed(target_quota: u64) {
             for seq in to_remove {
                 if let Some(rec) = r.remove(&seq) {
                     if let Some(id) = rec.task_or_assignment_id {
-                        IDEMPOTENCY.with_borrow_mut(|idx| idx.remove(&id));
+                        let key = IdemKey {
+                            review: rec.kind == RecordKind::Review,
+                            id,
+                        };
+                        IDEMPOTENCY.with_borrow_mut(|idx| {
+                            idx.remove(&key);
+                        });
+                    }
+                    if let Some(public_id) = rec.discovery_public_id {
+                        DISCOVERY_INDEX.with_borrow_mut(|idx| {
+                            idx.remove(&public_id);
+                        });
                     }
                 }
             }
@@ -202,14 +260,13 @@ mod tests {
     use crate::record::CreditRole;
     use candid::Principal;
 
-    #[test]
-    fn t3_2_insert_record_increments_seq_and_populates_idempotency() {
-        let r = Record {
+    fn blank_record(kind: RecordKind, task_or_assignment_id: Option<u64>, at: u64) -> Record {
+        Record {
             v: 1,
             seq: 0,
-            at: 1_000,
-            kind: RecordKind::Classification,
-            task_or_assignment_id: Some(42),
+            at,
+            kind,
+            task_or_assignment_id,
             subject: None,
             answers: Vec::new(),
             discovery_public_id: None,
@@ -218,10 +275,15 @@ mod tests {
             rationale: None,
             outcome: None,
             xp_awarded: 10,
-            agent_label: Some("test-bot".into()),
+            agent_label: None,
             fee: 200_000_000,
             by: Principal::anonymous(),
-        };
+        }
+    }
+
+    #[test]
+    fn t3_2_insert_record_increments_seq_and_populates_idempotency() {
+        let r = blank_record(RecordKind::Classification, Some(42), 1_000);
         let seq = insert_record(r);
         assert!(seq > 0);
         let fetched = get_record(seq).expect("record exists");
@@ -233,24 +295,11 @@ mod tests {
 
     #[test]
     fn t3_2_stats_counters_bump_correctly() {
-        let r_disc = Record {
-            v: 1,
-            seq: 0,
-            at: 2_000,
-            kind: RecordKind::Discovery,
-            task_or_assignment_id: Some(43),
-            subject: None,
-            answers: Vec::new(),
-            discovery_public_id: Some("DISC-1".into()),
-            category: Some("ring".into()),
-            vote: None,
-            rationale: Some("test rationale".into()),
-            outcome: None,
-            xp_awarded: 25,
-            agent_label: None,
-            fee: 200_000_000,
-            by: Principal::anonymous(),
-        };
+        let mut r_disc = blank_record(RecordKind::Discovery, Some(43), 2_000);
+        r_disc.discovery_public_id = Some("DISC-1".into());
+        r_disc.category = Some("ring".into());
+        r_disc.rationale = Some("test rationale".into());
+        r_disc.xp_awarded = 25;
         insert_record(r_disc);
         let stats = get_stats();
         assert!(stats.discoveries >= 1);
@@ -259,42 +308,9 @@ mod tests {
 
     #[test]
     fn t3_3_list_records_pagination_and_filter() {
-        let r1 = Record {
-            v: 1,
-            seq: 0,
-            at: 3_000,
-            kind: RecordKind::Classification,
-            task_or_assignment_id: Some(101),
-            subject: None,
-            answers: Vec::new(),
-            discovery_public_id: None,
-            category: None,
-            vote: None,
-            rationale: None,
-            outcome: None,
-            xp_awarded: 10,
-            agent_label: None,
-            fee: 200_000_000,
-            by: Principal::anonymous(),
-        };
-        let r2 = Record {
-            v: 1,
-            seq: 0,
-            at: 3_001,
-            kind: RecordKind::Review,
-            task_or_assignment_id: Some(102),
-            subject: None,
-            answers: Vec::new(),
-            discovery_public_id: None,
-            category: None,
-            vote: None,
-            rationale: None,
-            outcome: None,
-            xp_awarded: 15,
-            agent_label: None,
-            fee: 200_000_000,
-            by: Principal::anonymous(),
-        };
+        let r1 = blank_record(RecordKind::Classification, Some(101), 3_000);
+        let mut r2 = blank_record(RecordKind::Review, Some(102), 3_001);
+        r2.xp_awarded = 15;
         let s1 = insert_record(r1);
         let s2 = insert_record(r2);
         assert!(s2 > s1);
@@ -321,6 +337,10 @@ mod tests {
 
     #[test]
     fn t3_3_upsert_credit_and_list_credits() {
+        let mut disc = blank_record(RecordKind::Discovery, Some(9_500), 4_900);
+        disc.discovery_public_id = Some("JWST-CEERS-DISC-001".into());
+        insert_record(disc);
+
         let credit = CreditCopy {
             v: 1,
             public_id: "JWST-CEERS-DISC-001".into(),
@@ -336,29 +356,17 @@ mod tests {
 
         let page = list_credits(None, 10);
         assert!(!page.items.is_empty());
-        assert_eq!(page.items[0].public_id, "JWST-CEERS-DISC-001");
+        assert!(page
+            .items
+            .iter()
+            .any(|c| c.public_id == "JWST-CEERS-DISC-001"));
     }
 
     #[test]
     fn t3_3_record_outcome_update() {
-        let r = Record {
-            v: 1,
-            seq: 0,
-            at: 4_000,
-            kind: RecordKind::Discovery,
-            task_or_assignment_id: Some(201),
-            subject: None,
-            answers: Vec::new(),
-            discovery_public_id: Some("DISC-201".into()),
-            category: None,
-            vote: None,
-            rationale: None,
-            outcome: None,
-            xp_awarded: 20,
-            agent_label: None,
-            fee: 200_000_000,
-            by: Principal::anonymous(),
-        };
+        let mut r = blank_record(RecordKind::Discovery, Some(201), 4_000);
+        r.discovery_public_id = Some("DISC-201".into());
+        r.xp_awarded = 20;
         let seq = insert_record(r);
         assert_eq!(get_record(seq).unwrap().outcome, None);
         update_record_outcome(seq, Outcome::Confirmed).unwrap();
@@ -369,29 +377,76 @@ mod tests {
     fn t3_3_prune_oldest_classifications() {
         let base_count = count_records();
         for i in 1..=5 {
-            insert_record(Record {
-                v: 1,
-                seq: 0,
-                at: 5_000 + i,
-                kind: RecordKind::Classification,
-                task_or_assignment_id: Some(1000 + i),
-                subject: None,
-                answers: Vec::new(),
-                discovery_public_id: None,
-                category: None,
-                vote: None,
-                rationale: None,
-                outcome: None,
-                xp_awarded: 10,
-                agent_label: None,
-                fee: 200_000_000,
-                by: Principal::anonymous(),
-            });
+            insert_record(blank_record(
+                RecordKind::Classification,
+                Some(1000 + i),
+                5_000 + i,
+            ));
         }
         let after_count = count_records();
         assert_eq!(after_count, base_count + 5);
 
         prune_oldest_classifications_if_needed(base_count + 2);
         assert_eq!(count_records(), base_count + 2);
+    }
+
+    #[test]
+    fn t3_4_idempotency_is_independent_for_tasks_and_reviews() {
+        let seq_task = insert_record(blank_record(RecordKind::Classification, Some(500), 6_000));
+        let seq_review = insert_record(blank_record(RecordKind::Review, Some(500), 6_001));
+        assert_ne!(seq_task, seq_review);
+        assert_eq!(get_seq_by_task(500), Some(seq_task));
+        assert_eq!(get_seq_by_review(500), Some(seq_review));
+        assert_eq!(get_seq_by_task(500), get_seq_by_task(500));
+    }
+
+    #[test]
+    fn t3_4_upsert_credit_updates_the_correct_record_by_public_id_not_subject_id() {
+        let mut discovery = blank_record(RecordKind::Discovery, Some(9_001), 7_000);
+        discovery.discovery_public_id = Some("SC-2026-000777".into());
+        let disc_seq = insert_record(discovery);
+
+        let unrelated = blank_record(RecordKind::Classification, Some(777), 7_001);
+        let unrelated_seq = insert_record(unrelated);
+
+        let credit = CreditCopy {
+            v: 1,
+            public_id: "SC-2026-000777".into(),
+            category: "ring".into(),
+            role: CreditRole::Discoverer,
+            outcome: Outcome::Confirmed,
+            at: 1,
+            subject_id: 777,
+            citation_url: None,
+        };
+        upsert_credit(credit);
+
+        assert_eq!(
+            get_record(disc_seq).unwrap().outcome,
+            Some(Outcome::Confirmed)
+        );
+        assert_eq!(
+            get_record(unrelated_seq).unwrap().outcome,
+            None,
+            "must not corrupt the unrelated record whose task_id coincidentally equals credit.subject_id"
+        );
+    }
+
+    #[test]
+    fn t3_4_remember_and_take_subject_round_trips_once() {
+        let subject = sc_types::SubjectRef {
+            subject_id: 1,
+            field: "ceers".into(),
+            ra_deg: 1.0,
+            dec_deg: 2.0,
+            image_url: "https://x/img.png".into(),
+            image_sha256: vec![1; 32],
+            dossier_url: "https://x/dossier.json".into(),
+            dossier_sha256: vec![2; 32],
+            data_version: 1,
+        };
+        remember_subject(4242, subject.clone());
+        assert_eq!(take_subject(4242), Some(subject));
+        assert_eq!(take_subject(4242), None);
     }
 }

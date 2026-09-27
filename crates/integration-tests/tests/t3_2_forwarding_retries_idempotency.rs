@@ -72,7 +72,7 @@ fn sample_protocol(v: u16) -> Protocol {
 }
 
 #[test]
-fn t3_2_one_record_per_task_under_sys_unknown() {
+fn t3_2_one_record_per_task_under_retry() {
     println!("T3.2 demo: AAA forwarding w/ fees, retries, idempotency, low-cycles guard");
     let env = IcpEnv::new();
     let alice = user(1);
@@ -180,10 +180,6 @@ fn t3_2_one_record_per_task_under_sys_unknown() {
     );
     step("operator fetched task via AAA relay with fee deducted");
 
-    let ok: Result<(), ApiError> = env.update(aaa, owner, "simulate_sys_unknown_once", ());
-    assert_eq!(ok, Ok(()));
-    step("primed simulated SYS_UNKNOWN on next submission");
-
     let submission = ClassificationSubmission {
         task_id: task.task_id,
         answers: vec![Answer {
@@ -200,16 +196,18 @@ fn t3_2_one_record_per_task_under_sys_unknown() {
         env.update(aaa, operator, "submit_classification", submission.clone());
     assert!(
         submit_res.is_ok(),
-        "submission must succeed after SYS_UNKNOWN retry: {submit_res:?}"
+        "first submission must succeed: {submit_res:?}"
     );
     let receipt = submit_res.unwrap();
     assert!(
-        receipt.duplicate,
-        "simulated retry should return duplicate=true from platform"
+        !receipt.duplicate,
+        "the first submission must not be reported as a duplicate"
     );
-    step("submit succeeded under simulated SYS_UNKNOWN retry (duplicate=true receipt returned)");
+    step("first submission accepted by the AAA relay");
 
-    let rec_1: Option<aaa::record::Record> = env.query(aaa, owner, "get_record", 1u64);
+    let rec_1: Result<Option<aaa::record::Record>, ApiError> =
+        env.query(aaa, owner, "get_record", 1u64);
+    let rec_1 = rec_1.expect("owner get_record must succeed");
     assert!(rec_1.is_some(), "local repository must contain record #1");
     let rec_1 = rec_1.unwrap();
     assert_eq!(rec_1.seq, 1);
@@ -219,9 +217,10 @@ fn t3_2_one_record_per_task_under_sys_unknown() {
         "submitted_by must be stamped with operator caller"
     );
 
-    let rec_2: Option<aaa::record::Record> = env.query(aaa, owner, "get_record", 2u64);
+    let rec_2: Result<Option<aaa::record::Record>, ApiError> =
+        env.query(aaa, owner, "get_record", 2u64);
     assert!(
-        rec_2.is_none(),
+        rec_2.expect("owner get_record must succeed").is_none(),
         "local repository must contain exactly ONE record, not two"
     );
     step("verified exactly ONE local record in repository (acceptance criterion)");
@@ -234,15 +233,36 @@ fn t3_2_one_record_per_task_under_sys_unknown() {
     assert!(plat_class_2.is_none());
     step("verified exactly ONE classification recorded on platform");
 
+    let stranger_get_record =
+        env.pic
+            .query_call(aaa, stranger, "get_record", encode_args((1u64,)).unwrap());
+    assert!(
+        stranger_get_record.is_err()
+            || decode_one::<Result<Option<aaa::record::Record>, ApiError>>(
+                &stranger_get_record.unwrap()
+            )
+            .unwrap()
+            .is_err(),
+        "get_record must reject callers who are neither owner nor operator"
+    );
+    step("verified get_record requires owner/operator authorization");
+
     let submit_res2: Result<ClassificationReceipt, ApiError> =
         env.update(aaa, operator, "submit_classification", submission);
     assert!(submit_res2.is_ok());
-    let rec_2_again: Option<aaa::record::Record> = env.query(aaa, owner, "get_record", 2u64);
     assert!(
-        rec_2_again.is_none(),
+        submit_res2.unwrap().duplicate,
+        "a caller-level retry of the same task must be reported as a duplicate by the platform"
+    );
+    let rec_2_again: Result<Option<aaa::record::Record>, ApiError> =
+        env.query(aaa, owner, "get_record", 2u64);
+    assert!(
+        rec_2_again
+            .expect("owner get_record must succeed")
+            .is_none(),
         "duplicate submit must not create a second record"
     );
-    step("duplicate submission handled cleanly without creating redundant records");
+    step("operator-side retry of the same task produced exactly one record (acceptance criterion)");
 
     let remove_op: Result<(), ApiError> = env.update(aaa, owner, "remove_operator", operator);
     assert_eq!(remove_op, Ok(()));

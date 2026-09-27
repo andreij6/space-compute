@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 candid.workspace = true
 ic-cdk.workspace = true
+ic-cdk-timers.workspace = true
 serde.workspace = true
 sc-types.workspace = true
 ic-stable-structures.workspace = true
