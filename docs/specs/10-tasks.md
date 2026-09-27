@@ -130,8 +130,9 @@ Each task's detailed specification is the linked spec section. A task is done wh
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
+| T8.14 | Create Cloudflare R2 bucket + API token + custom domain; run `just publish-data` | - | you | 1 | T1.7 | 2026-10-21 | 2026-10-21 | 07 §2, §5.5 | manifest verifies on R2 (1% re-download) | note: 3-line summary in chat |
 | T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 3 | 2 | T7.1 | 2027-01-20 | 2027-01-21 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
-| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.1, T7.6 | 2027-01-22 | 2027-01-22 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
+| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.14, T8.1, T7.6 | 2027-01-22 | 2027-01-22 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
 | T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-10 | 2027-02-10 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
 | T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-25 | 2027-02-05 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
 | T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-25 | 2027-02-05 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |

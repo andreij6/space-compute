@@ -203,8 +203,8 @@
   "demo": "image: docs/demos/T1.7/contact-sheet.png",
   "start": "2026-10-14",
   "end": "2026-10-20",
-  "status": "todo",
-  "pct": 0
+  "status": "in_progress",
+  "pct": 0.3
  },
  {
   "id": "SP-1",
@@ -1621,6 +1621,25 @@
   "pct": 0
  },
  {
+  "id": "T8.14",
+  "phase": "P8",
+  "name": "Create Cloudflare R2 bucket + API token + custom domain; run `just publish-data`",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 1,
+  "deps": [
+   "T1.7"
+  ],
+  "spec": "07 §2, §5.5",
+  "acceptance": "manifest verifies on R2 (1% re-download)",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-10-21",
+  "end": "2026-10-21",
+  "status": "todo",
+  "pct": 0
+ },
+ {
   "id": "T8.1",
   "phase": "P8",
   "name": "Staging deploy, deploy workflow, snapshots, cycles monitoring",
@@ -1648,6 +1667,7 @@
   "model": "haiku-4.5",
   "days": 1,
   "deps": [
+   "T8.14",
    "T8.1",
    "T7.6"
   ],
