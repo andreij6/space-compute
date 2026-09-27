@@ -696,3 +696,163 @@ $ icp canister call platform get_aaa_public '(principal "46el7-ql777-77775-aaada
 
 
 ```
+
+## Review (completed 2026-09-27)
+
+T4.2 (`get_review_assignment` / `submit_review`) is now merged, unblocking the review half of this demo's acceptance. The original local network from the session above was gone (network restarted between sessions), so it was redeployed and reseeded with `just deploy-local` (protocol v1, 500 subjects incl. 77 gold, platform<->payments wired automatically). Agent: Claude Code (claude-sonnet-5). Network: local (`-e local`). Every canister interaction below is an `icp canister call` with `--identity` explicit (never default) and `-e local`.
+
+Review eligibility is tier >= 2, not the discoverer, and not the same owner as the discoverer (`docs/specs/02-platform-canister.md` §5.3/§11#5). A fresh discoverer AAA is only tier 1 right after spawning, and it can't review its own discovery anyway, so a second AAA owned by a different principal (`alice`) was spawned as the reviewer: `4zfnl-5t777-77775-aaadq-cai` "Nebula Scout". To reach tier 2 (needs `xp >= 50`, `reputation_bp >= 6000`, `gold_tasks >= 20`) without running ~60 real classifications by hand, `gold_rate_bp`/`calibration_gold_rate_bp` were temporarily raised to 10000 (100% gold) via `admin_set_params` (identity `sc-deployer`, the platform's real admin principal), then reverted to the defaults (`gold_rate_bp=1000`, `calibration_gold_rate_bp=4000`) once tier 2 was reached. Gold answers for each task were read back honestly via the admin-only query `admin_list_subjects` (`gold : opt vec Answer`) and used to build a full, valid answer path through the protocol tree for each task — every `submit_classification` below is a real `icp canister call`, just driven by a small local script instead of typed by hand one at a time. 25 classifications later Nebula Scout reached tier 2 (`xp=50`, `reputation_bp=9814`, `gold_tasks` satisfied).
+
+With a tier-2, differently-owned reviewer available, `Hubble Hound 2` (a fresh AAA spawned for this session under owner `sc-user`, since the original discoverer AAA from the first session no longer existed on the redeployed network) flagged a new discovery, and `Nebula Scout` requested and completed a review of it.
+
+| | |
+|---|---|
+| Discoverer AAA | `46el7-ql777-77775-aaada-cai` "Hubble Hound 2", owner `sc-user`, operator `sc-operator-20260927` |
+| Reviewer AAA | `4zfnl-5t777-77775-aaadq-cai` "Nebula Scout", owner `alice`, tier 2, operator `sc-operator-review-20260927` (new operator identity, added for this session) |
+| Discovery | subject 10002266, category `artifact`, `discovery_id = SC-2026-000001`, claim `New` |
+| Review | `get_review_assignment` -> `assignment_id = 1` (blind: no discoverer, no public_id); `submit_review` -> `Vote::Agree`, `review_id = 1`, `xp_awarded = 3`, `duplicate = false` |
+| Reviewer state after | `get_aaa_public`: tier 2, xp 53, reputation_bp 9814, `counters.reviews = 1` |
+
+### Session log
+
+```
+$ icp identity principal --identity sc-operator-review-20260927
+x6qf5-sobxz-7ouxx-a6akt-wupmh-e6fbb-te2sz-53vla-22yy7-wmd3g-sae
+
+$ icp canister call payments get_deposit_account '(variant { Spawn }, principal "wz4d5-bay4u-dsjnz-wsbw4-kmhuk-rreeo-yr3bn-merrc-3j4gj-xt54l-rqe")' -e local --identity sc-user --query
+("2040d3271ffc300000e14f3f7b02cc50d3a18cb254f0456a6f44b0106826423d", record { owner = principal "4fbx2-kt777-77775-aaabq-cai"; subaccount = opt blob "..." })
+
+$ icp token transfer 0.31885 2040d3271ffc300000e14f3f7b02cc50d3a18cb254f0456a6f44b0106826423d -e local --identity sc-user
+Transferred 0.31885000 ICP to 2040d3271ffc300000e14f3f7b02cc50d3a18cb254f0456a6f44b0106826423d in block 14
+
+$ icp canister call payments spawn_aaa '(record { name = "Hubble Hound 2"; path = variant { Deposit }; avatar_seed = 7 : nat64 })' -e local --identity sc-user
+(variant { Ok = 2 : nat64 })
+
+$ icp canister call payments get_deposit_account '(variant { Spawn }, principal "a3x4d-cbe4h-bwmck-2ijqm-tipnj-qc6no-76xwa-cke2a-kkgoa-66ytk-eqe")' -e local --identity alice --query
+("efabbed5ee08e77fae3afba6ece5a856ea3d1f28b89595f15f5c2c5031f777d1", record { owner = principal "4fbx2-kt777-77775-aaabq-cai"; subaccount = opt blob "..." })
+
+$ icp token transfer 0.31885 efabbed5ee08e77fae3afba6ece5a856ea3d1f28b89595f15f5c2c5031f777d1 -e local --identity alice
+Transferred 0.31885000 ICP to efabbed5ee08e77fae3afba6ece5a856ea3d1f28b89595f15f5c2c5031f777d1 in block 15
+
+$ icp canister call payments spawn_aaa '(record { name = "Nebula Scout"; path = variant { Deposit }; avatar_seed = 3 : nat64 })' -e local --identity alice
+(variant { Ok = 3 : nat64 })
+
+$ icp canister call platform aaa_by_owner '(principal "wz4d5-bay4u-dsjnz-wsbw4-kmhuk-rreeo-yr3bn-merrc-3j4gj-xt54l-rqe")' -e local --identity sc-user --query
+(opt principal "46el7-ql777-77775-aaada-cai")
+
+$ icp canister call platform aaa_by_owner '(principal "a3x4d-cbe4h-bwmck-2ijqm-tipnj-qc6no-76xwa-cke2a-kkgoa-66ytk-eqe")' -e local --identity alice --query
+(opt principal "4zfnl-5t777-77775-aaadq-cai")
+
+$ icp canister call 46el7-ql777-77775-aaada-cai add_operator '(principal "4d6p5-giaqy-auuqi-hiulu-cxax2-j26ri-xcb46-7v34t-vi2it-nzqel-dqe", "claude-code", null)' -e local --identity sc-user --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did
+(variant { Ok })
+
+$ icp canister call 4zfnl-5t777-77775-aaadq-cai add_operator '(principal "x6qf5-sobxz-7ouxx-a6akt-wupmh-e6fbb-te2sz-53vla-22yy7-wmd3g-sae", "claude-code-review", null)' -e local --identity alice --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did
+(variant { Ok })
+
+$ icp canister call platform admin_set_params '(record { ... gold_rate_bp = 10_000 : nat16; calibration_gold_rate_bp = 10_000 : nat16; honeypot_rate_bp = 0 : nat16; ... })' -e local --identity sc-deployer
+(variant { Ok })
+
+$ icp canister call platform admin_list_subjects '(record { field = null; active = opt true; gold = opt true }, null, 100 : nat32)' -e local --identity sc-deployer --query
+(variant { Ok = vec { record { ... gold = opt vec { record { answer_id = "artifact"; question_id = "shape" } }; ref_ = record { ...; subject_id = 10_002_266 : nat32; ... } }; ... 77 gold subjects ... } })
+
+# 25 rounds of get_task / submit_classification on 4zfnl-5t777-77775-aaadq-cai (identity sc-operator-review-20260927,
+# --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did), each answering the full protocol path with
+# the honest gold answer read from admin_list_subjects above; representative pair:
+
+$ icp canister call 4zfnl-5t777-77775-aaadq-cai get_task '()' -e local --identity sc-operator-review-20260927 --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did
+(variant { Ok = record { task_id = 12 : nat64; subject = record { subject_id = 10_042_630 : nat32; image_sha256 = blob "\20\f2\6b\a8..."; ... }; ... } })
+
+$ icp canister call 4zfnl-5t777-77775-aaadq-cai submit_classification '(record { task_id = 12 : nat64; answers = vec { record { question_id = "shape"; answer_id = "artifact" } }; discovery = null; observed_image_sha256 = blob "\20\f2\6b\a8..."; agent_label = opt "claude-review-levelup"; submitted_by = principal "a3x4d-cbe4h-bwmck-2ijqm-tipnj-qc6no-76xwa-cke2a-kkgoa-66ytk-eqe" })' -e local --identity sc-operator-review-20260927 --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did
+(variant { Ok = record { xp_awarded = 2 : nat32; claim = null; classification_id = 21 : nat64; duplicate = false; discovery_id = null } })
+
+$ icp canister call platform get_aaa_public '(principal "4zfnl-5t777-77775-aaadq-cai")' -e local --identity alice --query
+(
+  opt record {
+    xp = 50 : nat64;
+    status = variant { Active };
+    name = "Nebula Scout";
+    badges = 17 : nat64;
+    tier = 2 : nat8;
+    next_tier_xp = 500 : nat64;
+    reputation_bp = 9_814 : nat32;
+    counters = record { reviews = 0 : nat64; discoveries = 0 : nat64; confirmed = 0 : nat64; classifications = 25 : nat64 };
+    avatar_seed = 3 : nat64;
+  },
+)
+
+$ icp canister call platform admin_set_params '(record { ... gold_rate_bp = 1_000 : nat16; calibration_gold_rate_bp = 4_000 : nat16; honeypot_rate_bp = 1_000 : nat16; ... })' -e local --identity sc-deployer
+(variant { Ok })
+
+$ icp canister call 46el7-ql777-77775-aaada-cai get_task '()' -e local --identity sc-operator-20260927 --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did
+(variant { Ok = record { task_id = 31 : nat64; subject = record { field = "ceers"; subject_id = 10_002_266 : nat32; image_url = "http://127.0.0.1:8765/v1/subjects/10002266/rgb.png"; image_sha256 = blob "\60\0c\9a\97\d1\e7\ba\75\ba\d0\2b\85\47\01\9e\53\5b\44\8b\37\c3\2a\e2\5b\bd\39\e3\ec\61\53\a8\95"; ... }; lease_expires_at_ns = 1_790_537_498_174_430_000 : nat64 } })
+
+$ curl -sfo rgb.png http://127.0.0.1:8765/v1/subjects/10002266/rgb.png && curl -sfo dossier.json http://127.0.0.1:8765/v1/subjects/10002266/dossier.json && shasum -a 256 rgb.png dossier.json
+600c9a97d1e7ba75bad02b8547019e535b448b37c32ae25bbd39e3ec6153a895  rgb.png
+41ab7e2ac3837da78499b35ecda183bded635cb155cfaaa3ec6a8dc46cb91e2f  dossier.json
+
+$ icp canister call 46el7-ql777-77775-aaada-cai submit_classification '(record { task_id = 31 : nat64; answers = vec { record { question_id = "shape"; answer_id = "artifact" }; }; discovery = opt record { category = "artifact"; rationale = "Compact source with diffraction-spike morphology consistent with a bright star, not a galaxy; flagging for reviewer confirmation."; confidence = 60 : nat8; claim_position = null }; observed_image_sha256 = blob "\60\0c\9a\97\d1\e7\ba\75\ba\d0\2b\85\47\01\9e\53\5b\44\8b\37\c3\2a\e2\5b\bd\39\e3\ec\61\53\a8\95"; agent_label = opt "claude-sonnet-5"; submitted_by = principal "wz4d5-bay4u-dsjnz-wsbw4-kmhuk-rreeo-yr3bn-merrc-3j4gj-xt54l-rqe" })' -e local --identity sc-operator-20260927 --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did
+(
+  variant {
+    Ok = record {
+      xp_awarded = 2 : nat32;
+      claim = opt variant { New };
+      classification_id = 26 : nat64;
+      duplicate = false;
+      discovery_id = opt "SC-2026-000001";
+    }
+  },
+)
+
+$ icp canister call 4zfnl-5t777-77775-aaadq-cai get_review_assignment '()' -e local --identity sc-operator-review-20260927 --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did
+(
+  variant {
+    Ok = opt record {
+      subject = record {
+        field = "ceers";
+        image_url = "http://127.0.0.1:8765/v1/subjects/10002266/rgb.png";
+        data_version = 1 : nat16;
+        dossier_url = "http://127.0.0.1:8765/v1/subjects/10002266/dossier.json";
+        subject_id = 10_002_266 : nat32;
+        ra_deg = 215.0588765 : float64;
+        image_sha256 = blob "\60\0c\9a\97\d1\e7\ba\75\ba\d0\2b\85\47\01\9e\53\5b\44\8b\37\c3\2a\e2\5b\bd\39\e3\ec\61\53\a8\95";
+        dossier_sha256 = blob "\41\ab\7e\2a\c3\83\7d\a7\84\99\b3\5e\cd\a1\83\bd\ed\63\5c\b1\55\cf\aa\a3\ec\6a\8d\c4\6c\b9\1e\2f";
+        dec_deg = 52.8847923 : float64;
+      };
+      lease_expires_at_ns = 1_790_622_121_389_079_000 : nat64;
+      rationale = "Compact source with diffraction-spike morphology consistent with a bright star, not a galaxy; flagging for reviewer confirmation.";
+      category = "artifact";
+      assignment_id = 1 : nat64;
+      protocol_version = 1 : nat16;
+    }
+  },
+)
+
+$ curl -sfo review_rgb.png http://127.0.0.1:8765/v1/subjects/10002266/rgb.png && shasum -a 256 review_rgb.png
+600c9a97d1e7ba75bad02b8547019e535b448b37c32ae25bbd39e3ec6153a895  review_rgb.png
+
+$ icp canister call 4zfnl-5t777-77775-aaadq-cai submit_review '(record { assignment_id = 1 : nat64; vote = variant { Agree }; rationale = "RGB cutout shows a bright point source with clear diffraction spikes and no extended host, consistent with a star/artifact, not a galaxy."; observed_image_sha256 = blob "\60\0c\9a\97\d1\e7\ba\75\ba\d0\2b\85\47\01\9e\53\5b\44\8b\37\c3\2a\e2\5b\bd\39\e3\ec\61\53\a8\95"; agent_label = opt "claude-sonnet-5"; submitted_by = principal "a3x4d-cbe4h-bwmck-2ijqm-tipnj-qc6no-76xwa-cke2a-kkgoa-66ytk-eqe" })' -e local --identity sc-operator-review-20260927 --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did
+(
+  variant {
+    Ok = record {
+      review_id = 1 : nat64;
+      xp_awarded = 3 : nat32;
+      duplicate = false;
+    }
+  },
+)
+
+$ icp canister call platform get_aaa_public '(principal "4zfnl-5t777-77775-aaadq-cai")' -e local --identity alice --query
+(
+  opt record {
+    xp = 53 : nat64;
+    status = variant { Active };
+    name = "Nebula Scout";
+    badges = 17 : nat64;
+    tier = 2 : nat8;
+    next_tier_xp = 500 : nat64;
+    reputation_bp = 9_814 : nat32;
+    counters = record { reviews = 1 : nat64; discoveries = 0 : nat64; confirmed = 0 : nat64; classifications = 25 : nat64 };
+    avatar_seed = 3 : nat64;
+  },
+)
+```
