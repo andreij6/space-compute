@@ -22,29 +22,12 @@ bash scripts/deploy-local.sh
 just deploy-local
 ```
 
-## Key Rules & Learnings (from Proof of Burn & Space Compute)
+## Key Rules & Learnings
 
-1. **Ledgers are Installed Once with `Init`, Never Upgraded:**
-   - ICRC-1 / ICRC-2 ledgers (`ledger`, `ckbtc-ledger`, `cketh-ledger`) take an `Init` variant argument upon creation.
-   - Running `icp deploy` or `icp canister install --mode upgrade` on an already installed ledger traps with `"Cannot upgrade ... Init argument"`.
-   - The deploy script guards ledger deployments by testing `canister_exists <name>` first.
-
-2. **Canister IDs Permute on Network Wipe:**
-   - When the local network is reset, canisters are assigned IDs in creation order.
-   - Never bake hard-coded canister principals into Rust source code.
-   - The deploy script captures live canister IDs in `.env.local/canister_ids.env` and uses admin calls (`admin_set_*`) to wire inter-canister principals dynamically.
-
-3. **Always Pass `--identity` and `-e local`:**
-   - To avoid default identity pollution, `scripts/deploy-local.sh` uses explicit dev identities:
-     - `DEPLOY_IDENTITY`: `dev-deployer` (controls canisters)
-     - `ADMIN_IDENTITY`: `dev1` (canister admin for configuration and wiring)
-     - `TEST_IDENTITY`: `dev2` (test agent/user)
-
-4. **Verify Canister Wiring Post-Deploy:**
-   - After deploying `platform`, `payments`, and `treasury`, verify that:
-     - `payments` knows `platform` canister ID.
-     - `treasury` watches `platform` and `payments` canister cycles.
-     - Local dev faucet transfers test ICP to `ADMIN_IDENTITY` for spawn testing.
-
-5. **Local Verification Before Merge:**
-   - Run `just verify` (or `bash scripts/verify-local.sh`) to run `cargo fmt`, `cargo clippy`, and unit/integration tests locally before marking tasks complete.
+1. **Dedicated local identities only.** The script creates plaintext identities `sc-deployer` (controller), `sc-admin` (canister admin) and `sc-user` (test user), and passes `--identity` on every command. The machine's global default identity may be a mainnet key (e.g. `prod-deployer`) — never rely on it.
+2. **New identities start empty.** The managed network seeds only the `anonymous` account. The script funds `sc-deployer` with 100T cycles (`icp cycles transfer … --identity anonymous`) and gives `sc-admin`/`sc-user` test ICP when they drop below 50.
+3. **No hand-wiring of canister IDs.** `icp deploy` injects `PUBLIC_CANISTER_ID:<name>` into every canister; canisters read it at runtime. Never add `admin_set_*_canister` setters or bake IDs into code/init args.
+4. **Random gateway port.** `icp.yaml` sets `gateway.port: 0`; read the URL from `icp network status -e local --json` (`gateway_url`), never assume `localhost:8000`.
+5. **The ICP ledger and CMC are system canisters** on the managed network — don't deploy them yourself. ckBTC/ckETH test ledgers are added with the payments tasks (install once, never upgrade).
+6. **`aaa` is built but not deployed** in any environment; the platform stores its wasm (from T2.2).
+7. **Verify before committing:** `just verify` (fmt, clippy, candid drift, aaa size, tests with skip=fail, no dfx). `just demo T1.3` proves the deploy is idempotent.

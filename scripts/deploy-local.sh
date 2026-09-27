@@ -1,165 +1,49 @@
 #!/usr/bin/env bash
-# =============================================================================
-# deploy-local.sh — One-shot deterministic local deploy for Space Compute
-#
-# What it does (idempotent — safe to re-run):
-#   1. Verifies the local managed network is reachable (starts it if not).
-#   2. Installs the ICRC test ledgers ONCE (ledger / ckbtc-ledger / cketh-ledger).
-#      Ledgers are NEVER upgraded: their init args are an `Init` variant and
-#      upgrades trap.
-#   3. Deploys/upgrades core canisters: treasury, payments, platform, frontend.
-#   4. Builds and registers the AAA template wasm with the platform canister.
-#   5. Sanity-checks that canister IDs match expected configurations.
-#   6. Wires inter-canister connections (platform <-> payments <-> treasury).
-#   7. Pre-populates mock data when missing:
-#        - mock catalog subjects
-#        - dev faucet funding (admin account funded on local ICP ledger)
-#        - sample invite code
-#
-# Identities (override via env):
-#   DEPLOY_IDENTITY  controller of all local canisters   (default: dev-deployer)
-#   ADMIN_IDENTITY   platform & treasury admin           (default: dev1)
-#   TEST_IDENTITY    test agent/user identity            (default: dev2)
-#
-# Usage:
-#   bash scripts/deploy-local.sh
-# =============================================================================
-
+# One-shot, idempotent local deploy. Safe to re-run after any change.
+# Canister IDs reach every canister via icp-cli's PUBLIC_CANISTER_ID:<name> env vars — no setter wiring.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-ENV="local"
-DEPLOY_IDENTITY="${DEPLOY_IDENTITY:-dev-deployer}"
-ADMIN_IDENTITY="${ADMIN_IDENTITY:-dev1}"
-TEST_IDENTITY="${TEST_IDENTITY:-dev2}"
+ENV=local
+DEPLOYER="${DEPLOY_IDENTITY:-sc-deployer}"
+ADMIN="${ADMIN_IDENTITY:-sc-admin}"
+USER_ID="${TEST_IDENTITY:-sc-user}"
+MIN_CYCLES=20000000000000
 
-GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; BLUE='\033[0;34m'; NC='\033[0m'
-ok()   { echo -e "${GREEN}✅${NC} $1"; }
-note() { echo -e "${YELLOW}ℹ️ ${NC} $1"; }
-info() { echo -e "${BLUE}🔭${NC} $1"; }
-die()  { echo -e "${RED}❌${NC} $1"; exit 1; }
+ok()   { echo "✔ $1"; }
+note() { echo "• $1"; }
 
-canister_exists() { icp canister status "$1" -e "$ENV" >/dev/null 2>&1; }
-canister_id()     { icp canister status "$1" -e "$ENV" 2>/dev/null | awk '/Canister Id:/ {print $3}'; }
-
-info "Starting deterministic local deployment for Space Compute..."
-
-# ── 1. Network ───────────────────────────────────────────────────────────────
-if ! canister_exists platform && ! canister_exists payments >/dev/null 2>&1; then
-  note "Local network unreachable or empty — starting managed network…"
-  icp network start -e "$ENV" -d || true
-  sleep 3
+if ! icp network status -e "$ENV" >/dev/null 2>&1; then
+  note "starting local network"
+  icp network start -e "$ENV" -d >/dev/null
 fi
+ok "local network: $(icp network status -e "$ENV" --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["gateway_url"])')"
 
-# Ensure default identities exist
-for ID in "$DEPLOY_IDENTITY" "$ADMIN_IDENTITY" "$TEST_IDENTITY"; do
-  if ! icp identity list 2>/dev/null | grep -qw "$ID"; then
-    note "Creating dev identity '$ID'..."
-    icp identity create "$ID" || true
-  fi
+for id in "$DEPLOYER" "$ADMIN" "$USER_ID"; do
+  icp identity principal --identity "$id" >/dev/null 2>&1 \
+    || { icp identity new "$id" --storage plaintext >/dev/null; note "created identity $id"; }
 done
 
-ADMIN_PRINCIPAL=$(icp identity get-principal --identity "$ADMIN_IDENTITY" 2>/dev/null || echo "")
-DEPLOY_PRINCIPAL=$(icp identity get-principal --identity "$DEPLOY_IDENTITY" 2>/dev/null || echo "")
+balance=$(icp cycles balance -e "$ENV" --identity "$DEPLOYER" 2>/dev/null | tr -dc '0-9')
+if [ "${balance:-0}" -lt "$MIN_CYCLES" ]; then
+  icp cycles transfer 100t "$(icp identity principal --identity "$DEPLOYER")" -e "$ENV" --identity anonymous >/dev/null
+  note "funded $DEPLOYER with 100T cycles from the seeded anonymous account"
+fi
+for id in "$ADMIN" "$USER_ID"; do
+  icp_balance=$(icp token balance -e "$ENV" --identity "$id" 2>/dev/null | awk '{print int($2)}')
+  [ "${icp_balance:-0}" -ge 50 ] || icp token transfer 100 "$(icp identity principal --identity "$id")" -e "$ENV" --identity anonymous >/dev/null
+done
+ok "identities funded ($DEPLOYER ≥ 20T cycles; $ADMIN, $USER_ID ≥ 50 test ICP)"
 
-# ── 2. Ledgers: install once, never upgrade ─────────────────────────────────
-for L in ledger ckbtc-ledger cketh-ledger; do
-  if [ -f "icp.yaml" ] && grep -qw "$L" icp.yaml; then
-    if canister_exists "$L"; then
-      ok "$L already installed ($(canister_id "$L")) — skipping (ledgers are never upgraded)"
-    else
-      note "Installing $L (fresh Init)…"
-      icp deploy "$L" -e "$ENV" --identity "$DEPLOY_IDENTITY" --yes
-      ok "$L installed ($(canister_id "$L"))"
-    fi
-  else
-    note "Ledger $L not yet defined in icp.yaml (will install once configured)"
-  fi
+icp deploy -e "$ENV" --identity "$DEPLOYER" >/tmp/sc-deploy-local.log 2>&1 || { cat /tmp/sc-deploy-local.log; exit 1; }
+for c in $(icp canister list -e "$ENV" --json | python3 -c 'import json,sys; print(" ".join(json.load(sys.stdin)["canisters"]))'); do
+  v=$(icp canister call "$c" version '()' -e "$ENV" --identity "$USER_ID" --query 2>/dev/null || echo "(no version)")
+  ok "$c deployed → $v"
 done
 
-# ── 3. Core Canisters (treasury, payments, platform, frontend) ──────────────
-CORE_CANISTERS=()
-for C in treasury payments platform frontend; do
-  if [ -f "icp.yaml" ] && grep -qw "$C" icp.yaml; then
-    CORE_CANISTERS+=("$C")
-  fi
-done
-
-if [ ${#CORE_CANISTERS[@]} -gt 0 ]; then
-  note "Deploying/upgrading core canisters: ${CORE_CANISTERS[*]}…"
-  icp deploy "${CORE_CANISTERS[@]}" -e "$ENV" --identity "$DEPLOY_IDENTITY" --yes
-  ok "Core canisters deployed: ${CORE_CANISTERS[*]}"
-else
-  note "Core canisters not yet configured in icp.yaml (will deploy once configured)"
+if [ -x tools/seed-local/seed.sh ]; then
+  bash tools/seed-local/seed.sh
+  ok "seed data loaded"
 fi
 
-# ── 4. Verify & Record Canister IDs ──────────────────────────────────────────
-mkdir -p .env.local
-ENV_FILE=".env.local/canister_ids.env"
-cat <<EOF > "$ENV_FILE"
-# Generated by scripts/deploy-local.sh on $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-ENV=$ENV
-DEPLOY_IDENTITY=$DEPLOY_IDENTITY
-ADMIN_IDENTITY=$ADMIN_IDENTITY
-ADMIN_PRINCIPAL=$ADMIN_PRINCIPAL
-PLATFORM_CANISTER_ID=$(canister_id platform || echo "")
-PAYMENTS_CANISTER_ID=$(canister_id payments || echo "")
-TREASURY_CANISTER_ID=$(canister_id treasury || echo "")
-FRONTEND_CANISTER_ID=$(canister_id frontend || echo "")
-ICP_LEDGER_CANISTER_ID=$(canister_id ledger || echo "")
-CKBTC_LEDGER_CANISTER_ID=$(canister_id ckbtc-ledger || echo "")
-CKETH_LEDGER_CANISTER_ID=$(canister_id cketh-ledger || echo "")
-EOF
-ok "Canister IDs written to $ENV_FILE"
-
-# ── 5. AAA Canister Template Build & Registration ───────────────────────────
-if [ -d "crates/aaa" ] && canister_exists platform; then
-  note "Building AAA canister wasm…"
-  cargo build --target wasm32-unknown-unknown --release -p aaa || true
-  AAA_WASM="target/wasm32-unknown-unknown/release/aaa.wasm"
-  if [ -f "$AAA_WASM" ]; then
-    note "Uploading AAA wasm template to platform canister…"
-    icp canister call platform admin_set_aaa_wasm --file "$AAA_WASM" -e "$ENV" --identity "$ADMIN_IDENTITY" || true
-    ok "AAA template registered"
-  fi
-fi
-
-# ── 6. Inter-Canister Wiring & Sanity Checks ────────────────────────────────
-PLATFORM_ID=$(canister_id platform || echo "")
-PAYMENTS_ID=$(canister_id payments || echo "")
-TREASURY_ID=$(canister_id treasury || echo "")
-LEDGER_ID=$(canister_id ledger || echo "")
-
-if [ -n "$PLATFORM_ID" ] && [ -n "$PAYMENTS_ID" ] && canister_exists payments; then
-  note "Wiring payments -> platform ($PLATFORM_ID)..."
-  icp canister call payments admin_set_platform_canister "(principal \"$PLATFORM_ID\")" -e "$ENV" --identity "$ADMIN_IDENTITY" >/dev/null 2>&1 || true
-  ok "Payments wired to platform"
-fi
-
-if [ -n "$TREASURY_ID" ] && [ -n "$PLATFORM_ID" ] && canister_exists treasury; then
-  note "Wiring treasury watched canisters..."
-  icp canister call treasury admin_set_watched_canisters "(vec { principal \"$PLATFORM_ID\"; principal \"$PAYMENTS_ID\" })" -e "$ENV" --identity "$ADMIN_IDENTITY" >/dev/null 2>&1 || true
-  ok "Treasury watcher wired"
-fi
-
-# ── 7. Dev Faucet & Mock Data Seeding ─────────────────────────────────────────
-if [ -n "$LEDGER_ID" ] && [ -n "$ADMIN_PRINCIPAL" ] && canister_exists ledger; then
-  note "Checking local admin ICP faucet balance..."
-  # Faucet funding for dev/testing
-  icp canister call ledger icrc1_transfer "(record { to = record { owner = principal \"$ADMIN_PRINCIPAL\"; subaccount = null }; amount = 10_000_000_000 : nat; fee = null; memo = null; from_subaccount = null; created_at_time = null })" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1 || true
-  ok "Admin balance topped up (100 ICP test funds)"
-fi
-
-# ── 8. Summary ───────────────────────────────────────────────────────────────
-echo
-echo "──────────────────────────────────────────────────────────"
-ok "Space Compute local deployment check complete."
-echo "   Environment:    $ENV"
-echo "   Platform:       ${PLATFORM_ID:-[pending scaffold]}"
-echo "   Payments:       ${PAYMENTS_ID:-[pending scaffold]}"
-echo "   Treasury:       ${TREASURY_ID:-[pending scaffold]}"
-echo "   Frontend:       http://$(canister_id frontend || echo 'frontend').localhost:8000/"
-echo "   Env config:     $ENV_FILE"
-echo "   Deploy identity: $DEPLOY_IDENTITY ($DEPLOY_PRINCIPAL)"
-echo "   Admin identity:  $ADMIN_IDENTITY ($ADMIN_PRINCIPAL)"
-echo "──────────────────────────────────────────────────────────"
+ok "local deploy complete"

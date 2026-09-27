@@ -14,7 +14,7 @@
 
 ## 2. Verification & Deploy Harness (Local First — No Remote CI)
 - Local verification (`just verify` / `scripts/verify-local.sh`): `cargo fmt --check`, `clippy -D warnings`, unit + PocketIC integration tests, build wasms, `candid-extractor` drift check against committed `.did`, AAA wasm size ≤ 1.5 MiB gz, frontend typecheck/lint/test/build.
-- Deterministic deploy (`just deploy-local` / `scripts/deploy-local.sh`): one-shot idempotent script that starts network, installs ledgers once (Init mode, never upgraded), deploys core canisters, registers AAA wasm template, wires inter-canister calls, and seeds test data.
+- Deterministic deploy (`just deploy-local` / `scripts/deploy-local.sh`): one-shot idempotent script: starts the network, creates and funds dedicated `sc-*` identities, deploys the environment canisters (IDs reach each canister through `PUBLIC_CANISTER_ID:*` env vars, no setter wiring), registers the AAA wasm template (from T2.2), installs ckBTC/ckETH test ledgers once (from T5.9), and seeds test data (from T3.8).
 - Production/staging deploy: manual scripted deploy using `icp deploy -e <env>` with explicit identity checks and guardrails (`guard.sh`).
 
 ## 3. Operations

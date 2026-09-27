@@ -1,63 +1,58 @@
 #!/usr/bin/env bash
-# =============================================================================
-# verify-local.sh — Deterministic local test & verification suite
-#
-# Replaces remote CI with fast, reproducible local validation.
-# Run before committing or marking any task done.
-# =============================================================================
-
-set -euo pipefail
+# Local verification suite (no remote CI). Every gate must pass before a task is committed to main.
+set -uo pipefail
 cd "$(dirname "$0")/.."
 
-GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; BLUE='\033[0;34m'; NC='\033[0m'
-ok()   { echo -e "${GREEN}✅${NC} $1"; }
-note() { echo -e "${YELLOW}ℹ️ ${NC} $1"; }
-fail() { echo -e "${RED}❌${NC} $1"; exit 1; }
+GREEN='\033[0;32m'; RED='\033[0;31m'; BLUE='\033[0;34m'; YELLOW='\033[1;33m'; NC='\033[0m'
+ok()   { echo -e "${GREEN}✔${NC} $1"; }
+note() { echo -e "${YELLOW}•${NC} $1"; }
+fail() { echo -e "${RED}✘${NC} $1"; exit 1; }
 
-echo -e "${BLUE}🔭 Space Compute — Local Verification Suite${NC}"
-echo "──────────────────────────────────────────────────"
+echo -e "${BLUE}Space Compute — local verification${NC}"
 
-# 1. Format check
-if [ -f "Cargo.toml" ]; then
-  note "Checking Rust formatting (cargo fmt --check)..."
-  cargo fmt --all -- --check || fail "Rust code formatting check failed. Run 'cargo fmt --all' to fix."
-  ok "Formatting clean"
-fi
+cargo fmt --all -- --check >/dev/null 2>&1 || fail "cargo fmt: run 'just fmt'"
+ok "fmt"
 
-# 2. Clippy linter
-if [ -f "Cargo.toml" ]; then
-  note "Running Clippy (cargo clippy --all-targets -- -D warnings)..."
-  cargo clippy --all-targets -- -D warnings || fail "Clippy warnings detected."
-  ok "Clippy passed without warnings"
-fi
+cargo clippy -q --all-targets -- -D warnings 2>&1 | tail -20
+[ "${PIPESTATUS[0]}" -eq 0 ] || fail "clippy warnings"
+ok "clippy (-D warnings)"
 
-# 3. Unit & Integration Tests
-if [ -f "Cargo.toml" ]; then
-  note "Running cargo tests (native + integration)..."
-  # Disallow test skips from masking failures (L-007)
-  TEST_OUTPUT=$(cargo test --workspace -- --nocapture 2>&1) || {
-    echo "$TEST_OUTPUT"
-    fail "Cargo tests failed."
-  }
-  echo "$TEST_OUTPUT" | grep -E "test result:" || true
-  if echo "$TEST_OUTPUT" | grep -q "0 passed; 0 failed"; then
-    note "No cargo tests defined yet."
-  else
-    ok "All unit & integration tests passed"
-  fi
-fi
+bash scripts/check-candid.sh || fail "candid drift"
+ok "candid .did files match the code"
 
-# 4. AAA Wasm Size Budget Check (<= 1.5 MiB gz)
 AAA_WASM="target/wasm32-unknown-unknown/release/aaa.wasm"
-if [ -f "$AAA_WASM" ]; then
-  note "Checking AAA wasm size budget (<= 1.5 MiB gz)..."
-  GZ_SIZE=$(gzip -c "$AAA_WASM" | wc -c | tr -d ' ')
-  MAX_BYTES=$(( 15 * 1024 * 1024 / 10 )) # 1.5 MiB = 1,572,864 bytes
-  if [ "$GZ_SIZE" -gt "$MAX_BYTES" ]; then
-    fail "AAA wasm size ($GZ_SIZE bytes gz) exceeds 1.5 MiB budget ($MAX_BYTES bytes)."
-  fi
-  ok "AAA wasm size budget compliant ($GZ_SIZE / $MAX_BYTES bytes gz)"
+MAX_BYTES=1572864
+GZ_SIZE=$(ic-wasm "$AAA_WASM" -o /tmp/sc-aaa-shrunk.wasm shrink >/dev/null 2>&1 && gzip -c /tmp/sc-aaa-shrunk.wasm | wc -c | tr -d ' ')
+[ "$GZ_SIZE" -le "$MAX_BYTES" ] || fail "aaa wasm ${GZ_SIZE} B gz exceeds 1.5 MiB"
+ok "aaa wasm ${GZ_SIZE} B gz (≤ 1.5 MiB)"
+
+OUT=$(cargo test --workspace -- --test-threads=4 2>&1)
+STATUS=$?
+if [ $STATUS -ne 0 ]; then echo "$OUT" | grep -E "FAILED|panicked|error" | head -30; fail "cargo test"; fi
+PASSED=$(echo "$OUT" | grep -oE '[0-9]+ passed' | awk '{s+=$1} END {print s+0}')
+IGNORED=$(echo "$OUT" | grep -oE '[0-9]+ ignored' | awk '{s+=$1} END {print s+0}')
+[ "$IGNORED" -eq 0 ] || fail "$IGNORED ignored tests — a skipped test is a failed test"
+echo "$OUT" | grep -qiE 'skipping|skipped' && fail "a test reported skipping — a skipped test is a failed test"
+ok "cargo test: $PASSED passed, 0 ignored"
+
+if grep -rnE '\bdfx\b|fetchRootKey' crates frontend agent-kit tools --include='*.rs' --include='*.ts' --include='*.tsx' --include='*.py' 2>/dev/null | grep -q .; then
+  fail "found dfx or fetchRootKey in source"
+fi
+ok "no dfx / fetchRootKey in source"
+
+if [ -f tools/curation/pyproject.toml ] || [ -d tools/curation/tests ]; then
+  just py-test >/dev/null 2>&1 || fail "pytest (tools/curation)"
+  ok "pytest (tools/curation)"
 fi
 
-echo "──────────────────────────────────────────────────"
-ok "Local verification suite completed successfully."
+if [ -f frontend/package.json ]; then
+  (cd frontend && npm run -s typecheck && npm run -s lint && npm run -s test && npm run -s build) >/dev/null 2>&1 || fail "frontend checks"
+  ok "frontend typecheck, lint, test, build"
+fi
+
+if [ -f scripts/traceability.py ]; then
+  python3 scripts/traceability.py || fail "traceability"
+  ok "traceability"
+fi
+
+echo -e "${GREEN}All local gates passed.${NC}"

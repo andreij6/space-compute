@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T1.3 Local verify & deploy harness (done)
+- `just verify`: fmt, clippy -D warnings, candid drift (`scripts/check-candid.sh`, `just candid` to rewrite), aaa ≤ 1.5 MiB gz, cargo test with ignored/skip = fail, no dfx/fetchRootKey; pytest/frontend/traceability steps activate when those exist. ~7 s today.
+- `just deploy-local` rewritten for icp 1.6: dedicated `sc-deployer/sc-admin/sc-user` identities, auto-funding from the seeded anonymous account, env-var wiring (no setters), random gateway port.
+- Demo: `just demo T1.3` → drift gate catches a tampered .did; deploy runs twice, all canisters answer.
+- Harness: local-deploy skill corrected (old one had nonexistent icp commands); L-016.
+
 ## 2026-09-27 — T1.2 sc-types shared crate (done)
 - ApiError (12 variants + Display), SubjectRef/FIELDS, Protocol/Question/Answer, Task, submissions/receipts/assignments, Vote, ClaimOutcome; `limits` module mirrors 08 §3.
 - Demo: `just demo T1.2` → 4 tests (candid round-trip of every type; ApiError variants; input limits; candid shapes vs 02 §2).

@@ -34,6 +34,10 @@ plan:
     @test -x .venv/bin/python || (python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt)
     @.venv/bin/python tools/plan/plan.py
 
+# Regenerate committed .did files from the canister code
+candid:
+    @bash scripts/check-candid.sh --write
+
 # Format all Rust code
 fmt:
     @cargo fmt --all
