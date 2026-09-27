@@ -13,6 +13,7 @@ use crate::registry::{
     self, AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput,
     RegisterArgs, UpdateAaaProfileArgs, WasmMeta,
 };
+use crate::reviews::{self, HoneypotSpec};
 use crate::rng;
 use crate::scoring;
 
@@ -777,4 +778,81 @@ fn admin_replay_progression(
         crate::timers::schedule_replay_continue(status.next_event_id, batch);
     }
     Ok(status)
+}
+
+fn review_prelude(fee: u128) -> Result<(Principal, AaaRecord, config::Config), ApiError> {
+    let cfg = config::get();
+    if cfg.paused.reviews {
+        return Err(ApiError::Unauthorized);
+    }
+    let caller = ic_cdk::api::msg_caller();
+    let record = registry::get_aaa(&caller).ok_or(ApiError::NotRegistered)?;
+    match record.status {
+        registry::AaaStatus::Suspended => return Err(ApiError::Suspended),
+        registry::AaaStatus::Active | registry::AaaStatus::SelfManaged => {}
+        _ => return Err(ApiError::NotRegistered),
+    }
+    if fee > 0 {
+        if ic_cdk::api::msg_cycles_available() < fee {
+            return Err(ApiError::InsufficientFee {
+                required: fee.into(),
+            });
+        }
+        ic_cdk::api::msg_cycles_accept(fee);
+    }
+    Ok((caller, record, cfg))
+}
+
+#[ic_cdk::update]
+async fn get_review_assignment(
+    submitted_by: Option<Principal>,
+) -> Result<Option<sc_types::ReviewAssignment>, ApiError> {
+    let (caller, record, cfg) = review_prelude(config::get().params.fee_get_review)?;
+    let now = ic_cdk::api::time();
+    if let Some(submitter) = submitted_by {
+        registry::check_submitter(&caller, &submitter, now)?;
+    }
+    if record.verified_at == 0 || now.saturating_sub(record.verified_at) >= 3_600 * 1_000_000_000 {
+        verify(caller).await?;
+    }
+    reviews::assign(
+        caller,
+        record.owner,
+        &cfg.params,
+        cfg.current_protocol_version,
+        ic_cdk::api::time(),
+        rng::next_u32(),
+    )
+}
+
+#[ic_cdk::update]
+async fn submit_review(
+    submission: sc_types::ReviewSubmission,
+) -> Result<sc_types::ReviewReceipt, ApiError> {
+    let fee = config::get().params.fee_submit_review;
+    let (caller, record, cfg) = review_prelude(fee)?;
+    registry::check_submitter(&caller, &submission.submitted_by, ic_cdk::api::time())?;
+    verify(caller).await?;
+    reviews::submit(
+        caller,
+        record.owner,
+        submission,
+        &cfg.params,
+        cfg.current_protocol_version,
+        ic_cdk::api::time(),
+        fee,
+    )
+}
+
+#[ic_cdk::update]
+fn admin_add_honeypots(specs: Vec<HoneypotSpec>) -> Result<u32, ApiError> {
+    let caller = require_admin()?;
+    let n = reviews::add_honeypots(specs, ic_cdk::api::time())?;
+    audit(
+        caller,
+        "admin_add_honeypots",
+        &n,
+        format!("added {n} honeypots"),
+    );
+    Ok(n)
 }

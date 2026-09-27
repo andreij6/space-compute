@@ -45,9 +45,75 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory::get(memory::DISCOVERIES)));
     static PUBLIC_IDS: RefCell<StableBTreeMap<String, u64, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::PUBLIC_ID_INDEX)));
+    static QUEUE: RefCell<StableBTreeMap<(u8, u64, u64), (), Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::REVIEW_QUEUE)));
 }
 
-fn civil_year_from_days(days_since_epoch: i64) -> i64 {
+pub const QUEUE_HONEYPOT: u8 = 3;
+
+fn queue_status(d: &Discovery) -> u8 {
+    if d.is_honeypot {
+        return QUEUE_HONEYPOT;
+    }
+    match d.status {
+        DiscoveryStatus::UnderReview => 0,
+        DiscoveryStatus::Confirmed => 1,
+        DiscoveryStatus::Rejected => 2,
+    }
+}
+
+fn store(d: &Discovery) {
+    if let Some(old) = get(d.seq) {
+        QUEUE.with_borrow_mut(|q| q.remove(&(queue_status(&old), old.created_at, old.seq)));
+    }
+    QUEUE.with_borrow_mut(|q| q.insert((queue_status(d), d.created_at, d.seq), ()));
+    DISCOVERIES.with_borrow_mut(|m| m.insert(d.seq, d.clone()));
+}
+
+pub fn update(d: &Discovery) {
+    store(d);
+}
+
+pub fn find_queued(status: u8, mut pred: impl FnMut(&Discovery) -> bool) -> Option<Discovery> {
+    QUEUE.with_borrow(|q| {
+        q.range((status, 0, 0)..=(status, u64::MAX, u64::MAX))
+            .filter_map(|e| get(e.key().2))
+            .find(|d| pred(d))
+    })
+}
+
+pub fn create_honeypot(
+    subject_id: u32,
+    category: String,
+    rationale: String,
+    truth: Vote,
+    now: u64,
+) -> Discovery {
+    let d = Discovery {
+        v: 1,
+        seq: next_seq(),
+        public_id: String::new(),
+        subject_id,
+        classification_id: 0,
+        discoverer_aaa: Principal::anonymous(),
+        discoverer_owner: Principal::anonymous(),
+        discoverer_name_at_time: String::new(),
+        category,
+        rationale,
+        confidence: 0,
+        fee: 0,
+        status: DiscoveryStatus::UnderReview,
+        needed_reviews: 0,
+        created_at: now,
+        resolved_at: None,
+        is_honeypot: true,
+        honeypot_truth: Some(truth),
+    };
+    store(&d);
+    d
+}
+
+fn civil_from_days(days_since_epoch: i64) -> (i64, i64, i64) {
     let z = days_since_epoch + 719_468;
     let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
     let doe = z - era * 146_097;
@@ -55,16 +121,17 @@ fn civil_year_from_days(days_since_epoch: i64) -> i64 {
     let y = yoe + era * 400;
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
     let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    if m <= 2 {
-        y + 1
-    } else {
-        y
-    }
+    (if m <= 2 { y + 1 } else { y }, m, d)
 }
 
 pub fn year_from_ns(ns: u64) -> i64 {
-    civil_year_from_days((ns / NS_PER_DAY as u64) as i64)
+    date_from_ns(ns).0
+}
+
+pub fn date_from_ns(ns: u64) -> (i64, i64, i64) {
+    civil_from_days((ns / NS_PER_DAY as u64) as i64)
 }
 
 fn next_seq() -> u64 {
@@ -109,14 +176,14 @@ pub fn create(input: NewDiscovery) -> Discovery {
         is_honeypot: false,
         honeypot_truth: None,
     };
-    DISCOVERIES.with_borrow_mut(|m| m.insert(seq, discovery.clone()));
+    store(&discovery);
     PUBLIC_IDS.with_borrow_mut(|m| m.insert(public_id, seq));
     discovery
 }
 
 #[cfg(test)]
 pub fn put(d: &Discovery) {
-    DISCOVERIES.with_borrow_mut(|m| m.insert(d.seq, d.clone()));
+    store(d);
 }
 
 pub fn get(seq: u64) -> Option<Discovery> {

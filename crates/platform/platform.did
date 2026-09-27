@@ -175,6 +175,12 @@ type EventKind = variant {
   AaaUnsuspended;
 };
 type Heartbeat = record { wasm_version : nat32; cycles : nat };
+type HoneypotSpec = record {
+  truth : Vote;
+  subject_id : nat32;
+  rationale : text;
+  category : text;
+};
 type LeaderCursor = record {
   aaa : principal;
   rank : nat64;
@@ -262,8 +268,10 @@ type ReplayStatus = record {
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : nat32; Err : ApiError };
 type Result_10 = variant { Ok : ReplayStatus; Err : ApiError };
-type Result_11 = variant { Ok : Task; Err : ApiError };
-type Result_12 = variant { Ok : ClassificationReceipt; Err : ApiError };
+type Result_11 = variant { Ok : opt ReviewAssignment; Err : ApiError };
+type Result_12 = variant { Ok : Task; Err : ApiError };
+type Result_13 = variant { Ok : ClassificationReceipt; Err : ApiError };
+type Result_14 = variant { Ok : ReviewReceipt; Err : ApiError };
 type Result_2 = variant { Ok : vec AuditEntry; Err : ApiError };
 type Result_3 = variant { Ok : AaaRecord; Err : ApiError };
 type Result_4 = variant { Ok : vec AaaRecord; Err : ApiError };
@@ -272,6 +280,27 @@ type Result_6 = variant { Ok : vec Protocol; Err : ApiError };
 type Result_7 = variant { Ok : vec Subject; Err : ApiError };
 type Result_8 = variant { Ok : vec record { nat32; WasmMeta }; Err : ApiError };
 type Result_9 = variant { Ok : Overview; Err : ApiError };
+type ReviewAssignment = record {
+  subject : SubjectRef;
+  lease_expires_at_ns : nat64;
+  rationale : text;
+  category : text;
+  assignment_id : nat64;
+  protocol_version : nat16;
+};
+type ReviewReceipt = record {
+  review_id : nat64;
+  xp_awarded : nat32;
+  duplicate : bool;
+};
+type ReviewSubmission = record {
+  agent_label : opt text;
+  vote : Vote;
+  rationale : text;
+  observed_image_sha256 : blob;
+  assignment_id : nat64;
+  submitted_by : principal;
+};
 type Stats = record {
   confirmed_discoveries : nat64;
   total_classifications : nat64;
@@ -312,6 +341,7 @@ type Task = record {
   lease_expires_at_ns : nat64;
 };
 type UpdateAaaProfileArgs = record { name : opt text; avatar_seed : opt nat64 };
+type Vote = variant { Disagree; Agree };
 type WasmMeta = record {
   v : nat8;
   sha256 : blob;
@@ -324,6 +354,7 @@ service : () -> {
   aaa_by_owner : (principal) -> (opt principal) query;
   aaa_owner : (principal) -> (opt principal) query;
   admin_add_admin : (principal) -> (Result);
+  admin_add_honeypots : (vec HoneypotSpec) -> (Result_1);
   admin_add_protocol : (Protocol) -> (Result);
   admin_add_subjects : (vec SubjectInput) -> (Result_1);
   admin_approve_wasm : (nat32) -> (Result);
@@ -359,16 +390,18 @@ service : () -> {
   get_lease : (nat64) -> (opt Lease) query;
   get_params : () -> (Params) query;
   get_protocol : (nat16) -> (opt Protocol) query;
+  get_review_assignment : (opt principal) -> (Result_11);
   get_stats : () -> (Stats) query;
   get_subject : (nat32) -> (opt Subject) query;
   get_subject_consensus : (nat32) -> (opt SubjectConsensus) query;
-  get_task : (opt principal) -> (Result_11);
+  get_task : (opt principal) -> (Result_12);
   heartbeat : (Heartbeat) -> (Result);
   list_aaa_activity : (principal, opt nat64, nat32) -> (Page) query;
   list_aaa_credits : (ListAaaCreditsArgs) -> (CreditPage) query;
   list_subject_classifications : (nat32) -> (vec Classification) query;
   register_aaa : (RegisterArgs) -> (Result);
-  submit_classification : (ClassificationSubmission) -> (Result_12);
+  submit_classification : (ClassificationSubmission) -> (Result_13);
+  submit_review : (ReviewSubmission) -> (Result_14);
   sync_operators : (OperatorSetInput) -> (Result);
   update_aaa_profile : (UpdateAaaProfileArgs) -> (Result);
   upgrade_aaa : (principal) -> (Result);

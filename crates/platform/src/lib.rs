@@ -1,6 +1,7 @@
 pub mod api;
 pub mod audit;
 pub mod catalog;
+pub mod citations;
 pub mod claims;
 pub mod config;
 pub mod credits;
@@ -10,6 +11,7 @@ mod guard;
 mod memory;
 pub mod progression;
 pub mod registry;
+pub mod reviews;
 mod rng;
 pub mod scoring;
 mod timers;
@@ -23,6 +25,7 @@ use registry::{
     AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput, RegisterArgs,
     UpdateAaaProfileArgs, WasmMeta,
 };
+use reviews::HoneypotSpec;
 use sc_types::ApiError;
 
 #[ic_cdk::init]
