@@ -36,7 +36,7 @@ T2.2 registry & factory (H), T2.3 catalog/get_task (M), T2.5 event log (M), then
 7. Keep `docs/OKR.md` current when scope or parameters change.
 
 ## Gantt (owner's Google Sheet)
-Sheet: https://docs.google.com/spreadsheets/d/1kPN4smVMnWE_0jPmLXbRXyevcpzHlqMGdaU3wKS6qXI/edit?gid=1738822749. After tasks complete (at least when about 8% of the usage window remains): run `just gantt-paste`, then in Claude in Chrome: Name box → `A2:K200` → Enter → Delete → Name box → `A2` → Enter → Cmd+V. Never create a new sheet or rename the owner's sheet (L-001).
+Sheet: https://docs.google.com/spreadsheets/d/1kPN4smVMnWE_0jPmLXbRXyevcpzHlqMGdaU3wKS6qXI/edit?gid=1738822749. After tasks complete (at least when about 8% of the usage window remains): run `just gantt-paste`, then in Claude in Chrome, wait for the sheet to load, press Cmd+J (focuses the Name box; clicking it before load sends the paste into the Name box) → `A2:K200` → Enter → Delete → Cmd+J → `A2` → Enter → Cmd+V. Jump to A110 to confirm no leftover rows. Never create a new sheet or rename the owner's sheet (L-001).
 
 ## Owner-only items (don't block on them; remind the owner)
 T8.14 R2 bucket + token then `just publish-data`; T8.15 process review; T8.12 Firebase; T8.8 crypto compliance; T8.13 domain.
