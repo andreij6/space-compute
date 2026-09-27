@@ -61,6 +61,7 @@ type Op = record {
   created_by : principal;
   amount_e8s : nat64;
   state : OpState;
+  pull_e8s : opt nat64;
 };
 type OpFilter = record {
   kind : opt OpKind;
@@ -164,7 +165,11 @@ type SetMandateArgs = record {
 };
 type SpawnArgs = record { name : text; path : PayPath; avatar_seed : nat64 };
 type TopUpArgs = record { aaa : principal; path : PayPath };
-type TreasuryWithdrawArgs = record { to : Account; amount : nat };
+type TreasuryWithdrawArgs = record {
+  to : Account;
+  created_at_time : opt nat64;
+  amount : nat;
+};
 service : () -> {
   admin_add_admin : (principal) -> (Result);
   admin_audit_log : (opt nat64, nat32) -> (Result_1) query;

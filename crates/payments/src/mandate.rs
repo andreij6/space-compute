@@ -109,6 +109,16 @@ pub fn record_spend(aaa: Principal, op_id: u64, at: u64, e8s: u64) {
     HISTORY.with_borrow_mut(|m| m.insert(HistoryKey { aaa, op_id }, HistoryEntry { at, e8s }));
 }
 
+pub fn reserve(aaa: Principal, op_id: u64, now: u64, e8s: u64) -> Result<(), ApiError> {
+    set_last_auto_at(aaa, now)?;
+    record_spend(aaa, op_id, now, e8s);
+    Ok(())
+}
+
+pub fn release(aaa: Principal, op_id: u64) {
+    HISTORY.with_borrow_mut(|m| m.remove(&HistoryKey { aaa, op_id }));
+}
+
 pub fn view(aaa: Principal, now: u64) -> Option<MandateView> {
     let m = get(aaa)?;
     let spent = spent_last_30d(aaa, now);
@@ -325,5 +335,23 @@ mod tests {
     #[test]
     fn t5_5_mark_needs_attention_unknown_aaa_not_found() {
         assert_eq!(mark_needs_attention(p(201), true), Err(ApiError::NotFound));
+    }
+
+    #[test]
+    fn t5_7_reserve_counts_an_in_flight_auto_topup_against_interval_and_cap() {
+        let aaa = Principal::from_slice(&[77; 29]);
+        let payer = Account {
+            owner: Principal::from_slice(&[78; 29]),
+            subaccount: None,
+        };
+        set(aaa, payer, 100, 150, true).unwrap();
+        let now = 10 * ROLLING_WINDOW_NANOS;
+        assert_eq!(check_eligible(&get(aaa).unwrap(), now, 0), Ok(()));
+        reserve(aaa, 1, now, 100).unwrap();
+        assert!(check_eligible(&get(aaa).unwrap(), now, 0).is_err());
+        assert!(check_eligible(&get(aaa).unwrap(), now + 1, 3_600).is_err());
+        release(aaa, 1);
+        assert_eq!(spent_last_30d(aaa, now), 0);
+        assert_eq!(check_eligible(&get(aaa).unwrap(), now, 0), Ok(()));
     }
 }

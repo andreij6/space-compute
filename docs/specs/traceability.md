@@ -155,3 +155,14 @@
 | 06 §2c: headless runner stops without invoking claude when days_of_fuel_estimate is below the threshold | T3.9 | test_t3_9_run_sh_stops_at_fuel_guard |
 | 06 §2c: headless runner invokes claude -p when fuel is above the threshold | T3.9 | test_t3_9_run_sh_proceeds_above_threshold |
 | 06 §2b: practice.py scores an agent's answers against the practice key per question | T3.9 | test_t3_9_practice_per_question_accuracy |
+| 08 §4 / S7: a timed-out or ambiguous ledger call is Unknown (retried with the same created_at_time), Duplicate is Done, definitive rejects are Failed | T5.7 | t5_7_classify_transfer_never_treats_ambiguous_outcomes_as_failed |
+| 08 §4: InsufficientAllowance/InsufficientFunds are funding rejections (mandate needs_attention) | T5.7 | t5_7_classify_transfer_from_flags_allowance_and_funds_as_funding_rejections |
+| 04 §3: the pull amount is pinned in the journal before the transfer await and never changes on resume | T5.7 | t5_7_fix_pull_pins_the_first_amount_and_refuses_after_pending |
+| 04 §3: the resume timer reaches non-terminal ops beyond the first page | T5.7 | t5_7_resumable_from_reaches_ops_beyond_the_first_page_and_advances_the_watermark |
+| 04 §3: ops stored before pull_e8s existed still decode after upgrade | T5.7 | t5_7_ops_stored_before_pull_e8s_existed_still_decode |
+| 04 §4: the auto top-up 30-day cap and interval count in-flight ops before any funds move | T5.7 | t5_7_reserve_counts_an_in_flight_auto_topup_against_interval_and_cap |
+| 04 §0b: an invite is burned only after the budget and rate checks pass; single use; one per owner | T5.7 | t5_7_sponsor_spawn_does_not_burn_the_code_when_budget_or_rate_refuses |
+| 08 §4: a definitively rejected wallet pull ends the op Failed and a later allowance is never pulled | T5.7 | t5_7_a_rejected_wallet_pull_fails_the_op_and_is_never_retried |
+| 08 §2 S1: admin_pause blocks new spawn, top_up and request_auto_topup | T5.7 | t5_7_pause_flags_block_new_spawn_topup_and_auto_topup |
+| 04 §4: admin_treasury_withdraw retried with the same created_at_time pays once | T5.7 | t5_7_treasury_withdraw_retry_with_the_same_created_at_time_pays_once |
+| 08 §4: payments review checklist signed | T5.7 | docs/security/payments-review-T5.7.md |

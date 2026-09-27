@@ -139,25 +139,62 @@ pub fn mark_sponsored(owner: Principal, now: u64) {
     });
 }
 
-pub fn reserve_daily_budget(now_secs: u64, amount_e8s: u64, cap_e8s: u64) -> Result<(), ApiError> {
+pub fn unmark_sponsored(owner: Principal) {
+    SPONSORED_OWNERS.with_borrow_mut(|m| m.remove(&owner));
+}
+
+fn next_daily_budget(
+    now_secs: u64,
+    amount_e8s: u64,
+    cap_e8s: u64,
+) -> Result<DailyBudget, ApiError> {
     let day = now_secs / 86_400;
-    DAILY.with_borrow_mut(|c| {
-        let current = c.get().clone();
-        let mut budget = if current.day == day {
-            current
-        } else {
-            DailyBudget { day, spent_e8s: 0 }
-        };
-        let next = budget.spent_e8s.saturating_add(amount_e8s);
-        if next > cap_e8s {
-            return Err(ApiError::invalid(
-                "daily sponsor budget cap exceeded, try again tomorrow",
-            ));
-        }
-        budget.spent_e8s = next;
-        c.set(budget);
-        Ok(())
+    let current = DAILY.with_borrow(|c| c.get().clone());
+    let spent = if current.day == day {
+        current.spent_e8s
+    } else {
+        0
+    };
+    let next = spent.saturating_add(amount_e8s);
+    if next > cap_e8s {
+        return Err(ApiError::invalid(
+            "daily sponsor budget cap exceeded, try again tomorrow",
+        ));
+    }
+    Ok(DailyBudget {
+        day,
+        spent_e8s: next,
     })
+}
+
+pub fn reserve_daily_budget(now_secs: u64, amount_e8s: u64, cap_e8s: u64) -> Result<(), ApiError> {
+    let budget = next_daily_budget(now_secs, amount_e8s, cap_e8s)?;
+    DAILY.with_borrow_mut(|c| c.set(budget));
+    Ok(())
+}
+
+pub fn sponsor_spawn(
+    code: &str,
+    owner: Principal,
+    now: u64,
+    creation_fee_cycles: u128,
+    rate_xdr_permyriad_per_icp: u64,
+    daily_cap_e8s: u64,
+) -> Result<u64, ApiError> {
+    if has_sponsored(owner) {
+        return Err(ApiError::Conflict(
+            "this owner already has a sponsored AAA".into(),
+        ));
+    }
+    let now_secs = now / 1_000_000_000;
+    let invite = peek(code).ok_or_else(|| ApiError::invalid("invite code not found"))?;
+    let cycles = creation_fee_cycles.saturating_add(invite.sponsor_cycles);
+    let e8s = crate::quote::cycles_to_e8s(cycles, rate_xdr_permyriad_per_icp)?;
+    next_daily_budget(now_secs, e8s, daily_cap_e8s)?;
+    redeem(code, owner, now_secs)?;
+    reserve_daily_budget(now_secs, e8s, daily_cap_e8s)?;
+    mark_sponsored(owner, now);
+    Ok(e8s)
 }
 
 #[cfg(test)]
@@ -267,5 +304,32 @@ mod tests {
         reserve_daily_budget(10, 400, cap).unwrap();
         assert!(reserve_daily_budget(20, 300, cap).is_err());
         reserve_daily_budget(86_400, 900, cap).unwrap();
+    }
+
+    #[test]
+    fn t5_7_sponsor_spawn_does_not_burn_the_code_when_budget_or_rate_refuses() {
+        let owner = Principal::from_slice(&[41; 29]);
+        let now = 1_000 * 1_000_000_000u64;
+        let codes = mint(2, 1_000, 10_000, b"t5_7-seed", 1_000).unwrap();
+        assert!(sponsor_spawn(&codes[0], owner, now, 100, 10_000, 0).is_err());
+        assert!(!peek(&codes[0]).unwrap().used);
+        assert!(!has_sponsored(owner));
+        assert!(sponsor_spawn(&codes[0], owner, now, 100, 0, u64::MAX).is_err());
+        assert!(!peek(&codes[0]).unwrap().used);
+        assert!(sponsor_spawn("NOPE-NOPE-NOPE-NOPE", owner, now, 100, 10_000, u64::MAX).is_err());
+        let e8s = sponsor_spawn(&codes[0], owner, now, 100, 10_000, u64::MAX).unwrap();
+        assert_eq!(e8s, 1);
+        assert!(peek(&codes[0]).unwrap().used);
+        assert!(has_sponsored(owner));
+        assert!(matches!(
+            sponsor_spawn(&codes[1], owner, now, 100, 10_000, u64::MAX),
+            Err(ApiError::Conflict(_))
+        ));
+        unmark_sponsored(owner);
+        assert!(!has_sponsored(owner));
+        assert!(matches!(
+            sponsor_spawn(&codes[0], owner, now, 100, 10_000, u64::MAX),
+            Err(ApiError::Conflict(_))
+        ));
     }
 }

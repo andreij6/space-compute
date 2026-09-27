@@ -125,6 +125,7 @@ pub struct Op {
     pub state: OpState,
     pub updated_at: u64,
     pub attempts: u8,
+    pub pull_e8s: Option<u64>,
 }
 
 crate::candid_storable!(Op);
@@ -174,6 +175,7 @@ pub fn create(kind: OpKind, path: PayPath, amount_e8s: u64, created_by: Principa
         state: OpState::Pending,
         updated_at: now,
         attempts: 0,
+        pull_e8s: None,
     };
     OPS.with_borrow_mut(|m| m.insert(id, op.clone()));
     op
@@ -198,6 +200,43 @@ pub fn advance(id: u64, next: OpState, now: u64) -> Result<Op, ApiError> {
         op.attempts = op.attempts.saturating_add(1);
         m.insert(id, op.clone());
         Ok(op)
+    })
+}
+
+pub fn fix_pull(id: u64, amount_e8s: u64) -> Result<u64, ApiError> {
+    OPS.with_borrow_mut(|m| {
+        let mut op = m.get(&id).ok_or(ApiError::NotFound)?;
+        if let Some(fixed) = op.pull_e8s {
+            return Ok(fixed);
+        }
+        if op.state != OpState::Pending {
+            return Err(ApiError::Conflict(format!("op {id}: pull already settled")));
+        }
+        op.pull_e8s = Some(amount_e8s);
+        m.insert(id, op);
+        Ok(amount_e8s)
+    })
+}
+
+pub fn resumable_from(watermark: u64, limit: usize) -> (Vec<Op>, u64) {
+    OPS.with_borrow(|m| {
+        let mut next_watermark = None;
+        let mut out = Vec::new();
+        let mut last = None;
+        for entry in m.range(watermark..) {
+            let op = entry.value();
+            last = Some(op.id);
+            if op.state.is_terminal() {
+                continue;
+            }
+            next_watermark.get_or_insert(op.id);
+            if out.len() == limit {
+                break;
+            }
+            out.push(op);
+        }
+        let fallback = last.map(|l| l + 1).unwrap_or(watermark);
+        (out, next_watermark.unwrap_or(fallback))
     })
 }
 
@@ -287,7 +326,7 @@ pub fn stats_since(now: u64, since_secs_ago: u64) -> Vec<(String, u64, u64)> {
                 .position(|l| *l == kind_label(&op.kind))
                 .unwrap();
             counts[idx] += 1;
-            spends[idx] += op.amount_e8s;
+            spends[idx] = spends[idx].saturating_add(op.amount_e8s);
         }
     });
     labels
@@ -600,5 +639,76 @@ mod tests {
         assert_eq!(list_by_created(None, 100).len(), 3);
         assert_eq!(list_by_created(Some(1), 100).len(), 2);
         assert_eq!(list_by_created(Some(0), 1).len(), 1);
+    }
+
+    #[test]
+    fn t5_7_fix_pull_pins_the_first_amount_and_refuses_after_pending() {
+        let op = create(OpKind::TopUp { aaa: p(1) }, PayPath::Deposit, 0, p(9), 1);
+        assert_eq!(fix_pull(op.id, 500), Ok(500));
+        assert_eq!(fix_pull(op.id, 900), Ok(500));
+        assert_eq!(get(op.id).unwrap().pull_e8s, Some(500));
+        let other = create(OpKind::TopUp { aaa: p(2) }, PayPath::Deposit, 0, p(9), 1);
+        advance(other.id, OpState::Pulled { block: 1 }, 2).unwrap();
+        assert!(matches!(fix_pull(other.id, 1), Err(ApiError::Conflict(_))));
+        assert_eq!(fix_pull(777, 1), Err(ApiError::NotFound));
+    }
+
+    #[test]
+    fn t5_7_resumable_from_reaches_ops_beyond_the_first_page_and_advances_the_watermark() {
+        for i in 0..60u8 {
+            let op = create(OpKind::TopUp { aaa: p(i) }, PayPath::Deposit, 0, p(9), 1);
+            if i < 55 {
+                advance(op.id, OpState::Failed { reason: "x".into() }, 2).unwrap();
+            }
+        }
+        let (ops, wm) = resumable_from(0, 50);
+        assert_eq!(
+            ops.iter().map(|o| o.id).collect::<Vec<_>>(),
+            vec![55, 56, 57, 58, 59]
+        );
+        assert_eq!(wm, 55);
+        let (ops, wm) = resumable_from(wm, 2);
+        assert_eq!(ops.len(), 2);
+        assert_eq!(wm, 55);
+        for id in 55..60 {
+            advance(id, OpState::Failed { reason: "x".into() }, 3).unwrap();
+        }
+        let (ops, wm) = resumable_from(55, 50);
+        assert!(ops.is_empty());
+        assert_eq!(wm, 60);
+        assert_eq!(resumable_from(60, 50), (vec![], 60));
+    }
+
+    #[test]
+    fn t5_7_ops_stored_before_pull_e8s_existed_still_decode() {
+        #[derive(CandidType)]
+        struct OpV1 {
+            v: u8,
+            id: u64,
+            kind: OpKind,
+            path: PayPath,
+            amount_e8s: u64,
+            created_at: u64,
+            created_by: Principal,
+            state: OpState,
+            updated_at: u64,
+            attempts: u8,
+        }
+        let bytes = candid::encode_one(OpV1 {
+            v: 1,
+            id: 4,
+            kind: OpKind::TopUp { aaa: p(1) },
+            path: PayPath::Deposit,
+            amount_e8s: 5,
+            created_at: 6,
+            created_by: p(2),
+            state: OpState::Pending,
+            updated_at: 6,
+            attempts: 0,
+        })
+        .unwrap();
+        let op: Op = candid::decode_one(&bytes).unwrap();
+        assert_eq!(op.id, 4);
+        assert_eq!(op.pull_e8s, None);
     }
 }

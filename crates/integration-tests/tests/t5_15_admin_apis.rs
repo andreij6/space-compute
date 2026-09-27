@@ -120,6 +120,7 @@ fn t5_15_admin_treasury_withdraw_moves_icp_and_is_admin_gated() {
         TreasuryWithdrawArgs {
             to: dest_account.clone(),
             amount: Nat::from(E8S),
+            created_at_time: None,
         },
     );
     assert_eq!(denied, Err(ApiError::Unauthorized));
@@ -134,6 +135,7 @@ fn t5_15_admin_treasury_withdraw_moves_icp_and_is_admin_gated() {
         TreasuryWithdrawArgs {
             to: dest_account,
             amount: Nat::from(2 * E8S),
+            created_at_time: None,
         },
     );
     ok.expect("admin_treasury_withdraw by the admin succeeds");

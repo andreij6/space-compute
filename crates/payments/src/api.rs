@@ -367,14 +367,14 @@ async fn ledger_balance(account: Account) -> Result<u64, ApiError> {
     Ok(nat_u64(n))
 }
 
-async fn ledger_transfer_once(
+async fn icrc1_transfer_once(
     from_subaccount: Option<[u8; 32]>,
     to: Account,
     amount: u64,
     fee: u64,
     memo: Vec<u8>,
     created_at: u64,
-) -> Result<Result<u64, ledger::TransferError>, ApiError> {
+) -> ledger::Outcome {
     let arg = ledger::TransferArg {
         from_subaccount,
         to,
@@ -383,25 +383,27 @@ async fn ledger_transfer_once(
         memo: Some(memo),
         amount: Nat::from(amount),
     };
-    let reply = Call::bounded_wait(rate::ledger_id(), "icrc1_transfer")
+    match Call::bounded_wait(rate::ledger_id(), "icrc1_transfer")
         .with_arg(arg)
         .await
-        .map_err(|e| ApiError::Internal(format!("icrc1_transfer: {e:?}")))?;
-    let decoded: Result<Nat, ledger::TransferError> = reply
-        .candid()
-        .map_err(|e| ApiError::Internal(format!("icrc1_transfer decode: {e:?}")))?;
-    Ok(decoded.map(nat_u64))
+    {
+        Ok(reply) => match reply.candid::<Result<Nat, ledger::TransferError>>() {
+            Ok(r) => ledger::classify_transfer(r),
+            Err(e) => ledger::Outcome::Unknown(format!("icrc1_transfer decode: {e:?}")),
+        },
+        Err(e) => ledger::Outcome::Unknown(format!("icrc1_transfer: {e:?}")),
+    }
 }
 
-async fn ledger_transfer(
+async fn icrc1_transfer(
     from_subaccount: Option<[u8; 32]>,
     to: Account,
     amount: u64,
-    fee: u64,
     memo: Vec<u8>,
     created_at: u64,
-) -> Result<u64, ApiError> {
-    match ledger_transfer_once(
+) -> ledger::Outcome {
+    let fee = config::get().params.icp_ledger_fee_e8s;
+    match icrc1_transfer_once(
         from_subaccount,
         to.clone(),
         amount,
@@ -409,38 +411,26 @@ async fn ledger_transfer(
         memo.clone(),
         created_at,
     )
-    .await?
+    .await
     {
-        Ok(block) => Ok(block),
-        Err(ledger::TransferError::Duplicate { duplicate_of }) => Ok(nat_u64(duplicate_of)),
-        Err(ref e) if ledger::expected_fee(e).is_some() => {
-            let corrected = ledger::expected_fee(e).unwrap();
-            match ledger_transfer_once(from_subaccount, to, amount, corrected, memo, created_at)
-                .await?
-            {
-                Ok(block) => Ok(block),
-                Err(e2) => Err(ApiError::Internal(format!(
-                    "icrc1_transfer rejected: {e2:?}"
-                ))),
-            }
+        ledger::Outcome::BadFee(expected) => {
+            icrc1_transfer_once(from_subaccount, to, amount, expected, memo, created_at).await
         }
-        Err(e) => Err(ApiError::Internal(format!(
-            "icrc1_transfer rejected: {e:?}"
-        ))),
+        outcome => outcome,
     }
 }
 
-async fn ledger_transfer_from_once(
-    spender_subaccount: Option<[u8; 32]>,
+async fn icrc2_transfer_from_once(
+    spender_subaccount: [u8; 32],
     from: Account,
     to: Account,
     amount: u64,
     fee: u64,
     memo: Vec<u8>,
     created_at: u64,
-) -> Result<Result<u64, ledger::TransferFromError>, ApiError> {
+) -> ledger::Outcome {
     let arg = ledger::TransferFromArg {
-        spender_subaccount,
+        spender_subaccount: Some(spender_subaccount),
         from,
         to,
         amount: Nat::from(amount),
@@ -448,26 +438,28 @@ async fn ledger_transfer_from_once(
         memo: Some(memo),
         created_at_time: Some(created_at),
     };
-    let reply = Call::bounded_wait(rate::ledger_id(), "icrc2_transfer_from")
+    match Call::bounded_wait(rate::ledger_id(), "icrc2_transfer_from")
         .with_arg(arg)
         .await
-        .map_err(|e| ApiError::Internal(format!("icrc2_transfer_from: {e:?}")))?;
-    let decoded: Result<Nat, ledger::TransferFromError> = reply
-        .candid()
-        .map_err(|e| ApiError::Internal(format!("icrc2_transfer_from decode: {e:?}")))?;
-    Ok(decoded.map(nat_u64))
+    {
+        Ok(reply) => match reply.candid::<Result<Nat, ledger::TransferFromError>>() {
+            Ok(r) => ledger::classify_transfer_from(r),
+            Err(e) => ledger::Outcome::Unknown(format!("icrc2_transfer_from decode: {e:?}")),
+        },
+        Err(e) => ledger::Outcome::Unknown(format!("icrc2_transfer_from: {e:?}")),
+    }
 }
 
-async fn ledger_transfer_from(
-    spender_subaccount: Option<[u8; 32]>,
+async fn icrc2_transfer_from(
+    spender_subaccount: [u8; 32],
     from: Account,
     to: Account,
     amount: u64,
-    fee: u64,
     memo: Vec<u8>,
     created_at: u64,
-) -> Result<u64, ApiError> {
-    match ledger_transfer_from_once(
+) -> ledger::Outcome {
+    let fee = config::get().params.icp_ledger_fee_e8s;
+    match icrc2_transfer_from_once(
         spender_subaccount,
         from.clone(),
         to.clone(),
@@ -476,33 +468,52 @@ async fn ledger_transfer_from(
         memo.clone(),
         created_at,
     )
-    .await?
+    .await
     {
-        Ok(block) => Ok(block),
-        Err(ledger::TransferFromError::Duplicate { duplicate_of }) => Ok(nat_u64(duplicate_of)),
-        Err(ref e) if ledger::expected_fee_from(e).is_some() => {
-            let corrected = ledger::expected_fee_from(e).unwrap();
-            match ledger_transfer_from_once(
+        ledger::Outcome::BadFee(expected) => {
+            icrc2_transfer_from_once(
                 spender_subaccount,
                 from,
                 to,
                 amount,
-                corrected,
+                expected,
                 memo,
                 created_at,
             )
-            .await?
-            {
-                Ok(block) => Ok(block),
-                Err(e2) => Err(ApiError::Internal(format!(
-                    "icrc2_transfer_from rejected: {e2:?}"
-                ))),
-            }
+            .await
         }
-        Err(e) => Err(ApiError::Internal(format!(
-            "icrc2_transfer_from rejected: {e:?}"
+        outcome => outcome,
+    }
+}
+
+enum Pull {
+    Block(u64),
+    Rejected { reason: String, funding: bool },
+}
+
+fn settle(outcome: ledger::Outcome, created_at: u64) -> Result<Pull, ApiError> {
+    match outcome {
+        ledger::Outcome::Done(block) => Ok(Pull::Block(block)),
+        ledger::Outcome::Rejected { reason, funding } => Ok(Pull::Rejected { reason, funding }),
+        ledger::Outcome::BadFee(expected) => Ok(Pull::Rejected {
+            reason: format!("BadFee after retry, expected {expected}"),
+            funding: false,
+        }),
+        ledger::Outcome::Unknown(reason) => Err(ApiError::Internal(format!(
+            "ledger outcome unknown ({reason}); retry reuses created_at_time {created_at}"
         ))),
     }
+}
+
+fn fail_op(op_id: u64, reason: &str) -> Result<(), ApiError> {
+    journal::advance(
+        op_id,
+        OpState::Failed {
+            reason: reason.to_string(),
+        },
+        ic_cdk::api::time(),
+    )?;
+    Ok(())
 }
 
 async fn ledger_allowance(account: Account, spender: Account) -> Result<u64, ApiError> {
@@ -556,47 +567,57 @@ async fn cmc_notify_top_up(
     Ok(decoded.map(|n| n.0.try_into().unwrap_or(u128::MAX)))
 }
 
-async fn pull_or_sweep_topup(aaa: Principal, path: &PayPath) -> Result<u64, ApiError> {
-    let params = config::get().params;
+fn ensure_not_paused(paused: bool, what: &str) -> Result<(), ApiError> {
+    if paused {
+        return Err(ApiError::NotEligible(format!("{what} is paused")));
+    }
+    Ok(())
+}
+
+async fn topup_pull_amount(
+    aaa: Principal,
+    path: &PayPath,
+) -> Result<Result<u64, String>, ApiError> {
+    let fee = config::get().params.icp_ledger_fee_e8s;
     let self_id = ic_cdk::api::canister_self();
+    let available = match path {
+        PayPath::Deposit => {
+            ledger_balance(Account {
+                owner: self_id,
+                subaccount: Some(deposit::deposit_subaccount(Purpose::TopUp, aaa)),
+            })
+            .await?
+        }
+        PayPath::Wallet { payer } => {
+            let spender = Account {
+                owner: self_id,
+                subaccount: Some(deposit::spender_subaccount(Purpose::TopUp, aaa)),
+            };
+            ledger_allowance(payer.clone(), spender).await?
+        }
+        PayPath::Treasury | PayPath::Invite { .. } => {
+            return Ok(Err("top_up does not support this path".into()))
+        }
+    };
+    Ok(deposit::sweep_amount(available, quote::MIN_TOPUP_E8S, fee).map_err(|e| e.to_string()))
+}
+
+async fn topup_transfer(aaa: Principal, op: &Op, amount: u64) -> ledger::Outcome {
     let to = cmc::deposit_account(rate::cmc_id(), aaa);
-    let now = ic_cdk::api::time();
     let memo = cmc::MEMO_TOP_UP.to_le_bytes().to_vec();
-    match path {
+    match &op.path {
         PayPath::Deposit => {
             let sub = deposit::deposit_subaccount(Purpose::TopUp, aaa);
-            let from_account = Account {
-                owner: self_id,
-                subaccount: Some(sub),
-            };
-            let balance = ledger_balance(from_account).await?;
-            let amount =
-                deposit::sweep_amount(balance, quote::MIN_TOPUP_E8S, params.icp_ledger_fee_e8s)?;
-            ledger_transfer(Some(sub), to, amount, params.icp_ledger_fee_e8s, memo, now).await
+            icrc1_transfer(Some(sub), to, amount, memo, op.created_at).await
         }
         PayPath::Wallet { payer } => {
             let sub = deposit::spender_subaccount(Purpose::TopUp, aaa);
-            let spender = Account {
-                owner: self_id,
-                subaccount: Some(sub),
-            };
-            let allowance = ledger_allowance(payer.clone(), spender).await?;
-            let amount =
-                deposit::sweep_amount(allowance, quote::MIN_TOPUP_E8S, params.icp_ledger_fee_e8s)?;
-            ledger_transfer_from(
-                Some(sub),
-                payer.clone(),
-                to,
-                amount,
-                params.icp_ledger_fee_e8s,
-                memo,
-                now,
-            )
-            .await
+            icrc2_transfer_from(sub, payer.clone(), to, amount, memo, op.created_at).await
         }
-        PayPath::Treasury | PayPath::Invite { .. } => Err(ApiError::Internal(
-            "top_up does not support this path".into(),
-        )),
+        PayPath::Treasury | PayPath::Invite { .. } => ledger::Outcome::Rejected {
+            reason: "top_up does not support this path".into(),
+            funding: false,
+        },
     }
 }
 
@@ -609,8 +630,27 @@ async fn advance_topup_saga(op_id: u64) -> Result<(), ApiError> {
         let aaa = op.topup_fields()?;
         match op.state.clone() {
             OpState::Pending => {
-                let block = pull_or_sweep_topup(aaa, &op.path).await?;
-                journal::advance(op_id, OpState::Pulled { block }, ic_cdk::api::time())?;
+                let amount = match op.pull_e8s {
+                    Some(a) => a,
+                    None => match topup_pull_amount(aaa, &op.path).await? {
+                        Ok(a) => journal::fix_pull(op_id, a)?,
+                        Err(reason) => {
+                            fail_op(op_id, &reason)?;
+                            return Err(ApiError::invalid(reason));
+                        }
+                    },
+                };
+                match settle(topup_transfer(aaa, &op, amount).await, op.created_at)? {
+                    Pull::Block(block) => {
+                        journal::advance(op_id, OpState::Pulled { block }, ic_cdk::api::time())?;
+                    }
+                    Pull::Rejected { reason, .. } => {
+                        fail_op(op_id, &reason)?;
+                        return Err(ApiError::Internal(format!(
+                            "top-up pull rejected: {reason}"
+                        )));
+                    }
+                }
             }
             OpState::Pulled { block } => match cmc_notify_top_up(block, aaa).await? {
                 Ok(cycles) => {
@@ -663,6 +703,7 @@ async fn top_up(args: TopUpArgs) -> Result<u64, ApiError> {
     if caller == Principal::anonymous() {
         return Err(ApiError::Unauthorized);
     }
+    ensure_not_paused(config::get().paused.topup, "top_up")?;
     if matches!(args.path, PayPath::Treasury | PayPath::Invite { .. }) {
         return Err(ApiError::invalid(
             "top_up only supports the Wallet or Deposit paths",
@@ -715,60 +756,6 @@ fn get_mandate(aaa: Principal) -> Option<MandateView> {
     mandate::view(aaa, ic_cdk::api::time())
 }
 
-enum AutoTopupPull {
-    Block(u64),
-    NeedsAttention(String),
-}
-
-async fn pull_auto_topup(aaa: Principal, payer: Account) -> Result<AutoTopupPull, ApiError> {
-    let params = config::get().params;
-    let sub = deposit::spender_subaccount(Purpose::Auto, aaa);
-    let to = cmc::deposit_account(rate::cmc_id(), aaa);
-    let now = ic_cdk::api::time();
-    let memo = cmc::MEMO_TOP_UP.to_le_bytes().to_vec();
-    let mandate = mandate::get(aaa).ok_or(ApiError::NotFound)?;
-    let amount = mandate.topup_e8s;
-    let fee = params.icp_ledger_fee_e8s;
-    match ledger_transfer_from_once(
-        Some(sub),
-        payer.clone(),
-        to.clone(),
-        amount,
-        fee,
-        memo.clone(),
-        now,
-    )
-    .await?
-    {
-        Ok(block) => Ok(AutoTopupPull::Block(block)),
-        Err(ledger::TransferFromError::Duplicate { duplicate_of }) => {
-            Ok(AutoTopupPull::Block(nat_u64(duplicate_of)))
-        }
-        Err(ref e) if ledger::expected_fee_from(e).is_some() => {
-            let corrected = ledger::expected_fee_from(e).unwrap();
-            match ledger_transfer_from_once(Some(sub), payer, to, amount, corrected, memo, now)
-                .await?
-            {
-                Ok(block) => Ok(AutoTopupPull::Block(block)),
-                Err(e2) => auto_topup_pull_result(e2),
-            }
-        }
-        Err(e) => auto_topup_pull_result(e),
-    }
-}
-
-fn auto_topup_pull_result(e: ledger::TransferFromError) -> Result<AutoTopupPull, ApiError> {
-    match e {
-        ledger::TransferFromError::InsufficientAllowance { .. }
-        | ledger::TransferFromError::InsufficientFunds { .. } => {
-            Ok(AutoTopupPull::NeedsAttention(format!("{e:?}")))
-        }
-        e => Err(ApiError::Internal(format!(
-            "icrc2_transfer_from rejected: {e:?}"
-        ))),
-    }
-}
-
 async fn advance_auto_topup_saga(op_id: u64) -> Result<(), ApiError> {
     loop {
         let op = journal::get(op_id).ok_or(ApiError::NotFound)?;
@@ -778,22 +765,33 @@ async fn advance_auto_topup_saga(op_id: u64) -> Result<(), ApiError> {
         let aaa = op.auto_topup_fields()?;
         match op.state.clone() {
             OpState::Pending => {
-                let mandate = mandate::get(aaa).ok_or(ApiError::NotFound)?;
-                match pull_auto_topup(aaa, mandate.payer.clone()).await? {
-                    AutoTopupPull::Block(block) => {
+                let PayPath::Wallet { payer } = op.path.clone() else {
+                    return Err(ApiError::Internal("auto top-up op without a payer".into()));
+                };
+                let outcome = icrc2_transfer_from(
+                    deposit::spender_subaccount(Purpose::Auto, aaa),
+                    payer,
+                    cmc::deposit_account(rate::cmc_id(), aaa),
+                    op.amount_e8s,
+                    cmc::MEMO_TOP_UP.to_le_bytes().to_vec(),
+                    op.created_at,
+                )
+                .await;
+                match settle(outcome, op.created_at)? {
+                    Pull::Block(block) => {
                         journal::advance(op_id, OpState::Pulled { block }, ic_cdk::api::time())?;
                     }
-                    AutoTopupPull::NeedsAttention(reason) => {
-                        journal::advance(
-                            op_id,
-                            OpState::Failed {
-                                reason: reason.clone(),
-                            },
-                            ic_cdk::api::time(),
-                        )?;
-                        mandate::mark_needs_attention(aaa, true)?;
-                        return Err(ApiError::invalid(format!(
-                            "auto top-up needs attention: {reason}"
+                    Pull::Rejected { reason, funding } => {
+                        fail_op(op_id, &reason)?;
+                        mandate::release(aaa, op_id);
+                        if funding {
+                            mandate::mark_needs_attention(aaa, true)?;
+                            return Err(ApiError::invalid(format!(
+                                "auto top-up needs attention: {reason}"
+                            )));
+                        }
+                        return Err(ApiError::Internal(format!(
+                            "auto top-up pull rejected: {reason}"
                         )));
                     }
                 }
@@ -816,6 +814,7 @@ async fn advance_auto_topup_saga(op_id: u64) -> Result<(), ApiError> {
                         },
                         ic_cdk::api::time(),
                     )?;
+                    mandate::release(aaa, op_id);
                     return Err(ApiError::Internal(
                         "the CMC refunded the auto top-up transfer".into(),
                     ));
@@ -826,10 +825,6 @@ async fn advance_auto_topup_saga(op_id: u64) -> Result<(), ApiError> {
                 canister_or_cycles: NotifiedInfo::Cycles(_),
             } => {
                 journal::advance(op_id, OpState::Done, ic_cdk::api::time())?;
-                let mandate = mandate::get(aaa).ok_or(ApiError::NotFound)?;
-                let done_at = ic_cdk::api::time();
-                mandate::set_last_auto_at(aaa, done_at)?;
-                mandate::record_spend(aaa, op_id, done_at, mandate.topup_e8s);
                 mandate::mark_needs_attention(aaa, false)?;
             }
             OpState::Notified { .. } => {
@@ -848,6 +843,7 @@ async fn request_auto_topup() -> Result<u64, ApiError> {
     if aaa == Principal::anonymous() {
         return Err(ApiError::Unauthorized);
     }
+    ensure_not_paused(config::get().paused.auto_topup, "auto top-up")?;
     let _guard = CallerGuard::acquire(guard::key("auto", aaa))?;
     let mandate = mandate::get(aaa).ok_or(ApiError::NotFound)?;
     let now = ic_cdk::api::time();
@@ -863,58 +859,57 @@ async fn request_auto_topup() -> Result<u64, ApiError> {
         aaa,
         now,
     );
+    mandate::reserve(aaa, op.id, now, mandate.topup_e8s)?;
     advance_auto_topup_saga(op.id).await?;
     Ok(op.id)
 }
 
-async fn pull_or_sweep_spawn(op: &Op) -> Result<u64, ApiError> {
-    let (owner, _, _) = op.spawn_fields()?;
-    let params = config::get().params;
-    let self_id = ic_cdk::api::canister_self();
-    let to = cmc::deposit_account(rate::cmc_id(), self_id);
-    let now = ic_cdk::api::time();
+async fn spawn_pull_amount(op: &Op, owner: Principal) -> Result<Result<u64, String>, ApiError> {
+    match &op.path {
+        PayPath::Deposit => {
+            let fee = config::get().params.icp_ledger_fee_e8s;
+            let balance = ledger_balance(Account {
+                owner: ic_cdk::api::canister_self(),
+                subaccount: Some(deposit::deposit_subaccount(Purpose::Spawn, owner)),
+            })
+            .await?;
+            let min_required = op.amount_e8s.saturating_add(fee);
+            Ok(deposit::sweep_amount(balance, min_required, fee).map_err(|e| e.to_string()))
+        }
+        PayPath::Wallet { .. } | PayPath::Invite { .. } => Ok(Ok(op.amount_e8s)),
+        PayPath::Treasury => Ok(Err("spawn does not support the Treasury path".into())),
+    }
+}
+
+async fn spawn_transfer(op: &Op, owner: Principal, amount: u64) -> ledger::Outcome {
+    let to = cmc::deposit_account(rate::cmc_id(), ic_cdk::api::canister_self());
     let memo = cmc::MEMO_CREATE.to_le_bytes().to_vec();
     match &op.path {
         PayPath::Deposit => {
             let sub = deposit::deposit_subaccount(Purpose::Spawn, owner);
-            let from_account = Account {
-                owner: self_id,
-                subaccount: Some(sub),
-            };
-            let balance = ledger_balance(from_account).await?;
-            let min_required = op.amount_e8s.saturating_add(params.icp_ledger_fee_e8s);
-            let amount = deposit::sweep_amount(balance, min_required, params.icp_ledger_fee_e8s)?;
-            ledger_transfer(Some(sub), to, amount, params.icp_ledger_fee_e8s, memo, now).await
+            icrc1_transfer(Some(sub), to, amount, memo, op.created_at).await
         }
         PayPath::Wallet { payer } => {
             let sub = deposit::spender_subaccount(Purpose::Spawn, owner);
-            ledger_transfer_from(
-                Some(sub),
-                payer.clone(),
-                to,
-                op.amount_e8s,
-                params.icp_ledger_fee_e8s,
-                memo,
-                now,
-            )
-            .await
+            icrc2_transfer_from(sub, payer.clone(), to, amount, memo, op.created_at).await
         }
         PayPath::Invite { .. } => {
             let sub = deposit::treasury_subaccount();
-            ledger_transfer(
-                Some(sub),
-                to,
-                op.amount_e8s,
-                params.icp_ledger_fee_e8s,
-                memo,
-                now,
-            )
-            .await
+            icrc1_transfer(Some(sub), to, amount, memo, op.created_at).await
         }
-        PayPath::Treasury => Err(ApiError::Internal(
-            "spawn does not support this path here".into(),
-        )),
+        PayPath::Treasury => ledger::Outcome::Rejected {
+            reason: "spawn does not support the Treasury path".into(),
+            funding: false,
+        },
     }
+}
+
+fn fail_spawn(op: &Op, owner: Principal, reason: &str) -> Result<(), ApiError> {
+    fail_op(op.id, reason)?;
+    if matches!(op.path, PayPath::Invite { .. }) {
+        invites::unmark_sponsored(owner);
+    }
+    Ok(())
 }
 
 async fn advance_spawn_saga(op_id: u64, platform: Principal) -> Result<(), ApiError> {
@@ -925,8 +920,26 @@ async fn advance_spawn_saga(op_id: u64, platform: Principal) -> Result<(), ApiEr
         }
         match op.state.clone() {
             OpState::Pending => {
-                let block = pull_or_sweep_spawn(&op).await?;
-                journal::advance(op_id, OpState::Pulled { block }, ic_cdk::api::time())?;
+                let (owner, _, _) = op.spawn_fields()?;
+                let amount = match op.pull_e8s {
+                    Some(a) => a,
+                    None => match spawn_pull_amount(&op, owner).await? {
+                        Ok(a) => journal::fix_pull(op_id, a)?,
+                        Err(reason) => {
+                            fail_spawn(&op, owner, &reason)?;
+                            return Err(ApiError::invalid(reason));
+                        }
+                    },
+                };
+                match settle(spawn_transfer(&op, owner, amount).await, op.created_at)? {
+                    Pull::Block(block) => {
+                        journal::advance(op_id, OpState::Pulled { block }, ic_cdk::api::time())?;
+                    }
+                    Pull::Rejected { reason, .. } => {
+                        fail_spawn(&op, owner, &reason)?;
+                        return Err(ApiError::Internal(format!("spawn pull rejected: {reason}")));
+                    }
+                }
             }
             OpState::Pulled { block } => {
                 let (owner, _, _) = op.spawn_fields()?;
@@ -995,34 +1008,20 @@ pub struct SpawnArgs {
     pub path: PayPath,
 }
 
-fn deposit_e8s_for_invite(
-    params: &crate::config::Params,
-    code: &str,
-    caller: Principal,
-    now: u64,
-    now_secs: u64,
-) -> Result<u64, ApiError> {
-    if !config::get().features.sponsored_spawn {
-        return Err(ApiError::FeatureDisabled);
-    }
-    if invites::has_sponsored(caller) {
-        return Err(ApiError::Conflict(
-            "this owner already has a sponsored AAA".into(),
-        ));
-    }
-    let invite = invites::redeem(code, caller, now_secs)?;
-    let total_cycles = params.spawn_creation_fee_cycles + invite.sponsor_cycles;
-    let deposit_e8s = quote::cycles_to_e8s(total_cycles, rate::get().xdr_permyriad_per_icp)?;
-    invites::reserve_daily_budget(now_secs, deposit_e8s, params.sponsor_daily_cap_e8s)?;
-    invites::mark_sponsored(caller, now);
-    Ok(deposit_e8s)
-}
-
 #[ic_cdk::update]
 async fn spawn_aaa(args: SpawnArgs) -> Result<u64, ApiError> {
     let caller = ic_cdk::api::msg_caller();
     if caller == Principal::anonymous() {
         return Err(ApiError::Unauthorized);
+    }
+    ensure_not_paused(config::get().paused.spawn, "spawn")?;
+    if matches!(args.path, PayPath::Treasury) {
+        return Err(ApiError::invalid(
+            "spawn does not support the Treasury path",
+        ));
+    }
+    if matches!(args.path, PayPath::Invite { .. }) && !config::get().features.sponsored_spawn {
+        return Err(ApiError::FeatureDisabled);
     }
     let _guard = CallerGuard::acquire(guard::key("spawn", caller))?;
     let platform = config::platform_id()?;
@@ -1034,11 +1033,18 @@ async fn spawn_aaa(args: SpawnArgs) -> Result<u64, ApiError> {
 
     let params = config::get().params;
     let now = ic_cdk::api::time();
-    let now_secs = now / 1_000_000_000;
+    let rate = rate::get();
 
     let deposit_e8s = match &args.path {
-        PayPath::Invite { code } => deposit_e8s_for_invite(&params, code, caller, now, now_secs)?,
-        _ => quote::quote_spawn(&params, &rate::get(), now_secs)?.deposit_e8s,
+        PayPath::Invite { code } => invites::sponsor_spawn(
+            code,
+            caller,
+            now,
+            params.spawn_creation_fee_cycles,
+            rate.xdr_permyriad_per_icp,
+            params.sponsor_daily_cap_e8s,
+        )?,
+        _ => quote::quote_spawn(&params, &rate, now / 1_000_000_000)?.deposit_e8s,
     };
 
     let op = journal::create(
@@ -1089,33 +1095,45 @@ pub(crate) async fn resume(op_id: u64) -> Result<(), ApiError> {
 pub struct TreasuryWithdrawArgs {
     pub to: Account,
     pub amount: Nat,
+    pub created_at_time: Option<u64>,
 }
 
 #[ic_cdk::update]
 async fn admin_treasury_withdraw(args: TreasuryWithdrawArgs) -> Result<u64, ApiError> {
     let caller = require_admin()?;
-    let amount = nat_u64(args.amount.clone());
+    let amount = u64::try_from(args.amount.0.clone())
+        .map_err(|_| ApiError::invalid("amount exceeds u64 e8s"))?;
     if amount == 0 {
         return Err(ApiError::invalid("amount must be greater than zero"));
     }
-    let params = config::get().params;
-    let sub = deposit::treasury_subaccount();
-    let now = ic_cdk::api::time();
-    let memo = cmc::MEMO_WITHDRAW.to_le_bytes().to_vec();
-    let block = ledger_transfer(
-        Some(sub),
-        args.to.clone(),
-        amount,
-        params.icp_ledger_fee_e8s,
-        memo,
-        now,
-    )
-    .await?;
+    let created_at = args.created_at_time.unwrap_or_else(ic_cdk::api::time);
     audit(
         caller,
         "admin_treasury_withdraw",
         &args,
-        format!("withdrew {amount} e8s to {:?}, block {block}", args.to),
+        format!(
+            "intent: {amount} e8s to {:?}, created_at_time {created_at}",
+            args.to
+        ),
     );
-    Ok(block)
+    let outcome = icrc1_transfer(
+        Some(deposit::treasury_subaccount()),
+        args.to.clone(),
+        amount,
+        cmc::MEMO_WITHDRAW.to_le_bytes().to_vec(),
+        created_at,
+    )
+    .await;
+    audit(
+        caller,
+        "admin_treasury_withdraw",
+        &args,
+        format!("outcome for created_at_time {created_at}: {outcome:?}"),
+    );
+    match settle(outcome, created_at)? {
+        Pull::Block(block) => Ok(block),
+        Pull::Rejected { reason, .. } => Err(ApiError::Internal(format!(
+            "icrc1_transfer rejected: {reason}"
+        ))),
+    }
 }
