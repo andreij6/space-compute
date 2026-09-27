@@ -119,3 +119,10 @@
 | 04 §4/§57: rolling 30-day spend window sums only entries within the window, per aaa | T5.5 | t5_5_rolling_window_sums_only_entries_within_30_days |
 | 04 §4: request_auto_topup eligibility — disabled mandate, min interval, rolling cap | T5.5 | t5_5_check_eligible_rejects_disabled_mandate |
 | 04 §4: InsufficientAllowance/InsufficientFunds fails the op and marks the mandate needs_attention | T5.5 | t5_5_mark_needs_attention_round_trips |
+| 04 §5 #1: Wallet spawn — approve → spawn_aaa → AAA exists with controllers [owner, platform], is registered, and has cycles ≈ the initial amount | T5.6 | t5_6_wallet_path_spawn_reaches_done_with_controllers_and_cycles |
+| 04 §5 #2: Deposit spawn — transfer to the deposit account → spawn_aaa{Deposit} → the same result; the deposit account is empty afterwards | T5.6 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
+| 04 §5 #3: a third party calling top_up{aaa: X, Wallet{payer: victim}} can only use allowances the victim granted to S(topup, X); an allowance granted for Y is never usable for X | T5.6 | t5_6_topup_wallet_allowance_is_scoped_to_the_correct_aaa |
+| 04 §5 #4: kill platform mid-spawn (stopped canister) → the op stays Notified; after restart, resume completes it; no double charge (ledger dedup plus the journal) | T5.6 | t5_6_spawn_survives_platform_stop_and_resumes_without_double_charge |
+| 04 §5 #5: auto top-up respects the interval and the monthly cap, and flags a revoked allowance | T5.6 | t5_6_auto_topup_flags_a_revoked_allowance_without_moving_funds |
+| 04 §5 #6: a CMC refund path (simulated invalid canister) ends in Refunded | T5.6 | t5_6_cmc_refunds_a_topup_notify_for_a_canister_that_does_not_exist |
+| 04 §5 #7: concurrent top_up calls for the same AAA can't both pull from the same allowance past its amount (guard) | T5.6 | t5_6_concurrent_topups_for_the_same_aaa_cannot_both_pull_the_allowance |
