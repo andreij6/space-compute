@@ -19,3 +19,5 @@ Format: `L-NNN [area] trigger → rule (source) hits:N`. Promoted lessons are re
 - L-015 [rust] Parallel agent collisions on monolithic files and shared state → enforce agent-* rules (contract-first, crate boundaries, micro-modules < 500 LOC, hexagonal pure logic, CallerGuard). hits:0
 - L-016 [code] Do not write code comments → keep code concise, clean, and self-documenting; avoid comment clutter. hits:0
 - L-017 [okf] Maintain the OKF (Operational Knowledge Framework) → update okf/runbooks and docs/OKR.md on every operational/scope milestone. hits:0
+- L-014 [tooling] Local `icp` was 0.2.3 while templates targeted 1.6 (schema v1.3, rust recipe v3.4.0, ic-cdk 0.20) → check `icp --version` and `cargo search` before scaffolding or adding deps; pin what the current template uses. (T1.1) hits:1
+- L-015 [demo] Raw `cargo test --workspace` output buries the demo under empty crates → `just demo` runs `scripts/demo.sh`, which filters the noise and fails when zero tests match. (T1.1) hits:1

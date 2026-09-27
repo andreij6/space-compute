@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/sc-types",
+    "crates/platform",
+    "crates/payments",
+    "crates/treasury",
+    "crates/aaa",
+    "crates/integration-tests",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+candid = "0.10"
+ic-cdk = "0.20"
+ic-cdk-timers = "1.0"
+ic-stable-structures = "0.7"
+serde = { version = "1", features = ["derive"] }
+serde_bytes = "0.11"
+sc-types = { path = "crates/sc-types" }
+
+[profile.release]
+lto = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"

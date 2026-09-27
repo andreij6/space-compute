@@ -22,8 +22,12 @@ test-integration:
 
 # Run acceptance demo for a specific task (e.g. just demo T1.1)
 demo TASK_ID:
-    @echo "Running demo for {{TASK_ID}}..."
-    @cargo test --workspace -- "$(echo {{TASK_ID}} | tr 'A-Z.-' 'a-z__')_" --nocapture
+    @bash scripts/demo.sh {{TASK_ID}}
+
+# Set a task's status in tasks.json (todo | in_progress | done) and regenerate the plan
+task-status TASK_ID STATUS:
+    @python3 scripts/task-status.py {{TASK_ID}} {{STATUS}}
+    @just plan >/dev/null
 
 # Regenerate docs/specs/10-tasks.md, the Gantt workbook and tasks.json from tools/plan/plan.py
 plan:

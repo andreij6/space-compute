@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T1.1 Repo scaffold (done)
+- Cargo workspace: sc-types + platform/payments/treasury/aaa canisters + integration-tests; toolchain pinned 1.95.0 + wasm32; icp.yaml (icp-cli 1.6, rust recipe v3.4.0, gateway port 0; local/staging/production envs; aaa built but not deployed).
+- Demo: `just demo T1.1` → 3 tests (icp build → 3 wasms with candid metadata; every .did committed; toolchain pinned).
+- Next ready: T1.2 / T1.3 / T1.4, SP-7, SP-2.
+- Harness: `just task-status`, `scripts/demo.sh` (noise-free demo, zero tests = fail); L-014, L-015. icp CLI upgraded 0.2.3 → 1.6.0.
+
 ## 2026-09-27 — T0.4 signed off; pre-coding blockers cleared
 - Owner sign-off given on the condition of no blockers. Fixed: repo committed with a `.gitignore`; `just` installed; `just demo` filters `t<id>_` tests; `just plan` + requirements.txt (venv).
 - Specs aligned to no remote CI / straight-to-main (00, 01, 09, 11, plan header); neuron removed from 05 admin treasury, OVERVIEW, DESIGN_BRIEF.

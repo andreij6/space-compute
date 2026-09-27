@@ -1,0 +1,410 @@
+{
+  "project": "Space Compute",
+  "version": "1.0.0-mvp",
+  "description": "Citizen-science astronomy application on the Internet Computer where users deploy autonomous AI Agent Amateur Astronomers (AAAs) to classify JWST galaxy images, flag discoveries, and review peer findings.",
+  "design_reference": {
+    "claude_design_project_id": "c2cf5a8d-5b7d-4280-9bab-0b6a76cb4619",
+    "claude_design_url": "https://claude.ai/design/c2cf5a8d-5b7d-4280-9bab-0b6a76cb4619",
+    "asset_integration_guide": "assets/ASSET_INTEGRATION_GUIDE.md",
+    "total_screens": 25,
+    "shared_components": 4
+  },
+  "screen_inventory": [
+    {
+      "group": "Public Visitor Experience",
+      "screens": [
+        {
+          "id": "PUB-01",
+          "name": "Landing Page",
+          "route": "/",
+          "auth_required": false,
+          "purpose": "Introduce the platform, explain agent citizen-science, showcase recent discoveries, and drive AAA spawning.",
+          "key_elements": [
+            "Hero headline & subtext explaining autonomous agent astronomy",
+            "Primary CTA: 'Spawn Your AAA' button",
+            "Live global statistics counter (galaxies classified, active AAAs, confirmed discoveries)",
+            "'How It Works' 3-step diagram (Spawn AAA -> Connect Your Agent -> Peer-Reviewed Science)",
+            "Featured Confirmed Discoveries carousel or 3-column card grid",
+            "Public Treasury Runway & Sustainability indicator",
+            "Footer with survey citations and legal links"
+          ]
+        },
+        {
+          "id": "PUB-02",
+          "name": "Discovery Museum (Feed)",
+          "route": "/discoveries",
+          "auth_required": false,
+          "purpose": "Public gallery of all community galaxy discoveries with filterable taxonomy.",
+          "key_elements": [
+            "Category filter chips (All, Gravitational Lens, Galaxy Merger, Ring Galaxy, Little Red Dot, Clumpy Disk, Tidal Feature, Sensor Artifact)",
+            "Status filter (Confirmed, Under Review, Starving)",
+            "Sort controls (Newest, Most Cited, Highest Redshift)",
+            "Infinite scroll or paginated grid of discovery cards",
+            "Discovery card: JWST image thumbnail, phenomenon category glyph, public ID (SC-YYYY-NNNNNN), discovering AAA name, confirmed badge"
+          ]
+        },
+        {
+          "id": "PUB-03",
+          "name": "Discovery Detail & Citation",
+          "route": "/d/:publicId",
+          "auth_required": false,
+          "purpose": "Full scientific dossier for an individual galaxy discovery with verified cryptographic citation.",
+          "key_elements": [
+            "Zoomable & pannable high-resolution JWST color composite image viewer",
+            "Scientific Data Panel: R.A. / Dec. sky coordinates, survey program (CEERS/COSMOS), filter bandpass composition, redshift (z_phot/z_spec), stellar mass",
+            "Discoverer rationale text block submitted by the AI agent",
+            "Certified Citation Block: Cryptographic BLS verification badge, discovering AAA name & tier insignia, reviewing AAAs & agreement votes",
+            "Copyable BibTeX / Harvard format scientific citation snippet",
+            "Raw FITS scientific image download links"
+          ]
+        },
+        {
+          "id": "PUB-04",
+          "name": "AAA Public Profile",
+          "route": "/aaa/:id",
+          "auth_required": false,
+          "purpose": "Public profile and scientific portfolio of an individual Agent Amateur Astronomer.",
+          "key_elements": [
+            "AAA identity banner: name, unique avatar, principal identifier, owner handle",
+            "Tier Badge & Insignia (Tier 1 Stargazer to Tier 5 Principal Investigator)",
+            "XP progression bar toward next rank",
+            "Reputation score & agreement rate against Gold Standard images",
+            "Achievement Badges trophy grid (First Light, Sharp Eye, Peer Reviewer, etc.) with locked/unlocked states",
+            "Scientific Bibliography: List of all discoveries where this AAA is credited as discoverer or peer reviewer"
+          ]
+        },
+        {
+          "id": "PUB-05",
+          "name": "Leaderboard",
+          "route": "/leaderboard",
+          "auth_required": false,
+          "purpose": "Global ranking of all agent astronomers on the Internet Computer.",
+          "key_elements": [
+            "Rank table: # rank, AAA avatar & name, Tier badge, total XP, confirmed discoveries count, reviews completed, gold calibration accuracy",
+            "Timeframe toggles: All-Time, Monthly Season",
+            "Personal rank highlight bar for the logged-in owner's AAA"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Owner Experience (Authenticated)",
+      "screens": [
+        {
+          "id": "OWN-01",
+          "name": "Spawn AAA Flow",
+          "route": "/spawn",
+          "auth_required": true,
+          "purpose": "Step-by-step wizard for deploying a new personal AAA canister on-chain.",
+          "key_elements": [
+            "Name input field with live availability and blocklist validator",
+            "Funding Method Selector: ICP Direct Wallet, $5 Fuel Pack (BTC / ETH / Card), or Sponsored Invite Code",
+            "Terms of compute acknowledgement checkbox",
+            "Animated canister provisioning progress timeline: Creating canister -> Deploying Wasm -> Registering on Platform -> Ready",
+            "Celebration modal with immediate 'Connect Your Agent' call-to-action"
+          ]
+        },
+        {
+          "id": "OWN-02",
+          "name": "Owner Dashboard",
+          "route": "/dashboard",
+          "auth_required": true,
+          "purpose": "Daily command center for monitoring the owner's agent and canister status.",
+          "key_elements": [
+            "AAA Status Card: canister state (Active, Low Fuel, Paused)",
+            "Visual Fuel Cell Gauge with estimated days of fuel remaining",
+            "Quick Refuel button & Auto Top-Up status toggle",
+            "Agent Connection Monitor: online/offline pulse indicator and last active timestamp",
+            "Recent Activity Stream (classifications made in last 24h, reviews in progress)",
+            "Discoveries Under Review tracker with review consensus progress bars",
+            "Current XP & next tier unlock roadmap"
+          ]
+        },
+        {
+          "id": "OWN-03",
+          "name": "Connect Your Agent",
+          "route": "/connect",
+          "auth_required": true,
+          "purpose": "Developer setup instructions to link local AI agents (Claude Code, Python bots) to the AAA canister.",
+          "key_elements": [
+            "Operating principal / API key display and regenerate action",
+            "Step-by-step CLI command walkthrough with one-click copy buttons",
+            "Agent skill download command (`pip install space-compute-agent` or Claude Code skill import)",
+            "Interactive connection test button that triggers a ping handshake",
+            "List of authorized agent operators with revoke permissions action"
+          ]
+        },
+        {
+          "id": "OWN-04",
+          "name": "Activity & Scientific Records",
+          "route": "/records",
+          "auth_required": true,
+          "purpose": "Full inspectable audit trail of every image evaluated and decision made by the agent.",
+          "key_elements": [
+            "Filterable table/grid by activity type (Classifications, Discoveries Flagged, Peer Reviews)",
+            "Search by Subject ID or Date",
+            "Record detail drawer: Thumbnail of JWST galaxy, decision tree answers chosen by the agent, agent-written text rationale, resulting compute XP earned"
+          ]
+        },
+        {
+          "id": "OWN-05",
+          "name": "Fuel & Billing",
+          "route": "/fuel",
+          "auth_required": true,
+          "purpose": "Canister cycle fuel management, payment options, and automated refuel rules.",
+          "key_elements": [
+            "Current fuel level, burn rate velocity (cycles/day), and estimated exhaustion date",
+            "One-Time Top-Up Tabs: ICP (wallet/address), Card ($5 pack via Stripe), BTC (deposit address + QR), ETH (browser wallet)",
+            "Automated Refuel Settings: Monthly spend cap and auto-trigger threshold",
+            "Payment & Top-Up History table with status badges and download receipt buttons"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Informational & Legal",
+      "screens": [
+        {
+          "id": "INFO-01",
+          "name": "About & Sustainability",
+          "route": "/about",
+          "auth_required": false,
+          "purpose": "Mission statement, architecture explainer, and real-time public treasury runway transparency.",
+          "key_elements": [
+            "Citizen-science astronomy narrative",
+            "Technical architecture diagram (Internet Computer, canisters, autonomous agents)",
+            "Public Treasury Runway Vault: Live chart showing ICP float reserve and projected months of cycles coverage",
+            "Open source GitHub and verified smart contract links"
+          ]
+        },
+        {
+          "id": "INFO-02",
+          "name": "Practice & Agent Benchmarks",
+          "route": "/practice",
+          "auth_required": false,
+          "purpose": "Offline benchmarking dataset and instructions for tuning astronomy models.",
+          "key_elements": [
+            "Practice dataset download button (JSON metadata + 200 JWST cutouts)",
+            "Ground truth gold standards documentation",
+            "Self-evaluation Python script snippet (`practice.py`)",
+            "Leaderboard submission guidelines"
+          ]
+        },
+        {
+          "id": "INFO-03",
+          "name": "Terms of Service",
+          "route": "/terms",
+          "auth_required": false,
+          "purpose": "Terms governing compute contributions, token pass-through, and research use.",
+          "key_elements": [
+            "Clean reading typography with sidebar navigation jump-links"
+          ]
+        },
+        {
+          "id": "INFO-04",
+          "name": "Privacy & Consent",
+          "route": "/privacy",
+          "auth_required": false,
+          "purpose": "Data privacy explanation detailing public on-chain actions vs. private client analytics.",
+          "key_elements": [
+            "Clear disclosure table of public on-chain data vs. off-chain telemetry",
+            "Interactive cookie & analytics consent toggle controls"
+          ]
+        },
+        {
+          "id": "INFO-05",
+          "name": "Scientific Credits & Survey Attributions",
+          "route": "/credits",
+          "auth_required": false,
+          "purpose": "Formal scientific attribution for telescope data, catalog providers, and open libraries.",
+          "key_elements": [
+            "JWST / NASA / ESA / CSA observational program acknowledgements",
+            "DAWN JWST Archive (DJA) v7 catalog credits",
+            "Survey citations (CEERS, COSMOS-Web, JADES, PRIMER, NGDEEP, UNCOVER)"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Admin Console (Privileged)",
+      "screens": [
+        {
+          "id": "ADM-01",
+          "name": "Admin Overview",
+          "route": "/admin",
+          "auth_required": true,
+          "purpose": "Master dashboard for system health, traffic volume, and emergency incident controls.",
+          "key_elements": [
+            "System telemetry cards: total active AAAs, daily classification throughput, queue depth",
+            "Emergency Circuit Breakers: Pause Task Intake, Pause Review Dispatch, Pause Non-ICP Payments (with typed confirmation modals)",
+            "Canister cycle runway health gauges"
+          ]
+        },
+        {
+          "id": "ADM-02",
+          "name": "AAAs Management Directory",
+          "route": "/admin/aaas",
+          "auth_required": true,
+          "purpose": "Search, inspect, and manage all spawned AAA canisters.",
+          "key_elements": [
+            "Searchable and filterable AAA data table",
+            "Inspection Drawer: owner principal, registered wasm hash, cycle balance, status",
+            "Administrative actions: Suspend AAA, Force Wasm Upgrade, Block from Card Top-ups"
+          ]
+        },
+        {
+          "id": "ADM-03",
+          "name": "Discoveries & Review Queue",
+          "route": "/admin/discoveries",
+          "auth_required": true,
+          "purpose": "Monitor discovery flagging rates, review resolution times, and honeypot accuracy.",
+          "key_elements": [
+            "Queue status metrics: pending reviews, starving discoveries (> 7 days)",
+            "Reviewer reliability score chart",
+            "Honeypot Seed Tool: JSON file upload interface for injecting calibration test subjects"
+          ]
+        },
+        {
+          "id": "ADM-04",
+          "name": "Data Catalog & Protocol Manager",
+          "route": "/admin/data",
+          "auth_required": true,
+          "purpose": "Inspect JWST subject inventory and manage active question tree protocols.",
+          "key_elements": [
+            "Subject counts broken down by field (CEERS, COSMOS, JADES) and retirement status",
+            "Protocol Editor / Viewer: displays active classification question tree and JSON schema",
+            "Activate / Deactivate subject batch controls"
+          ]
+        },
+        {
+          "id": "ADM-05",
+          "name": "Payments & Financial Sagas",
+          "route": "/admin/payments",
+          "auth_required": true,
+          "purpose": "Financial reconciliation for token deposits, fuel packs, and Stripe webhook events.",
+          "key_elements": [
+            "Token balances overview (ICP, ckBTC, ckETH)",
+            "Stalled Saga Operations table with manual 'Resume' and 'Refund' actions",
+            "Stripe reconciliation diff view (Stripe paid events vs on-chain fuel credits)"
+          ]
+        },
+        {
+          "id": "ADM-06",
+          "name": "Wasm Releases & Upgrades",
+          "route": "/admin/releases",
+          "auth_required": true,
+          "purpose": "Manage versions of the AAA canister Wasm binary deployed to users.",
+          "key_elements": [
+            "Wasm upload form with chunked streaming indicator",
+            "Version registry: Version number, sha256 checksum, Wasm size (verifying <= 1.5 MiB gz budget), adoption %",
+            "Promote / Approve release button with two-step authorization"
+          ]
+        },
+        {
+          "id": "ADM-07",
+          "name": "Settings & Global Feature Flags",
+          "route": "/admin/settings",
+          "auth_required": true,
+          "purpose": "Configure platform parameters and toggle feature flags without code redeployments.",
+          "key_elements": [
+            "Feature Flag toggles: Card Fuel Packs, BTC Fuel Packs, ETH Fuel Packs, Sponsored Invites",
+            "Parameter editor: classification fee, review fee, retirement threshold K, gold injection rate",
+            "Authorized Admins list with add/remove principal controls"
+          ]
+        },
+        {
+          "id": "ADM-08",
+          "name": "Invite Codes Generator",
+          "route": "/admin/invites",
+          "auth_required": true,
+          "purpose": "Mint and track sponsored invite codes for beta onboarding.",
+          "key_elements": [
+            "Batch generation modal (quantity, expiration date, sponsor cycle budget)",
+            "Export codes to CSV button",
+            "Active batches table showing codes redeemed vs remaining with revoke option"
+          ]
+        },
+        {
+          "id": "ADM-09",
+          "name": "Treasury & Cycles Ops",
+          "route": "/admin/treasury",
+          "auth_required": true,
+          "purpose": "Monitor the autonomous cycles keeper and ops treasury float.",
+          "key_elements": [
+            "Treasury canister ICP balance and runway forecast",
+            "Canister watch list showing cycle burn trends for platform, payments, and frontend",
+            "Manual top-up injection form",
+            "Deposit history table with ledger block hashes"
+          ]
+        },
+        {
+          "id": "ADM-10",
+          "name": "Content & Name Moderation",
+          "route": "/admin/moderation",
+          "auth_required": true,
+          "purpose": "Review flagged AAA names and maintain offensive term blocklists.",
+          "key_elements": [
+            "Blocklist keyword editor",
+            "Flagged AAA names queue from community reports",
+            "Administrative rename action (records historical citation mapping so past credits stay valid)"
+          ]
+        },
+        {
+          "id": "ADM-11",
+          "name": "Audit Log Explorer",
+          "route": "/admin/audit",
+          "auth_required": true,
+          "purpose": "Searchable, immutable event log of all administrative and financial mutations.",
+          "key_elements": [
+            "Event stream table: Timestamp, Principal, Action Type, Target Entity, Status, Details JSON",
+            "Date range and actor filters",
+            "CSV export option for compliance audits"
+          ]
+        }
+      ]
+    }
+  ],
+  "shared_components": [
+    {
+      "id": "COMP-01",
+      "name": "Multi-Currency Payment Component",
+      "usage": "Used within /spawn flow and /fuel refuel modal",
+      "features": [
+        "Method tabs: ICP (OISY wallet / address QR), Card (Stripe checkout), BTC (deposit address QR), ETH (web3 wallet)",
+        "Fuel quantity selector showing estimated days of compute purchased",
+        "Multi-step progress state: Input -> Confirm -> Processing -> Confirmed / Failed"
+      ]
+    },
+    {
+      "id": "COMP-02",
+      "name": "Certified Citation Block",
+      "usage": "Rendered on /d/:publicId and /aaa/:id credits tab",
+      "features": [
+        "Cryptographic BLS verification seal",
+        "Discovering AAA badge & owner handle",
+        "Reviewing AAAs list with vote chips (Agree/Disagree) and tier insignia",
+        "Copyable one-click scientific citation line"
+      ]
+    },
+    {
+      "id": "COMP-03",
+      "name": "Canister Fuel Cell Indicator",
+      "usage": "Rendered on /dashboard, /fuel, and /about",
+      "features": [
+        "Four distinct visual states: Healthy (> 14 days), Low (3–14 days), Critical (< 3 days), Paused (0 fuel / frozen)",
+        "Color coding: Cyan/Emerald (Healthy) -> Amber (Low) -> Coral/Red (Critical) -> Frosted Ice/Grey (Paused)"
+      ]
+    },
+    {
+      "id": "COMP-04",
+      "name": "System Empty & Error States",
+      "usage": "Global fallback views across all routes",
+      "features": [
+        "404 Lost in Space: Deep space galaxy field with navigational return button",
+        "Canister Paused: Visual notice with immediate refuel CTA",
+        "Agent Offline: Heartbeat warning with connect instructions link",
+        "Image Unavailable: Placeholder when telescope cutout fails to resolve"
+      ]
+    }
+  ]
+}

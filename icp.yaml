@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://github.com/dfinity/icp-cli/raw/refs/tags/v1.3.0/docs/schemas/icp-yaml-schema.json
+canisters:
+  - name: platform
+    recipe:
+      type: "@dfinity/rust@v3.4.0"
+      configuration:
+        shrink: true
+        candid: crates/platform/platform.did
+  - name: payments
+    recipe:
+      type: "@dfinity/rust@v3.4.0"
+      configuration:
+        shrink: true
+        candid: crates/payments/payments.did
+  - name: treasury
+    recipe:
+      type: "@dfinity/rust@v3.4.0"
+      configuration:
+        shrink: true
+        candid: crates/treasury/treasury.did
+  - name: aaa
+    recipe:
+      type: "@dfinity/rust@v3.4.0"
+      configuration:
+        shrink: true
+        candid: crates/aaa/aaa.did
+
+networks:
+  - name: local
+    mode: managed
+    gateway:
+      port: 0
+
+environments:
+  - name: local
+    network: local
+    canisters: [platform, payments, treasury]
+  - name: staging
+    network: ic
+    canisters: [platform, payments, treasury]
+  - name: production
+    network: ic
+    canisters: [platform, payments, treasury]
+    settings:
+      platform:
+        freezing_threshold: 7776000
+      payments:
+        freezing_threshold: 7776000
+      treasury:
+        freezing_threshold: 15552000
