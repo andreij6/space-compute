@@ -69,7 +69,7 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T4.5 | Citations + certification tree + get_citation | H | 1 | 3 | T4.4 | 2026-11-18 | 2026-11-20 | 02 §8.3 | Witness verifies after upgrade | test: just demo T4.5  (narrated PocketIC/pytest run) |
 | T4.6 | Visibility rules & public discovery queries | M | 1 | 2 | T4.5 | 2026-11-23 | 2026-11-24 | 02 §7 | Under-review hidden from non-owners | test: just demo T4.6  (narrated PocketIC/pytest run) |
 | T4.7 | Honeypot seeding (120 specs) | L | 2 | 1 | T4.2, T1.7 | 2026-11-13 | 2026-11-13 | 07 §3.6 | Honeypots uploaded locally | image: docs/demos/T4.7/contact-sheet.png |
-| T4.10 | Admin read APIs + audit log (platform) | L | 1 | 2 | T4.6 | 2026-11-25 | 2026-11-30 | 02 §9 | Admin queries paged; audit on every mutation | test: just demo T4.10  (narrated PocketIC/pytest run) |
+| T4.10 | Admin read APIs (platform; audit log exists since T2.1) | L | 1 | 2 | T4.6 | 2026-11-25 | 2026-11-30 | 02 §9 | Admin queries paged; audit on every mutation | test: just demo T4.10  (narrated PocketIC/pytest run) |
 | T4.11 | Name blocklist, admin_rename_aaa, house AAAs | L | 1 | 1 | T4.10 | 2026-12-01 | 2026-12-01 | 02 §9 | Renamed AAA keeps historical citation name | test: just demo T4.11  (narrated PocketIC/pytest run) |
 | T4.8 | Review/credits tests + proptests (02 §11 #4-9) | M | 2 | 3 | T4.6, T4.9 | 2026-11-25 | 2026-12-01 | 02 §11, 09 §1 | Tests green | test: just demo T4.8  (narrated PocketIC/pytest run) |
 
@@ -87,8 +87,8 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T5.9 | ckBTC fuel-pack deposits (address, update_balance, sweep) | H | 1 | 3 | T5.8 | 2026-12-08 | 2026-12-10 | 04 §6.5 | 04 §6.7 #10 | test: just demo T5.9  (narrated PocketIC/pytest run) |
 | T5.10 | ckETH fuel-pack deposits | M | 2 | 2 | T5.8, SP-6 | 2026-12-08 | 2026-12-09 | 04 §6.6 | Mock mint → top-up | test: just demo T5.10  (narrated PocketIC/pytest run) |
 | T5.13 | Non-ICP payment tests (04 §6.7) | M | 1 | 2 | T5.9, T5.10 | 2026-12-11 | 2026-12-14 | 04 §6.7 | All green | test: just demo T5.13  (narrated PocketIC/pytest run) |
-| T5.15 | Payments admin APIs + audit log | L | 1 | 1 | T5.13 | 2026-12-15 | 2026-12-15 | 04 §4 admin | Overview matches ledger balances | test: just demo T5.15  (narrated PocketIC/pytest run) |
-| T5.16 | Feature flags + invite codes (sponsored spawn) | M | 3 | 2 | T5.3 | 2026-12-04 | 2026-12-07 | 04 §0-0b | card=false → FeatureDisabled; invite single-use | test: just demo T5.16  (narrated PocketIC/pytest run) |
+| T5.15 | Payments admin APIs (audit log exists since T5.1) | L | 1 | 1 | T5.13 | 2026-12-15 | 2026-12-15 | 04 §4 admin | Overview matches ledger balances | test: just demo T5.15  (narrated PocketIC/pytest run) |
+| T5.16 | Feature flags + invite codes (sponsored spawn) | M | 3 | 2 | T5.3 | 2026-12-04 | 2026-12-07 | 04 §0-0b | btc/eth off → FeatureDisabled; invite single-use | test: just demo T5.16  (narrated PocketIC/pytest run) |
 | T5.17 | treasury canister: owner-funded reserve, cycles keeper, health() | H | 3 | 3 | T2.1, T1.4 | 2026-12-08 | 2026-12-10 | 12 §1-4 | Keeper tops up; health() drives intake pause | test: just demo T5.17  (narrated PocketIC/pytest run) |
 | T5.18 | treasury PocketIC tests (ICP ledger + CMC, no NNS) | M | 2 | 1 | T5.17 | 2026-12-11 | 2026-12-11 | 12 §5 | 12 §5 #1-6 green | test: just demo T5.18  (narrated PocketIC/pytest run) |
 | T5.7 | Internal payments security review | H | 2 | 2 | T5.6, T5.13, T5.16 | 2026-12-15 | 2026-12-16 | 08 §4 | Checklist signed | test: just demo T5.7  (narrated PocketIC/pytest run) |
@@ -124,31 +124,32 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T7.10 | Practice set + open data release tooling | L | 2 | 2 | T1.7, T4.8 | 2027-01-15 | 2027-01-18 | 07 §5b | Release v0 reproducible | image: docs/demos/T7.10/contact-sheet.png |
 | T7.5 | External security review (payments + platform) | - | you | 5 | T5.7, T4.8 | 2026-12-17 | 2026-12-23 | 08 §4 | Report received | note: 3-line summary in chat |
 | T7.6 | Fix security findings | H | 3 | 3 | T7.5 | 2027-01-18 | 2027-01-20 | 08 | All high/critical closed | test: just demo T7.6  (narrated PocketIC/pytest run) |
-| T7.11 | Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects) | M | 1 | 2 | T1.7, T2.3 | 2027-01-19 | 2027-01-20 | 07 §5c | Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects | test: just demo T7.11  (narrated PocketIC/pytest run) |
+| T7.11 | Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects) | M | 1 | 2 | T1.7, T2.3, T8.14 | 2027-01-19 | 2027-01-20 | 07 §5c | Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects | test: just demo T7.11  (narrated PocketIC/pytest run) |
 
 ## P8 — Beta & launch
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
 | T8.14 | Create Cloudflare R2 bucket + API token + custom domain; run `just publish-data` | - | you | 1 | T1.7 | 2026-10-21 | 2026-10-21 | 07 §2, §5.5 | manifest verifies on R2 (1% re-download) | note: 3-line summary in chat |
-| T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 2 | 2 | T7.1 | 2027-01-19 | 2027-01-20 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
-| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.14, T8.1, T7.6 | 2027-01-21 | 2027-01-21 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
-| T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-09 | 2027-02-09 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
-| T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-22 | 2027-02-04 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
-| T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-22 | 2027-02-04 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
-| T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-02-05 | 2027-02-08 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
-| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-10 | 2027-02-10 | OKR | Launch announced | note: 3-line summary in chat |
-| T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-21 | 2027-01-21 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
+| T8.16 | Scale dataset to 20,000 subjects (R-62) and publish v1 to R2 | L | 2 | 1 | T8.14 | 2027-01-19 | 2027-01-19 | 07 §5, REVIEW R-62 | 20k manifest verifies on R2; gold ≥ 2,000 | test: just demo T8.16  (narrated PocketIC/pytest run) |
+| T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 2 | 2 | T7.1 | 2027-01-20 | 2027-01-21 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
+| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.16, T8.1, T7.6 | 2027-01-22 | 2027-01-22 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
+| T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-10 | 2027-02-10 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
+| T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-25 | 2027-02-05 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
+| T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-25 | 2027-02-05 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
+| T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-02-08 | 2027-02-09 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
+| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-11 | 2027-02-11 | OKR | Launch announced | note: 3-line summary in chat |
+| T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-22 | 2027-01-22 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
 | T8.12 | Firebase projects (staging/prod) + GA4 funnels & dashboards | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 05 §4b | Funnel dashboard live | note: 3-line summary in chat |
 | T8.15 | Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits) | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 02 §5, 03, 06, 07 §4 | Agree/changes recorded in OKR.md; spec edits filed as tasks | note: 3-line summary in chat |
 | T8.8 | Compliance check for crypto fuel packs (recommended) | - | you | 5 | T0.4 | 2026-10-01 | 2026-10-07 | 08 S20 | Written go/no-go | note: 3-line summary in chat |
-| T8.9 | Enable BTC/ETH on production | - | you | 1 | T8.6, T8.8 | 2027-02-09 | 2027-02-09 | 04 §6.2 | admin_pause_non_icp off | note: 3-line summary in chat |
+| T8.9 | Enable BTC/ETH on production | - | you | 1 | T8.6, T8.8 | 2027-02-10 | 2027-02-10 | 04 §6.2 | admin_pause_non_icp off | note: 3-line summary in chat |
 
 ## P9 — Design & polish (after function)
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
-| T9.1 | Import mockups (Claude Design), reconcile, design tokens + shared components | M | 2 | 4 | T6.10 | 2027-01-21 | 2027-01-26 | 05 intro | 05a-design-reconciliation.md + component page | shots: docs/demos/T9.1/*.png (Playwright) |
+| T9.1 | Import mockups (Claude Design), reconcile, design tokens + shared components | M | 3 | 4 | T6.10 | 2027-01-21 | 2027-01-26 | 05 intro | 05a-design-reconciliation.md + component page | shots: docs/demos/T9.1/*.png (Playwright) |
 | T9.2 | Style public pages: landing, museum, discovery, profile, leaderboard | M | 2 | 4 | T9.1 | 2027-01-27 | 2027-02-01 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.2/*.png (Playwright) |
 | T9.3 | Style owner flows: spawn, dashboard, connect agent, fuel, payments | M | 3 | 4 | T9.1 | 2027-01-27 | 2027-02-01 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.3/*.png (Playwright) |
 | T9.4 | Style admin console + about/legal/practice pages | L | 2 | 2 | T9.1 | 2027-02-02 | 2027-02-03 | 05 §2b | Visual snapshots | shots: docs/demos/T9.4/*.png (Playwright) |
@@ -174,5 +175,5 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | M4 Payments complete | T5.7 | 2026-12-16 |
 | M5 Frontend feature-complete (unstyled) | T6.10 | 2027-01-18 |
 | M5b Design applied | T9.5 | 2027-02-05 |
-| M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-21 |
-| M7 Public launch | T8.7 | 2027-02-10 |
+| M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-22 |
+| M7 Public launch | T8.7 | 2027-02-11 |

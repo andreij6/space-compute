@@ -65,7 +65,7 @@ T = [
  ("T4.5","P4","Citations + certification tree + get_citation","BE-A",3,["T4.4"],"02 §8.3","Witness verifies after upgrade",0),
  ("T4.6","P4","Visibility rules & public discovery queries","BE-A",2,["T4.5"],"02 §7","Under-review hidden from non-owners",0),
  ("T4.7","P4","Honeypot seeding (120 specs)","BE-B",1,["T4.2","T1.7"],"07 §3.6","Honeypots uploaded locally",0),
- ("T4.10","P4","Admin read APIs + audit log (platform)","BE-A",2,["T4.6"],"02 §9","Admin queries paged; audit on every mutation",0),
+ ("T4.10","P4","Admin read APIs (platform; audit log exists since T2.1)","BE-A",2,["T4.6"],"02 §9","Admin queries paged; audit on every mutation",0),
  ("T4.11","P4","Name blocklist, admin_rename_aaa, house AAAs","BE-A",1,["T4.10"],"02 §9","Renamed AAA keeps historical citation name",0),
  ("T4.8","P4","Review/credits tests + proptests (02 §11 #4-9)","BE-A",3,["T4.6","T4.9"],"02 §11, 09 §1","Tests green",0),
  ("T5.1","P5","payments skeleton: config, journal, guards, admin","BE-B",2,["T1.2","SP-1"],"04 §3","Journal persisted pre-await",0),
@@ -78,8 +78,8 @@ T = [
  ("T5.9","P5","ckBTC fuel-pack deposits (address, update_balance, sweep)","BE-B",3,["T5.8"],"04 §6.5","04 §6.7 #10",0),
  ("T5.10","P5","ckETH fuel-pack deposits","BE-B",2,["T5.8","SP-6"],"04 §6.6","Mock mint → top-up",0),
  ("T5.13","P5","Non-ICP payment tests (04 §6.7)","BE-B",2,["T5.9","T5.10"],"04 §6.7","All green",0),
- ("T5.15","P5","Payments admin APIs + audit log","BE-B",1,["T5.13"],"04 §4 admin","Overview matches ledger balances",0),
- ("T5.16","P5","Feature flags + invite codes (sponsored spawn)","BE-B",2,["T5.3"],"04 §0-0b","card=false → FeatureDisabled; invite single-use",0),
+ ("T5.15","P5","Payments admin APIs (audit log exists since T5.1)","BE-B",1,["T5.13"],"04 §4 admin","Overview matches ledger balances",0),
+ ("T5.16","P5","Feature flags + invite codes (sponsored spawn)","BE-B",2,["T5.3"],"04 §0-0b","btc/eth off → FeatureDisabled; invite single-use",0),
  ("T5.17","P5","treasury canister: owner-funded reserve, cycles keeper, health()","BE-A",3,["T2.1","T1.4"],"12 §1-4","Keeper tops up; health() drives intake pause",0),
  ("T5.18","P5","treasury PocketIC tests (ICP ledger + CMC, no NNS)","BE-A",1,["T5.17"],"12 §5","12 §5 #1-6 green",0),
  ("T5.7","P5","Internal payments security review","BE-A",2,["T5.6","T5.13","T5.16"],"08 §4","Checklist signed",0),
@@ -105,10 +105,11 @@ T = [
  ("T7.10","P7","Practice set + open data release tooling","BE-B",2,["T1.7","T4.8"],"07 §5b","Release v0 reproducible",0),
  ("T7.5","P7","External security review (payments + platform)","Vendor",5,["T5.7","T4.8"],"08 §4","Report received",0),
  ("T7.6","P7","Fix security findings","BE-B",3,["T7.5"],"08","All high/critical closed",0),
- ("T7.11","P7","Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects)","BE-B",2,["T1.7","T2.3"],"07 §5c","Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects",0),
+ ("T7.11","P7","Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects)","BE-B",2,["T1.7","T2.3","T8.14"],"07 §5c","Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects",0),
  ("T8.14","P8","Create Cloudflare R2 bucket + API token + custom domain; run `just publish-data`","Owner",1,["T1.7"],"07 §2, §5.5","manifest verifies on R2 (1% re-download)",0),
+ ("T8.16","P8","Scale dataset to 20,000 subjects (R-62) and publish v1 to R2","BE-B",1,["T8.14"],"07 §5, REVIEW R-62","20k manifest verifies on R2; gold ≥ 2,000",0),
  ("T8.1","P8","Staging deploy, deploy workflow, snapshots, cycles monitoring","BE-A",2,["T7.1"],"09 §2-3","Staging live",0),
- ("T8.2","P8","Upload subjects/protocol/honeypots to staging","BE-B",1,["T8.14","T8.1","T7.6"],"07","Counts verified",0),
+ ("T8.2","P8","Upload subjects/protocol/honeypots to staging","BE-B",1,["T8.16","T8.1","T7.6"],"07","Counts verified",0),
  ("T8.5","P8","Fund prod treasury with ICP float (10–20 ICP) + confirm runway","Owner",1,["T8.6"],"12 §4","status() shows ≥ 90 days runway",0),
  ("T8.3","P8","Closed beta (10-20 owners)","Owner",10,["T8.2","T6.10"],"OKR KR","Beta KRs measured",0),
  ("T8.4","P8","Beta fixes & tuning","BE-A",10,["T8.2","T6.10"],"—","No open P0/P1 bugs",0),
@@ -144,7 +145,7 @@ T4.1:M T4.2:H T4.3:M T4.4:H T4.5:H T4.6:M T4.7:L T4.8:M T4.9:H T4.10:L T4.11:L
 T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.8:H T5.9:H T5.10:M T5.13:M T5.15:L T5.16:M T5.17:H T5.18:M
 T6.1:M T6.3:M T6.4:L T6.5:M T6.6:L T6.7:M T6.8:L T6.9:L T6.10:M T6.11:M T6.12:M T6.13:L T6.14:L
 T7.1:M T7.2:M T7.3:M T7.4:M T7.5:- T7.6:H T7.7:H T7.9:L T7.10:L T7.11:M
-T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.8:- T8.9:- T8.12:- T8.13:- T8.14:- T8.15:-
+T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.8:- T8.9:- T8.12:- T8.13:- T8.14:- T8.15:- T8.16:L
 T9.1:M T9.2:M T9.3:M T9.4:L T9.5:L""".split())
 MODEL = {"H": "opus-5.5 (high)", "M": "sonnet-5", "L": "haiku-4.5", "-": "human"}
 def demo(tid, ph, name):

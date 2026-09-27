@@ -809,7 +809,7 @@
  {
   "id": "T4.10",
   "phase": "P4",
-  "name": "Admin read APIs + audit log (platform)",
+  "name": "Admin read APIs (platform; audit log exists since T2.1)",
   "lane": 1,
   "tier": "L",
   "model": "haiku-4.5",
@@ -1063,7 +1063,7 @@
  {
   "id": "T5.15",
   "phase": "P5",
-  "name": "Payments admin APIs + audit log",
+  "name": "Payments admin APIs (audit log exists since T5.1)",
   "lane": 1,
   "tier": "L",
   "model": "haiku-4.5",
@@ -1091,7 +1091,7 @@
    "T5.3"
   ],
   "spec": "04 §0-0b",
-  "acceptance": "card=false → FeatureDisabled; invite single-use",
+  "acceptance": "btc/eth off → FeatureDisabled; invite single-use",
   "demo": "test: just demo T5.16  (narrated PocketIC/pytest run)",
   "start": "2026-12-04",
   "end": "2026-12-07",
@@ -1610,7 +1610,8 @@
   "days": 2,
   "deps": [
    "T1.7",
-   "T2.3"
+   "T2.3",
+   "T8.14"
   ],
   "spec": "07 §5c",
   "acceptance": "Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects",
@@ -1640,6 +1641,25 @@
   "pct": 0
  },
  {
+  "id": "T8.16",
+  "phase": "P8",
+  "name": "Scale dataset to 20,000 subjects (R-62) and publish v1 to R2",
+  "lane": 2,
+  "tier": "L",
+  "model": "haiku-4.5",
+  "days": 1,
+  "deps": [
+   "T8.14"
+  ],
+  "spec": "07 §5, REVIEW R-62",
+  "acceptance": "20k manifest verifies on R2; gold ≥ 2,000",
+  "demo": "test: just demo T8.16  (narrated PocketIC/pytest run)",
+  "start": "2027-01-19",
+  "end": "2027-01-19",
+  "status": "todo",
+  "pct": 0
+ },
+ {
   "id": "T8.1",
   "phase": "P8",
   "name": "Staging deploy, deploy workflow, snapshots, cycles monitoring",
@@ -1653,8 +1673,8 @@
   "spec": "09 §2-3",
   "acceptance": "Staging live",
   "demo": "test: just demo T8.1  (narrated PocketIC/pytest run)",
-  "start": "2027-01-19",
-  "end": "2027-01-20",
+  "start": "2027-01-20",
+  "end": "2027-01-21",
   "status": "todo",
   "pct": 0
  },
@@ -1667,15 +1687,15 @@
   "model": "haiku-4.5",
   "days": 1,
   "deps": [
-   "T8.14",
+   "T8.16",
    "T8.1",
    "T7.6"
   ],
   "spec": "07",
   "acceptance": "Counts verified",
   "demo": "test: just demo T8.2  (narrated PocketIC/pytest run)",
-  "start": "2027-01-21",
-  "end": "2027-01-21",
+  "start": "2027-01-22",
+  "end": "2027-01-22",
   "status": "todo",
   "pct": 0
  },
@@ -1693,8 +1713,8 @@
   "spec": "12 §4",
   "acceptance": "status() shows ≥ 90 days runway",
   "demo": "note: 3-line summary in chat",
-  "start": "2027-02-09",
-  "end": "2027-02-09",
+  "start": "2027-02-10",
+  "end": "2027-02-10",
   "status": "todo",
   "pct": 0
  },
@@ -1713,8 +1733,8 @@
   "spec": "OKR KR",
   "acceptance": "Beta KRs measured",
   "demo": "note: 3-line summary in chat",
-  "start": "2027-01-22",
-  "end": "2027-02-04",
+  "start": "2027-01-25",
+  "end": "2027-02-05",
   "status": "todo",
   "pct": 0
  },
@@ -1733,8 +1753,8 @@
   "spec": "—",
   "acceptance": "No open P0/P1 bugs",
   "demo": "test: just demo T8.4  (narrated PocketIC/pytest run)",
-  "start": "2027-01-22",
-  "end": "2027-02-04",
+  "start": "2027-01-25",
+  "end": "2027-02-05",
   "status": "todo",
   "pct": 0
  },
@@ -1754,8 +1774,8 @@
   "spec": "09 §2",
   "acceptance": "Prod live",
   "demo": "test: just demo T8.6  (narrated PocketIC/pytest run)",
-  "start": "2027-02-05",
-  "end": "2027-02-08",
+  "start": "2027-02-08",
+  "end": "2027-02-09",
   "status": "todo",
   "pct": 0
  },
@@ -1775,8 +1795,8 @@
   "spec": "OKR",
   "acceptance": "Launch announced",
   "demo": "note: 3-line summary in chat",
-  "start": "2027-02-10",
-  "end": "2027-02-10",
+  "start": "2027-02-11",
+  "end": "2027-02-11",
   "status": "todo",
   "pct": 0
  },
@@ -1784,7 +1804,7 @@
   "id": "T9.1",
   "phase": "P9",
   "name": "Import mockups (Claude Design), reconcile, design tokens + shared components",
-  "lane": 2,
+  "lane": 3,
   "tier": "M",
   "model": "sonnet-5",
   "days": 4,
@@ -1891,8 +1911,8 @@
   "spec": "05 §1",
   "acceptance": "Domain serves frontend; II principal stable",
   "demo": "note: 3-line summary in chat",
-  "start": "2027-01-21",
-  "end": "2027-01-21",
+  "start": "2027-01-22",
+  "end": "2027-01-22",
   "status": "todo",
   "pct": 0
  },
@@ -1968,8 +1988,8 @@
   "spec": "04 §6.2",
   "acceptance": "admin_pause_non_icp off",
   "demo": "note: 3-line summary in chat",
-  "start": "2027-02-09",
-  "end": "2027-02-09",
+  "start": "2027-02-10",
+  "end": "2027-02-10",
   "status": "todo",
   "pct": 0
  }
