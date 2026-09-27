@@ -24,6 +24,10 @@ test-integration:
 demo TASK_ID:
     @bash scripts/demo.sh {{TASK_ID}}
 
+# Print the task table as CSV for the Google Sheet (upload via the Drive connector as text/csv)
+gantt-csv:
+    @python3 scripts/gantt_csv.py
+
 # Set a task's status in tasks.json (todo | in_progress | done) and regenerate the plan
 task-status TASK_ID STATUS:
     @python3 scripts/task-status.py {{TASK_ID}} {{STATUS}}
@@ -49,6 +53,26 @@ py-test:
 # Generate the 50 synthetic fixture dossiers into target/fixtures
 fixtures:
     @cd tools/curation && uv run -q python -m sc_curation.fixtures --out ../../target/fixtures
+
+# Download DJA v7 catalogues (~4 GB, cached in ~/.cache/space-compute/dja)
+curate-fetch:
+    @cd tools/curation && uv run -q python -m sc_curation.fetch
+
+# Select 20k subjects + gold into data/curation/v1
+curate-select:
+    @cd tools/curation && uv run -q python -m sc_curation.select --out ../../data/curation/v1
+
+# Stream mosaics and render every dossier into target/bucket (resumable per root)
+curate-dossiers *ARGS:
+    @cd tools/curation && uv run -q python -m sc_curation.dossiers {{ARGS}}
+
+# Automated + visual QA of 40 random dossiers
+curate-qa:
+    @cd tools/curation && uv run -q python -m sc_curation.qa
+
+# Verify every hash in target/bucket, then upload to R2 (needs R2_* env vars; owner task T8.14)
+publish-data:
+    @cd tools/curation && uv run -q python -m sc_curation.publish --upload
 
 # Fuzz sc-types decoders and validators (nightly toolchain; default 60 s per target)
 fuzz SECS='60':
