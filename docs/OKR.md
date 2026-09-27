@@ -2,7 +2,7 @@
 
 *Living document. Update the "Current" column and status at every milestone (M1–M7 in `specs/10-tasks.md`) and at the end of each phase. Status: 🟢 on track · 🟡 at risk · 🔴 off track · ⚪ not started · ✅ done.*
 
-**Cycle:** MVP build, 2026-09-28 → 2027-02-12 (public launch)
+**Cycle:** MVP build, 2026-09-28 → 2027-02-02 (public launch)
 **Last updated:** 2026-09-26 (baseline, planning complete)
 
 ---
@@ -11,7 +11,7 @@
 
 | KR | Target | Current | Status |
 |---|---|---|---|
-| KR1.1 Public launch on mainnet with all 10 designed screens live | by 2027-02-12 | planning done | ⚪ |
+| KR1.1 Public launch on mainnet with all 10 designed screens live | by 2027-02-02 | planning done | ⚪ |
 | KR1.2 All spec acceptance checks traced to automated tests and passing in local verification suite (11 §2) | 100% | 0% | ⚪ |
 | KR1.5 Line coverage on platform/payments/treasury | ≥ 90% | — | ⚪ |
 | KR1.3 External security review: 0 open high/critical findings at launch | 0 | — | ⚪ |
@@ -66,4 +66,4 @@
 | 2026-09-26 | JWST data source; submission security; first-claim rule; admin console. |
 | 2026-09-27 | Analytics (Firebase/GA4, T6.13/T8.12) removed from MVP scope; O2 funnel KRs measured from on-chain event timestamps instead. |
 | 2026-09-26 | Baseline OKRs set after specs, adversarial review and Gantt. Added card/BTC/ETH fuel packs (owner decision), so KR2.4 and KR4.2–4.3 were added. |
-| 2026-09-27 | ICP-only payments for MVP (owner decision): card, ckBTC and ckETH fuel packs deferred (D1-D12). KR2.4 scoped to ICP/invite. |
+| 2026-09-27 | ICP-only payments for MVP (owner decision): card, ckBTC and ckETH fuel packs deferred (D1-D12). KR2.4 scoped to ICP/invite. Launch moved to 2027-02-02. |

@@ -8,7 +8,7 @@ Start here. These specs are written for the implementing agents (Claude Code). F
 | 01 | [Architecture & decisions](01-architecture.md) | ADRs, system diagram, repo layout, conventions, parameters |
 | 02 | [`platform` canister](02-platform-canister.md) | registry/factory, tasks & gold, scoring, discoveries, review & consensus, credits (citations, XP, tiers, badges, leaderboard) |
 | 03 | [`aaa` canister](03-aaa-canister.md) | the user-owned agent canister: relay, operators, repository, timers |
-| 04 | [`payments` canister](04-payments-canister.md) | ICP pass-through (spawn, top-up, auto top-up) and treasury-backed $5 fuel packs (card/BTC/ETH) |
+| 04 | [`payments` canister](04-payments-canister.md) | ICP pass-through (spawn, top-up, auto top-up); card/BTC/ETH fuel packs deferred (D1-D12) |
 | 04b | [Stripe relay](04b-stripe-relay.md) | the only off-chain component |
 | 05 | [Frontend](05-frontend.md) | routes, data sources, behaviours, payment component |
 | 06 | [Agent toolkit](06-agent-toolkit.md) | the operator skill for Claude Code |
@@ -32,4 +32,4 @@ Start here. These specs are written for the implementing agents (Claude Code). F
 
 ## Tracking
 - **Gantt & progress:** Google Sheet https://docs.google.com/spreadsheets/d/1kPN4smVMnWE_0jPmLXbRXyevcpzHlqMGdaU3wKS6qXI/edit (Gantt / Progress / Milestones tabs). Refresh: `just plan`, then `just gantt-paste` and paste into Gantt!A2 (done via Claude in Chrome — the Drive connector cannot edit cells). Local copy: `docs/space-compute-gantt-v3.xlsx`.
-- **Baseline:** start 2026-09-28, public launch 2027-02-12. Claude Code writes all the code in 3 parallel lanes (parallel sessions committing straight to `main`); the owner signs off, reviews demo cards, runs the beta, sets up accounts and funds the treasury.
+- **Baseline:** start 2026-09-28, public launch 2027-02-02 (owner decisions 2026-09-27: no Stripe until the app is ready, ICP-only payments for MVP moved launch earlier). Claude Code writes all the code in 3 parallel lanes (parallel sessions committing straight to `main`); the owner signs off, reviews demo cards, runs the beta, sets up accounts and funds the treasury.

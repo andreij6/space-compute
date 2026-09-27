@@ -87,7 +87,7 @@ The console is visible only when `msg_caller()` is in the platform or payments a
 
 ## 5. Acceptance
 0. Admin: a non-admin principal gets 404 on `/admin` and `Unauthorized` from every admin method. Every admin mutation appears in the audit view.
-1. All 10 routes render against a local deployment seeded by `tools/seed-local` (task T1.6), with loading, empty and error states.
+1. All 10 routes render against a local deployment seeded by `tools/seed-local` (task T3.8), with loading, empty and error states.
 2. Signed-out visitors can browse 1–5; owner routes redirect to sign-in.
 3. Spawn works end-to-end locally via the Deposit path (the wallet path is exercised in staging with OISY).
 4. The citation "verified" mark fails closed (a tampered witness shows unverified).
