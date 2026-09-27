@@ -48,6 +48,11 @@ if [ -f tools/curation/pyproject.toml ] || [ -d tools/curation/tests ]; then
   ok "pytest (tools/curation)"
 fi
 
+if [ -d agent-kit/tests ]; then
+  (cd agent-kit && uv run -q --with pytest pytest -q tests) >/dev/null 2>&1 || fail "pytest (agent-kit)"
+  ok "pytest (agent-kit)"
+fi
+
 if [ -f frontend/package.json ]; then
   (cd frontend && npm run -s typecheck && npm run -s lint && npm run -s test && npm run -s build) >/tmp/sc-frontend.log 2>&1 || { tail -30 /tmp/sc-frontend.log; false; } || fail "frontend checks"
   ok "frontend typecheck, lint, test, build"

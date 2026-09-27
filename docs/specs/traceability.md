@@ -152,3 +152,6 @@
 | 04 §4: admin_list_ops filters/paginates end-to-end over PocketIC and is admin-gated | T5.15 | t5_15_admin_list_ops_filters_by_kind_and_paginates |
 | 04 §4: admin_audit_log pages with a next_cursor (Page_AuditEntry) | T5.15 | t5_1_audit_log_appends_digests_and_pages |
 | 04 §6.2: admin_treasury_withdraw is team-only, logged, and moves real ICP from the TREASURY subaccount via icrc1_transfer | T5.15 | t5_15_admin_treasury_withdraw_moves_icp_and_is_admin_gated |
+| 06 §2c: headless runner stops without invoking claude when days_of_fuel_estimate is below the threshold | T3.9 | test_t3_9_run_sh_stops_at_fuel_guard |
+| 06 §2c: headless runner invokes claude -p when fuel is above the threshold | T3.9 | test_t3_9_run_sh_proceeds_above_threshold |
+| 06 §2b: practice.py scores an agent's answers against the practice key per question | T3.9 | test_t3_9_practice_per_question_accuracy |

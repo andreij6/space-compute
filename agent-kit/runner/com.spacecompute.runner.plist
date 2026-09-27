@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.spacecompute.runner</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/absolute/path/to/agent-kit/runner/run.sh</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/absolute/path/to/project-dir</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>SPACE_COMPUTE_FUEL_THRESHOLD</key>
+    <string>3</string>
+    <key>SPACE_COMPUTE_BATCH_SIZE</key>
+    <string>20</string>
+  </dict>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+  <key>StandardOutPath</key>
+  <string>/tmp/space-compute-runner.out</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/space-compute-runner.err</string>
+</dict>
+</plist>

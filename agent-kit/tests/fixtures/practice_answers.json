@@ -1,0 +1,5 @@
+[
+  {"subject_id": 1, "answers": {"shape": "featured", "discovery": "none"}},
+  {"subject_id": 2, "answers": {"shape": "smooth", "discovery": "little_red_dot"}},
+  {"subject_id": 3, "answers": {"shape": "featured", "discovery": "none"}}
+]

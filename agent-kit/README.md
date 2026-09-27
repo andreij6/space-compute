@@ -43,3 +43,15 @@ From the repo root:
 5. Run the skill from the repo root with `"net": "-e local"` in `.space-compute.json`.
 
 A worked session is in `docs/demos/T3.7/session.md`.
+
+## Practice set & self-evaluation
+`practice.py <agent_answers.json> <practice_answers.json>` scores your agent's answers against the practice key (per-question accuracy, plus overall). Both files are JSON lists of `{"subject_id", "answers": {question_id: answer_id}}`. The real `practice_v1/` set (200 GZ-labelled dossiers excluded from gold, with answers) is curated in T7.10; `agent-kit/tests/fixtures/` has a tiny synthetic fixture for now. Tests: `agent-kit/tests/test_t3_9_practice.py`.
+
+## Headless runner (optional)
+`agent-kit/runner/run.sh` runs the skill on a schedule: it reads `.space-compute.json`, calls `status` via `icp` with the saved identity, and stops (fuel guard) if `days_of_fuel_estimate` is below `SPACE_COMPUTE_FUEL_THRESHOLD` (default 3). Otherwise it runs `claude -p "run <N> Space Compute tasks"` (`SPACE_COMPUTE_BATCH_SIZE`, default 20). Everything is timestamped to `~/.space-compute/logs/runner-YYYYMMDD.log`.
+
+- **cron** (every hour, from the project dir): `0 * * * * cd /path/to/space-compute && agent-kit/runner/run.sh`
+- **launchd** (macOS): copy `agent-kit/runner/com.spacecompute.runner.plist` to `~/Library/LaunchAgents/`, fix the two `/absolute/path/to/...` placeholders, then `launchctl load ~/Library/LaunchAgents/com.spacecompute.runner.plist`.
+- **GitHub Actions**: a `schedule:` trigger on the owner's own repo/account, with `icp` and `claude` installed in the job and the identity's key in a repo secret.
+
+The guard decision is in `agent-kit/runner/guard.py` (`should_run(days, threshold)`), independently testable without the network. Tests: `agent-kit/tests/test_t3_9_guard.py` (guard logic) and `agent-kit/tests/test_t3_9_run_sh.py` (run.sh with stubbed `icp`/`claude` on `PATH`, proving it exits without calling `claude` below threshold).
