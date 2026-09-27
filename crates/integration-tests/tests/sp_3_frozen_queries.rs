@@ -3,6 +3,8 @@ use integration_tests::pic::{user, IcpEnv, E8S, MEMO_TOP_UP};
 use integration_tests::step;
 use pocket_ic::CanisterSettings;
 
+use aaa::config::AaaInit;
+
 fn describe(r: &Result<Vec<u8>, pocket_ic::RejectResponse>) -> String {
     match r {
         Ok(_) => "answered".into(),
@@ -19,7 +21,19 @@ fn sp_3_frozen_aaa_rejects_queries_until_topped_up_via_the_cmc() {
     println!("SP-3 demo: what works when an AAA canister is frozen, and how it recovers");
     let env = IcpEnv::new();
     let owner = user(1);
-    let aaa = env.install_with_cycles("aaa", owner, 1_000_000_000_000);
+    let aaa = env.install_on_with_arg(
+        "aaa",
+        owner,
+        1_000_000_000_000,
+        0,
+        AaaInit {
+            owner,
+            platform_id: user(90),
+            payments_id: user(91),
+            name: "Rover One".into(),
+            avatar_seed: 1,
+        },
+    );
     let balance = env.pic.cycle_balance(aaa);
     let burn_per_day: u128 = env
         .pic

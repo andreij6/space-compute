@@ -144,6 +144,26 @@ impl IcpEnv {
         cycles: u128,
         subnet_index: usize,
     ) -> Principal {
+        self.install_on_with_arg(name, controller, cycles, subnet_index, ())
+    }
+
+    pub fn install_with_arg<A: CandidType>(
+        &self,
+        name: &str,
+        controller: Principal,
+        arg: A,
+    ) -> Principal {
+        self.install_on_with_arg(name, controller, 10_000_000_000_000, 0, arg)
+    }
+
+    pub fn install_on_with_arg<A: CandidType>(
+        &self,
+        name: &str,
+        controller: Principal,
+        cycles: u128,
+        subnet_index: usize,
+        arg: A,
+    ) -> Principal {
         let subnet = self.pic.topology().get_app_subnets()[subnet_index];
         let id = self
             .pic
@@ -152,7 +172,7 @@ impl IcpEnv {
         self.pic.install_canister(
             id,
             canister_wasm(name),
-            encode_one(()).unwrap(),
+            encode_one(arg).unwrap(),
             Some(controller),
         );
         id

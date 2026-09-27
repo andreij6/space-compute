@@ -1,8 +1,35 @@
+pub mod api;
+pub mod config;
+mod memory;
+pub mod operators;
+pub mod roles;
+
+use candid::Principal;
+use config::AaaInit;
+use operators::Operator;
+use roles::Role;
+use sc_types::ApiError;
+
 #[ic_cdk::init]
-fn init() {}
+fn init(init_arg: AaaInit) {
+    let cfg = config::Config::from_init(init_arg)
+        .unwrap_or_else(|e| ic_cdk::trap(format!("invalid aaa init: {e}")));
+    config::set(cfg);
+}
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {}
+
+#[ic_cdk::inspect_message]
+fn inspect_message() {
+    let caller = ic_cdk::api::msg_caller();
+    let cfg = config::get();
+    let now = ic_cdk::api::time();
+    let operator_active = operators::is_active(&caller, now);
+    if roles::can_ingress(caller, cfg.owner, operator_active) {
+        ic_cdk::api::accept_message();
+    }
+}
 
 #[ic_cdk::query]
 fn version() -> String {

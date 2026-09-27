@@ -3,6 +3,18 @@ use integration_tests::pic::{user, IcpEnv};
 use integration_tests::step;
 use serde::Deserialize;
 
+use aaa::config::AaaInit;
+
+fn aaa_init(owner: Principal) -> AaaInit {
+    AaaInit {
+        owner,
+        platform_id: user(90),
+        payments_id: user(91),
+        name: "Rover One".into(),
+        avatar_seed: 1,
+    }
+}
+
 #[derive(CandidType, Deserialize, Debug)]
 struct InfoProbe {
     total_num_changes: u64,
@@ -37,8 +49,8 @@ fn sp_4_canister_info_cost_and_latency_same_vs_cross_subnet() {
     let env = IcpEnv::with_app_subnets(2);
     let owner = user(1);
     let probe = env.install_on("spike-probe", owner, 10_000_000_000_000, 0);
-    let local_aaa = env.install_on("aaa", owner, 1_000_000_000_000, 0);
-    let remote_aaa = env.install_on("aaa", owner, 1_000_000_000_000, 1);
+    let local_aaa = env.install_on_with_arg("aaa", owner, 1_000_000_000_000, 0, aaa_init(owner));
+    let remote_aaa = env.install_on_with_arg("aaa", owner, 1_000_000_000_000, 1, aaa_init(owner));
 
     let (baseline, _) = rounds_until_done(&env, local_aaa, "version", encode_one(()).unwrap());
     step(&format!(

@@ -1,1 +1,43 @@
-service : () -> { version : () -> (text) query }
+type AaaInit = record {
+  platform_id : principal;
+  owner : principal;
+  name : text;
+  avatar_seed : nat64;
+  payments_id : principal;
+};
+type ApiError = variant {
+  Internal : text;
+  NotRegistered;
+  InvalidInput : text;
+  InsufficientFee : record { required : nat };
+  NotFound;
+  Suspended;
+  LeaseExpired;
+  LeaseNotFound;
+  Unauthorized;
+  RateLimited : record { retry_after_secs : nat32 };
+  NotEligible : text;
+  Conflict : text;
+};
+type Operator = record {
+  v : nat8;
+  last_used_at : opt nat64;
+  added_at : nat64;
+  label : text;
+  expires_at : opt nat64;
+};
+type Result = variant { Ok; Err : ApiError };
+type Result_1 = variant {
+  Ok : vec record { principal; Operator };
+  Err : ApiError;
+};
+type Role = variant { Operator; None; Platform; Owner };
+service : (AaaInit) -> {
+  add_operator : (principal, text, opt nat64) -> (Result);
+  list_operators : () -> (Result_1) query;
+  remove_operator : (principal) -> (Result);
+  set_agent_label : (opt text) -> (Result);
+  set_auto_topup : (opt nat) -> (Result);
+  version : () -> (text) query;
+  whoami : () -> (Role) query;
+}

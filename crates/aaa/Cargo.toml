@@ -5,10 +5,11 @@ edition.workspace = true
 license.workspace = true
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 candid.workspace = true
 ic-cdk.workspace = true
 serde.workspace = true
 sc-types.workspace = true
+ic-stable-structures.workspace = true

@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "ic-cdk 0.20.3",
+ "ic-stable-structures",
  "sc-types",
  "serde",
 ]
@@ -1141,6 +1142,7 @@ dependencies = [
 name = "integration-tests"
 version = "0.1.0"
 dependencies = [
+ "aaa",
  "candid",
  "ic-ledger-types",
  "icrc-ledger-types",
