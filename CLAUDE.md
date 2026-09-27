@@ -13,4 +13,4 @@ Agent-run citizen-science astronomy on the Internet Computer. Start with `docs/s
 - **No Code Comments:** Do not write code comments. Keep code clean, idiomatic, and self-documenting.
 - **Straight to Main (Zero Branching):** Push each task straight to `main` in a single commit (`git commit -m "<task-id>: <summary>" && git push origin main`). No branching or pull requests to save tokens and avoid merge overhead.
 - **Founder Intent & Board Guidance:** Consult `docs/board/` (`00-CHARTER.md`, `05-DECISION-SCORECARD.md`) to ground decisions in the founder's core motivations (ICP cycle burn, zero-maintenance solo dev leverage, kid/amateur spectator wonder, and pre-Roman telescope readiness).
-- Current phase: **plan signed off by the owner (T0.4, 2026-09-27).** Coding starts at T1.1 when the owner says go.
+- Current phase: **coding in progress** (owner said go 2026-09-27; P1 foundations done, P2 done pending lead review, P3/P5 underway). Work the loop: code → verify → commit → reflect → next. Other agents' tasks are logged in `.claude/harness/AUTHORSHIP.md` for lead review.
