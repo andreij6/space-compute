@@ -37,6 +37,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T5.4 | 890db97 | Sonnet sub-agent |
 | T4.9 | d8c5086 | Opus sub-agent |
 | T5.5 | fcbd1f9 | Sonnet sub-agent; also applied btc/eth=false defaults |
+| T4.2 | 8571ac0 | Opus sub-agent |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
