@@ -64,7 +64,7 @@ Method: two passes over specs 01–09, posing as (a) an attacker, (b) a skeptica
 |---|---|---|---|
 | R-80 | JWST mosaics are multi-GB; agents can't be pointed at raw archive products | High | Pre-rendered per-subject dossiers (cutouts + metadata), 07 §3 |
 | R-81 | Hot-linking a volunteer cutout service (grizli-cutout) risks abuse, outages and changing pixels | High | Own content-addressed R2 bucket (ADR-18); the canister stores hashes |
-| R-82 | Galaxy Zoo DESI gold doesn't apply to JWST | High | GZ JWST CEERS labels (SP-7) with an objective-gold fallback |
+| R-82 | Galaxy Zoo DESI gold doesn't apply to JWST | GZ CANDELS (HST, public) as gold with a z < 2 guard; GZ CEERS swapped in if released | GZ JWST CEERS labels (SP-7) with an objective-gold fallback |
 | R-83 | Discoveries on JWST need physical context (redshift, colors, lensing), or claims are unfalsifiable | Med | Dossier carries photo-z with uncertainty, spec-z, photometry, morphology, μ; rationales must cite fields |
 | R-84 | Exclusive-access (proprietary) data must not leak | Med | `select.py` verifies public status through MAST; only public programs are used |
 | R-85 | Credit obligations to the JWST/DJA/survey teams | Low | Acknowledgment + program credits in every dossier, the discovery page and citations |
@@ -113,7 +113,7 @@ Walked every journey end to end: visitor, new owner (with and without ICP), agen
 | SP-4 | `canister_info` cycle cost and latency cross-subnet | T2.x verification | **Resolved 2026-09-27 (measured).** ~5.9M cycles and +1–2 rounds per call, same or cross subnet. Strict per-call check kept on `submit_*` (security), cached ≤ 1 h on `get_*`. Proof: `just demo SP-4`. |
 | SP-5 | Real per-call cycles for the platform methods (instructions) | Fee params | Scheduled for Phase 2 benchmarking; initial cycle fees configured per `01 §4`. Retune in T7.3. |
 | SP-6 | ckETH helper contract: subaccount deposits and minimum deposit | T5.10 | **Resolved 2026-09-27.** Subaccount deposits supported (helper contract). ETH minimum 0.005 ETH (≈$15), so the ETH path is "any amount ≥ minimum", credited at full value. ckBTC: 4 confirmations, 300-sat minimum, 100-sat fee. Proof: `scripts/spikes/sp-6-minters.sh`. |
-| SP-7 | Galaxy Zoo JWST (CEERS) classifications: public release, licence, and question mapping to protocol v1 | T1.5 gold | **Resolved.** Smethurst et al. (2025) released ~7,000 classifications under CC BY 4.0 mapping 1:1. Filter ~2,000 gold subjects (votes ≥ 20, agreement ≥ 0.8). |
+| SP-7 | Galaxy Zoo JWST (CEERS) classifications: public release, licence, and question mapping to protocol v1 | T1.5 gold | **Resolved 2026-09-27.** GZ JWST CEERS labels are not public. Use Galaxy Zoo: CANDELS (public, HST, COSMOS/GOODS-S/UDS) with a z < 2 crossmatch guard, plus objective gold for the other fields. Proof: `python3 scripts/spikes/sp-7-gz-candels.py`. |
 
 ## Accepted risks
 - Blindness is best-effort (R-11).

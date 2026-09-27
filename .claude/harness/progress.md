@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — SP-7 Gold source (done)
+- Galaxy Zoo JWST CEERS labels are not public (paper: "upon request"; Masters et al. in prep). research Q14 was wrong again.
+- Decision (07 §1/§5, REVIEW): gold = Galaxy Zoo: CANDELS (public, HST, COSMOS/GOODS-S/UDS; cite Simmons+2017) mapped to protocol v1 with a ≤0.3″ DJA crossmatch and z_phot < 2 guard; objective gold elsewhere.
+- Proof: `python3 scripts/spikes/sp-7-gz-candels.py` → 16,796 subjects with ≥1 gold-grade answer (pre-crossmatch).
+- Owner (optional, not blocking): request the GZ CEERS catalogue from the authors; T1.5's gold.py can swap it in.
+
 ## 2026-09-27 — SP-2 OISY approve w/ spender subaccount (done)
 - Real ICP ledger ICRC-21 consent message for icrc2_approve shows the full spender account incl. subaccount (generic + fields display). Wallet path stays; deposit path for non-ICRC-21 wallets.
 - Recorded in 04 §1 + REVIEW; research Q2 corrected. Residual: one manual OISY approve on staging in beta (T8.3).

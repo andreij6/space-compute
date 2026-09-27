@@ -115,6 +115,7 @@ Technical unknowns and spikes resolution for Space Compute.
 ## 4. Astronomical Data & Storage
 
 ### Q14 (SP-7): Galaxy Zoo CEERS Classifications & Gold Mapping
+> **Correction 2026-09-27 (SP-7, checked):** the GZ CEERS catalogue is not on Zenodo or data.galaxyzoo.org; the paper says data are "available upon request". Gold now comes from Galaxy Zoo: CANDELS (public). See `scripts/spikes/sp-7-gz-candels.py`.
 - **Answer:** Galaxy Zoo CEERS classifications are released by Smethurst et al. (2025, MNRAS 539) on Zenodo (CC BY 4.0). Covers ~7,000 galaxies with ~20–40 votes each, mapping 1:1 to Protocol v1.
 - **Confidence:** High.
 - **Evidence:** MNRAS 539, arXiv:2503.21869; Zenodo CEERS catalog.

@@ -10,7 +10,7 @@ The launch dataset is **JWST NIRCam imaging of public deep fields**. Each subjec
 | **DJA v7 photometric catalogs + EAZY photo-z** (`{field}-grizli-v7.x_phot.fits`, `.photoz` products) | Per-source fluxes/errors in every band, `z_phot` with 16/50/84 percentiles, stellar mass, SFR, rest-frame U−V / V−J | The physical context agents need (distance, color, mass) |
 | **DJA NIRSpec spectra (msaexp) redshift table** | `z_spec` + grade, where they exist | Ground truth for redshift; flags "has spectrum" |
 | **DJA morphology catalog** (Sérsic fits, >340k galaxies) | Sérsic *n*, *r*<sub>e</sub>, axis ratio, PA | Quantitative shape context; a sanity anchor for agents |
-| **Galaxy Zoo JWST (CEERS)** volunteer classifications (~5.7k classifiable galaxies, ~40 votes each) | High-confidence answers → **gold labels** | Credible ground truth for reputation. Availability and licence confirmed by spike **SP-7** |
+| **Galaxy Zoo: CANDELS** (Simmons et al. 2017, MNRAS 464, 4420; public CSV at `zooniverse-data.s3.amazonaws.com/galaxy-zoo-candels/`) — 49,555 HST H-band galaxies in COSMOS, GOODS-S, UDS, ~40 votes each | High-confidence answers → **gold labels** for `primer-cosmos`, `jades-gds`, `primer-uds` | Chosen by **SP-7** (2026-09-27): Galaxy Zoo JWST CEERS labels are *not* publicly released ("upon request", Masters et al. in prep). Swap them in if they are released. |
 | **Lens models for Abell 2744 (UNCOVER team, public)** | Magnification μ at the subject position | Lensed-arc and high-z claims need μ |
 | **MAST** (`astroquery.mast`, `s3://stpubdata/jwst`) | Program IDs/PIs, exposure metadata, fallback raw `i2d` products | Provenance, and a fallback if DJA is unavailable |
 
@@ -105,7 +105,7 @@ Each category's guidance names the dossier fields that support it; for example, 
    - F444W ≤ 27 AB, S/N(F444W) ≥ 10, at least 5 NIRCam bands, not flagged as a star, not within 3″ of a mosaic edge
    - stratified by redshift bins (0–1, 1–3, 3–6, >6) and by field
    - all GZ-CEERS-labelled galaxies, plus an oversample of the lensing cluster and of red compact objects (discovery-rich)
-2. `gold.py` (after SP-7): GZ JWST CEERS answers mapped to protocol v1. A question is gold when its top-answer vote fraction is ≥ 0.8 and it has ≥ 20 votes. Target ≥ 2,000 gold subjects.
+2. `gold.py` (SP-7): Galaxy Zoo CANDELS answers mapped to protocol v1 — `t00`→`shape` (smooth/featured/artifact), `t09`→`edgeon`, `t11 no`→`bar=none`, `t12`→`spiral`, `t02 no`→`clumps=none`, `t16`→`merger` (neither→none, merging→major). A question is gold when its top-answer fraction is ≥ 0.8 with ≥ 20 votes, the source crossmatches a DJA object within 0.3″, and `z_phot < 2` (HST H-band ≈ JWST F150W rest-frame optical; morphology is robust there). `merger=none` alone does not make a subject gold. Target ≥ 2,000 gold subjects (SP-7 found 16,796 GZC subjects with ≥ 1 gold-grade answer before crossmatch).
    - **Fallback if the GZ labels aren't usable:** objective gold only. Known stars and artifacts from catalog flags and `shape`. Also spectroscopically confirmed high-z sources, so a dropout flag can be scored against them.
 3. `render.py`: cutouts via `astropy.nddata.Cutout2D` from the DJA mosaics (range-read from S3/HTTPS), RGB composites with fixed asinh parameters, and the segmentation cutout. Output is deterministic (pinned library versions, recorded parameters).
 4. `dossier.py`: joins the catalogs (phot, eazy, spec-z, morphology, lens μ, neighbours within 5″) → `dossier.json`, then computes all hashes.

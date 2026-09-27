@@ -24,6 +24,13 @@ canisters:
       configuration:
         shrink: true
         candid: crates/aaa/aaa.did
+  - name: frontend
+    recipe:
+      type: "@dfinity/static-site@v0.4.0"
+      configuration:
+        build:
+          - npm run build --prefix src/frontend
+        dir: src/frontend/dist
 
 networks:
   - name: local
@@ -34,13 +41,13 @@ networks:
 environments:
   - name: local
     network: local
-    canisters: [platform, payments, treasury]
+    canisters: [platform, payments, treasury, frontend]
   - name: staging
     network: ic
-    canisters: [platform, payments, treasury]
+    canisters: [platform, payments, treasury, frontend]
   - name: production
     network: ic
-    canisters: [platform, payments, treasury]
+    canisters: [platform, payments, treasury, frontend]
     settings:
       platform:
         freezing_threshold: 7776000

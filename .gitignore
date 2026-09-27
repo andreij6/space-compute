@@ -10,3 +10,4 @@ __pycache__/
 .claude/settings.local.json
 .claude/harness/current
 .claude/harness/metrics/
+*.tsbuildinfo
