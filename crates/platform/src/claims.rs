@@ -65,6 +65,15 @@ pub struct ClaimQuery<'a> {
     pub caller: Principal,
     pub reopen_days: u32,
     pub now: u64,
+    pub ra_deg: f64,
+    pub dec_deg: f64,
+    pub unique_radius_arcsec: f64,
+}
+
+pub fn separation_arcsec(ra1: f64, dec1: f64, ra2: f64, dec2: f64) -> f64 {
+    let dra = (ra1 - ra2) * dec1.to_radians().cos();
+    let ddec = dec1 - dec2;
+    (dra * dra + ddec * ddec).sqrt() * 3600.0
 }
 
 fn neighbours(q: &ClaimQuery) -> Vec<Discovery> {
@@ -88,7 +97,13 @@ fn neighbours(q: &ClaimQuery) -> Vec<Discovery> {
 }
 
 pub fn resolve(q: &ClaimQuery) -> Resolution {
-    let found = neighbours(q);
+    let found: Vec<Discovery> = neighbours(q)
+        .into_iter()
+        .filter(|d| {
+            separation_arcsec(q.ra_deg, q.dec_deg, d.claim_ra_deg, d.claim_dec_deg)
+                <= q.unique_radius_arcsec
+        })
+        .collect();
     if let Some(open) = found.iter().find(|d| d.status != DiscoveryStatus::Rejected) {
         let already = open.discoverer_aaa == q.caller
             || corroborations(open.seq).iter().any(|c| c.aaa == q.caller);
@@ -146,7 +161,7 @@ mod tests {
         Principal::from_slice(&[n; 29])
     }
 
-    fn new_discovery(aaa: Principal, category: &str) -> Discovery {
+    fn new_discovery_at(aaa: Principal, category: &str, ra: f64, dec: f64) -> Discovery {
         discoveries::create(NewDiscovery {
             subject_id: 1,
             classification_id: 1,
@@ -159,10 +174,16 @@ mod tests {
             fee: 0,
             needed_reviews: 3,
             created_at: NOW,
+            claim_ra_deg: ra,
+            claim_dec_deg: dec,
         })
     }
 
-    fn query(caller: Principal, category: &str, cell: (i32, i32), now: u64) -> ClaimQuery<'_> {
+    fn new_discovery(aaa: Principal, category: &str) -> Discovery {
+        new_discovery_at(aaa, category, 0.0, 0.0)
+    }
+
+    fn query_at<'a>(caller: Principal, category: &'a str, cell: (i32, i32), now: u64, ra: f64, dec: f64) -> ClaimQuery<'a> {
         ClaimQuery {
             field: "ceers",
             cell,
@@ -170,7 +191,14 @@ mod tests {
             caller,
             reopen_days: 30,
             now,
+            ra_deg: ra,
+            dec_deg: dec,
+            unique_radius_arcsec: 1.5,
         }
+    }
+
+    fn query(caller: Principal, category: &str, cell: (i32, i32), now: u64) -> ClaimQuery<'_> {
+        query_at(caller, category, cell, now, 0.0, 0.0)
     }
 
     #[test]
@@ -255,5 +283,22 @@ mod tests {
             resolve(&query(p(2), "lens", (5, -5), NOW + 29 * day)),
             Resolution::Corroborate(confirmed)
         );
+    }
+
+    #[test]
+    fn t4_9_distinct_objects_in_the_same_bucket_are_fundamentally_unique() {
+        let d = new_discovery_at(p(1), "lens", 214.9, -52.8);
+        index("ceers", (100, 200), "lens", d.seq);
+        let near = query_at(p(2), "lens", (100, 200), NOW, 214.9, -52.8 + 0.2 / 3600.0);
+        assert_eq!(resolve(&near), Resolution::Corroborate(d.clone()));
+        let far = query_at(p(2), "lens", (100, 200), NOW, 214.9, -52.8 + 3.0 / 3600.0);
+        assert_eq!(resolve(&far), Resolution::New);
+    }
+
+    #[test]
+    fn t4_9_separation_arcsec_scales_ra_by_cos_dec() {
+        assert!((separation_arcsec(0.0, 0.0, 1.0 / 3600.0, 0.0) - 1.0).abs() < 1e-9);
+        assert!((separation_arcsec(0.0, 0.0, 0.0, 1.0 / 3600.0) - 1.0).abs() < 1e-9);
+        assert_eq!(separation_arcsec(10.0, -50.0, 10.0, -50.0), 0.0);
     }
 }

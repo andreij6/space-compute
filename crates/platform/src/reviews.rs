@@ -523,6 +523,8 @@ mod tests {
             fee: 1,
             needed_reviews: 3,
             created_at: at,
+            claim_ra_deg: 0.0,
+            claim_dec_deg: 0.0,
         })
     }
 

@@ -96,6 +96,7 @@
 | 02 §6.4: Rejected claim within claim_reopen_days → ClosedRecentlyRejected; after the window a New claim opens; Confirmed still corroborates | T4.9 | t4_9_rejected_claim_blocks_within_reopen_window_then_reopens |
 | 02 §6.4: submit_classification — same cell+category → 1 Discovery + corroborations; other category → separate Discovery; recently rejected → no new Discovery | T4.9 | t4_9_same_cell_flags_collapse_into_one_discovery_with_corroborations |
 | 02 §11: PocketIC — concurrent flags → one discovery (3 AAAs, same position+category: 1 New + 2 Corroborates; different category opens its own) | T4.9 | t4_9_concurrent_same_cell_flags_resolve_to_one_discovery |
+| 02 §6.4: a neighbouring-cell candidate beyond claim_cell_arcsec of its exact position is fundamentally unique → opens its own Discovery instead of corroborating | T4.9 | t4_9_distinct_objects_in_the_same_bucket_are_fundamentally_unique |
 | 02 §11 #5 / §5.3: same-owner exclusion — a tier-2 AAA is never assigned a discovery from another AAA of the same owner (two AAAs sharing one owner) | T4.2 | t4_2_same_owner_sibling_aaa_is_never_assigned |
 | 02 §11 #5 / §5.3: tier < 2 → NotEligible("tier") (unit + PocketIC) | T4.2 | t4_2_tier1_caller_is_not_eligible |
 | 02 §11 #5 / §5.3: tier < 2 → NotEligible("tier") (unit + PocketIC) | T4.2 | t4_2_review_assignment_tier_gate_blind_record_and_three_agrees_confirm |

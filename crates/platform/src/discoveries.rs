@@ -36,6 +36,8 @@ pub struct Discovery {
     pub resolved_at: Option<u64>,
     pub is_honeypot: bool,
     pub honeypot_truth: Option<Vote>,
+    pub claim_ra_deg: f64,
+    pub claim_dec_deg: f64,
 }
 
 crate::candid_storable!(Discovery);
@@ -108,6 +110,8 @@ pub fn create_honeypot(
         resolved_at: None,
         is_honeypot: true,
         honeypot_truth: Some(truth),
+        claim_ra_deg: 0.0,
+        claim_dec_deg: 0.0,
     };
     store(&d);
     d
@@ -150,6 +154,8 @@ pub struct NewDiscovery {
     pub fee: u128,
     pub needed_reviews: u8,
     pub created_at: u64,
+    pub claim_ra_deg: f64,
+    pub claim_dec_deg: f64,
 }
 
 pub fn create(input: NewDiscovery) -> Discovery {
@@ -175,6 +181,8 @@ pub fn create(input: NewDiscovery) -> Discovery {
         resolved_at: None,
         is_honeypot: false,
         honeypot_truth: None,
+        claim_ra_deg: input.claim_ra_deg,
+        claim_dec_deg: input.claim_dec_deg,
     };
     store(&discovery);
     PUBLIC_IDS.with_borrow_mut(|m| m.insert(public_id, seq));
@@ -230,6 +238,8 @@ mod tests {
             fee: 200_000_000,
             needed_reviews: 3,
             created_at: 1_790_467_200_000_000_000,
+            claim_ra_deg: 214.9,
+            claim_dec_deg: -52.8,
         });
         assert_eq!(d1.seq, 1);
         assert_eq!(d1.public_id, "SC-2026-000001");
@@ -250,6 +260,8 @@ mod tests {
             fee: 200_000_000,
             needed_reviews: 3,
             created_at: 1_790_467_200_000_000_000,
+            claim_ra_deg: 215.0,
+            claim_dec_deg: -52.9,
         });
         assert_eq!(d2.seq, 2);
         assert_eq!(d2.public_id, "SC-2026-000002");

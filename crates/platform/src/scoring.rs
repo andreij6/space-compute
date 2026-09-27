@@ -474,6 +474,9 @@ pub fn process_submission(
                 caller,
                 reopen_days: params.claim_reopen_days,
                 now,
+                ra_deg: ra,
+                dec_deg: dec,
+                unique_radius_arcsec: params.claim_cell_arcsec,
             };
             match claims::resolve(&query) {
                 claims::Resolution::New => {
@@ -492,6 +495,8 @@ pub fn process_submission(
                         fee,
                         needed_reviews: params.reviews_min as u8,
                         created_at: now,
+                        claim_ra_deg: ra,
+                        claim_dec_deg: dec,
                     });
                     claims::index(&subject.ref_.field, cell, &flag.category, discovery.seq);
                     discovery_seq = Some(discovery.seq);
