@@ -1,5 +1,15 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T1.7 dossiers rendered (done) — Foundations complete
+- Owner: inclusive selection (stars, no-z, edge kept) and 5,000 subjects for v1 (20k before beta, R-62). 5,000 dossiers, 9.3 GB (inside R2's free 10 GB); 344 edge-flagged.
+- All 5,000 hashes verified; 40-subject QA 0 problems. Visual QA caught what automated QA missed: RGB channels mixed 0.02″ and 0.04″ grids → common-grid RGB, re-assembled from cache in 10 min.
+- R2 upload waits on owner task T8.14 (`just publish-data`). Demo: docs/demos/T1.7/qa-40.png.
+
+## 2026-09-27 — T3.1 AAA skeleton (done, Sonnet lane)
+- Roles: Owner / Operator (expiring, ≤5) / Platform / None; inspect_message pre-filters ingress to owner or active operator, every update also runs require_owner.
+- Config + operators in stable memory (mem 0, 1); typed AaaInit {owner, platform_id, payments_id} passed by the factory (spawned canisters aren't in icp.yaml).
+- PocketIC t3_1 role-matrix test + 11 unit tests; aaa coverage 97.6%, wasm 187 KB gz. Commit fdf33c1.
+
 ## 2026-09-27 — T2.1 platform skeleton (done)
 - Config (mem 0 StableCell: admins, 22 bounded params, pause flags, protocol version), audit log (mem 52/53 StableLog, sha256 args digest), admin API (add/remove admin, set_params, pause, list, audit page, overview), public get_params.
 - Installer becomes first admin (anonymous install traps); ChaCha20 RNG seeded from raw_rand by a 0 s timer + hourly, retries every 30 s on failure.

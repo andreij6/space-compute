@@ -203,8 +203,8 @@
   "demo": "image: docs/demos/T1.7/contact-sheet.png",
   "start": "2026-10-14",
   "end": "2026-10-20",
-  "status": "in_progress",
-  "pct": 0.65
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "SP-1",
@@ -491,8 +491,8 @@
   "demo": "test: just demo T3.1  (narrated PocketIC/pytest run)",
   "start": "2026-10-23",
   "end": "2026-10-26",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T3.2",
