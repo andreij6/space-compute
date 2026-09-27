@@ -24,8 +24,8 @@ test-integration:
 demo TASK_ID:
     @bash scripts/demo.sh {{TASK_ID}}
 
-# Print the task table as CSV for the Google Sheet (upload via the Drive connector as text/csv)
-gantt-csv:
+# Copy the Gantt tab rows (A2:K) to the clipboard for pasting into the Google Sheet (00-INDEX has the link)
+gantt-paste:
     @python3 scripts/gantt_csv.py
 
 # Set a task's status in tasks.json (todo | in_progress | done) and regenerate the plan

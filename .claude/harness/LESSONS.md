@@ -2,7 +2,7 @@
 
 Format: `L-NNN [area] trigger → rule (source) hits:N`. Promoted lessons are removed and replaced with a pointer.
 
-- L-001 [tooling] (promoted: Drive uploads use `just gantt-csv` + `textContent` text/csv, which converts to a Google Sheet reliably) Transcribing large base64 or other payloads into a tool call corrupts them and hits the output limit (planning: 5 failed Drive uploads) → never hand-copy more than 2 KB of opaque data. Use a tool that takes a file path, or hand the owner the file. (planning 2026-09-27) hits:5
+- L-001 [tooling] (promoted: the Drive connector can only create files, not edit cells; update the owner's existing sheet via Claude in Chrome: `just gantt-paste` → Name box A2:K200 → Delete → A2 → Cmd+V. Don't create a new sheet or rename theirs) Transcribing large base64 or other payloads into a tool call corrupts them and hits the output limit (planning: 5 failed Drive uploads) → never hand-copy more than 2 KB of opaque data. Use a tool that takes a file path, or hand the owner the file. (planning 2026-09-27) hits:5
 - L-002 [tooling] Google Drive xlsx→Sheets conversion rejects MINIFS/MAXIFS/SUMPRODUCT/DataBar and files re-saved through an openpyxl load/save → use SUMIF/COUNTIFS and static dates; generate fresh. (planning) hits:2
 - L-003 [scripting] Python inside a bash heredoc breaks on nested quotes/escapes → write the script to a file (or use a `<<'EOF'` quoted heredoc with only simple strings). (planning) hits:2
 - L-004 [scripting] Schedulers over a task list KeyError when deps are defined later → topologically order first (tools/plan/plan.py does). (planning) hits:1
