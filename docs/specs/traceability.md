@@ -77,6 +77,7 @@
 | 03 §8.6: aaa wasm is <= 1.5 MiB after a real ic-wasm shrink + gzip | T3.6 | t3_6_aaa_wasm_shrunk_and_gzipped_is_at_most_1_5_mib |
 | One command seeds local net (protocol v1, 500 subjects across 6 fields, AAA wasm); re-seeding is idempotent | T3.8 | t3_8_seed_args_load_into_platform_and_reseeding_is_idempotent |
 | Existing wasm version is immutable; identical re-upload is a no-op | T3.8 | t3_8_existing_wasm_version_is_immutable_and_identical_reupload_is_a_no_op |
+| A fresh machine completes 10 local classifications + 1 review via the skill, using only icp canister call | T3.7 | docs/demos/T3.7/session.md |
 | Keeper tops up low canisters via ledger→CMC, skips healthy ones; reserve floor stops top-ups and flags health() | T5.17 | t5_17_keeper_tops_up_low_canisters_and_health_flags_the_reserve |
 | Reserve floor never crossed; transfer retry reuses created_at; burn EMA ignores top-ups | T5.17 | t5_17_reserve_floor_is_never_crossed |
 | Sensitive config changes (admins, lower reserve) need a second admin | T5.17 | t5_17_sensitive_config_changes_need_a_second_admin |

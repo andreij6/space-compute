@@ -1,0 +1,209 @@
+type AaaInit = record {
+  platform_id : principal;
+  owner : principal;
+  name : text;
+  avatar_seed : nat64;
+  payments_id : principal;
+};
+type Answer = record { answer_id : text; question_id : text };
+type AnswerOption = record { id : text; next : opt text; label : text };
+type ApiError = variant {
+  Internal : text;
+  NotRegistered;
+  InvalidInput : text;
+  InsufficientFee : record { required : nat };
+  NotFound;
+  Suspended;
+  LeaseExpired;
+  LeaseNotFound;
+  Unauthorized;
+  RateLimited : record { retry_after_secs : nat32 };
+  NotEligible : text;
+  Conflict : text;
+};
+type ClaimOutcome = variant {
+  New;
+  ClosedRecentlyRejected : text;
+  Corroborates : text;
+};
+type ClaimPosition = record { ra_deg : float64; dec_deg : float64 };
+type ClassificationReceipt = record {
+  xp_awarded : nat32;
+  claim : opt ClaimOutcome;
+  classification_id : nat64;
+  duplicate : bool;
+  discovery_id : opt text;
+};
+type ClassificationSubmission = record {
+  task_id : nat64;
+  agent_label : opt text;
+  answers : vec Answer;
+  discovery : opt DiscoveryFlag;
+  observed_image_sha256 : blob;
+  submitted_by : principal;
+};
+type CreditCopy = record {
+  v : nat8;
+  at : nat64;
+  public_id : text;
+  citation_url : opt text;
+  role : CreditRole;
+  subject_id : nat32;
+  category : text;
+  outcome : Outcome;
+};
+type CreditRole = variant { Reviewer; Discoverer };
+type DiscoveryCategory = record { id : text; description : text; label : text };
+type DiscoveryFlag = record {
+  claim_position : opt ClaimPosition;
+  rationale : text;
+  category : text;
+  confidence : nat8;
+};
+type ListRecordsFilter = record {
+  cursor : opt nat64;
+  kind : opt RecordKind;
+  limit : nat16;
+};
+type Operator = record {
+  v : nat8;
+  last_used_at : opt nat64;
+  added_at : nat64;
+  label : text;
+  expires_at : opt nat64;
+};
+type Outcome = variant { Confirmed; Rejected; NeedsMoreReview };
+type PageCreditCopy = record { next_cursor : opt text; items : vec CreditCopy };
+type PageRecord = record { next_cursor : opt nat64; items : vec Record };
+type Protocol = record {
+  version : nat16;
+  guidance_md : text;
+  questions : vec Question;
+  discovery_categories : vec DiscoveryCategory;
+};
+type PublicStatus = record {
+  owner : principal;
+  name : text;
+  last_activity_at : nat64;
+  version : text;
+};
+type Question = record { id : text; answers : vec AnswerOption; prompt : text };
+type Record = record {
+  v : nat8;
+  at : nat64;
+  by : principal;
+  fee : nat;
+  seq : nat64;
+  discovery_public_id : opt text;
+  xp_awarded : nat32;
+  subject : opt SubjectRef;
+  agent_label : opt text;
+  answers : vec Answer;
+  kind : RecordKind;
+  vote : opt Vote;
+  rationale : opt text;
+  category : opt text;
+  task_or_assignment_id : opt nat64;
+  outcome : opt Outcome;
+};
+type RecordKind = variant {
+  Operator;
+  Review;
+  TopUp;
+  Classification;
+  Profile;
+  Discovery;
+};
+type Result = variant { Ok; Err : ApiError };
+type Result_1 = variant { Ok : opt Record; Err : ApiError };
+type Result_2 = variant { Ok : opt ReviewAssignment; Err : ApiError };
+type Result_3 = variant { Ok : Task; Err : ApiError };
+type Result_4 = variant { Ok : PageCreditCopy; Err : ApiError };
+type Result_5 = variant {
+  Ok : vec record { principal; Operator };
+  Err : ApiError;
+};
+type Result_6 = variant { Ok : PageRecord; Err : ApiError };
+type Result_7 = variant { Ok : Status; Err : ApiError };
+type Result_8 = variant { Ok : ClassificationReceipt; Err : ApiError };
+type Result_9 = variant { Ok : ReviewReceipt; Err : ApiError };
+type ReviewAssignment = record {
+  subject : SubjectRef;
+  lease_expires_at_ns : nat64;
+  rationale : text;
+  category : text;
+  assignment_id : nat64;
+  protocol_version : nat16;
+};
+type ReviewReceipt = record {
+  review_id : nat64;
+  xp_awarded : nat32;
+  duplicate : bool;
+};
+type ReviewSubmission = record {
+  agent_label : opt text;
+  vote : Vote;
+  rationale : text;
+  observed_image_sha256 : blob;
+  assignment_id : nat64;
+  submitted_by : principal;
+};
+type Role = variant { Operator; None; Platform; Owner };
+type Stats = record {
+  reviews : nat64;
+  last_balance_sample : opt nat;
+  last_activity_at : nat64;
+  credits_cursor : nat64;
+  last_heartbeat_at : nat64;
+  burn_ema_daily : nat;
+  topups : nat64;
+  discoveries : nat64;
+  total_records : nat64;
+  auto_topup_failures : nat64;
+  classifications : nat64;
+};
+type Status = record {
+  wasm_version : text;
+  version : text;
+  cycles : nat;
+  stats : Stats;
+  operators : vec record { principal; Operator };
+  days_of_fuel_estimate : float64;
+};
+type SubjectRef = record {
+  field : text;
+  image_url : text;
+  data_version : nat16;
+  dossier_url : text;
+  subject_id : nat32;
+  ra_deg : float64;
+  image_sha256 : blob;
+  dossier_sha256 : blob;
+  dec_deg : float64;
+};
+type Task = record {
+  protocol : Protocol;
+  task_id : nat64;
+  subject : SubjectRef;
+  lease_expires_at_ns : nat64;
+};
+type Vote = variant { Disagree; Agree };
+service : (AaaInit) -> {
+  add_operator : (principal, text, opt nat64) -> (Result);
+  get_api_doc : () -> (text) query;
+  get_record : (nat64) -> (Result_1) query;
+  get_review_assignment : () -> (Result_2);
+  get_task : () -> (Result_3);
+  list_credits : (opt text, nat16) -> (Result_4) query;
+  list_operators : () -> (Result_5) query;
+  list_records : (ListRecordsFilter) -> (Result_6) query;
+  remove_operator : (principal) -> (Result);
+  set_agent_label : (opt text) -> (Result);
+  set_auto_topup : (opt nat) -> (Result);
+  status : () -> (Result_7) query;
+  status_public : () -> (PublicStatus) query;
+  submit_classification : (ClassificationSubmission) -> (Result_8);
+  submit_review : (ReviewSubmission) -> (Result_9);
+  version : () -> (text) query;
+  whoami : () -> (Role) query;
+}
