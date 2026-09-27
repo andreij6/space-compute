@@ -48,6 +48,7 @@ T = [
  ("T2.6","P2","Public queries: stats, protocol, aaa_by_owner, aaa_public","BE-A",1,["T2.2"],"02 §7","Queries paged ≤100",0),
  ("T2.8","P2","Submitter security: strict provenance, operator sync, submitted_by","BE-A",3,["T2.2"],"02 §4.6, §5; 08 S21-23","Foreign/expired/unsynced submitter rejected",0),
  ("T2.7","P2","Platform PocketIC tests (02 §11 #1-3)","BE-A",2,["T2.4","T1.4"],"02 §11","Tests green",0),
+ ("T2.9","P2","Lead-review fixes for P2 (gold leak, verify auth, provenance, install idempotency, payments_id, scans, limits)","BE-A",2,["T2.7","T2.8"],"02 §4-7, 08 §3","Review defects #1-2,4-6,10-18,20-21 closed with tests",0),
  ("T3.1","P3","AAA skeleton: roles, operators, config, inspect_message","BE-B",2,["T1.2"],"03 §1-3","Role matrix enforced",0),
  ("T3.2","P3","AAA forwarding w/ fees, retries, idempotency, low-cycles guard","BE-B",3,["T3.1","T2.4"],"03 §4.1","One record per task under SYS_UNKNOWN",0),
  ("T3.3","P3","AAA repository records + queries + credits copy","BE-B",2,["T3.2"],"03 §5","Records survive upgrade",0),
@@ -139,7 +140,7 @@ MILESTONES = [("M1 Foundations + JWST data ready","T1.7"),("M2 Local alpha: agen
 # "-": human task. Any L/M task that touches money or auth code gets an H review before it is marked done.
 TIER = dict(x.split(":") for x in """T0.1:- T0.2:- T0.3:- T0.4:- SP-1:M SP-2:M SP-3:L SP-4:L SP-6:M SP-7:M
 T1.1:L T1.2:M T1.3:L T1.4:M T1.5:M T1.7:M T1.8:M
-T2.1:M T2.2:H T2.3:M T2.4:H T2.5:M T2.6:L T2.7:M T2.8:H
+T2.1:M T2.2:H T2.3:M T2.4:H T2.5:M T2.6:L T2.7:M T2.8:H T2.9:H
 T3.1:M T3.2:H T3.3:L T3.4:M T3.5:L T3.6:M T3.7:H T3.8:L T3.9:L
 T4.1:M T4.2:H T4.3:M T4.4:H T4.5:H T4.6:M T4.7:L T4.8:M T4.9:H T4.10:L T4.11:L
 T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.8:H T5.9:H T5.10:M T5.13:M T5.15:L T5.16:M T5.17:H T5.18:M

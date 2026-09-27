@@ -33,15 +33,15 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 |---|---|---|---|
 | T6.1 | gemini-antigravity (no trailer) | 32a300a | **Reviewed 2026-09-27: not done** — mock data, no II auth/ic_env/bindgen/tests; reset to in_progress 30% (see progress.md) |
 | T6.1 screenshots | gemini-antigravity | uncommitted (`docs/demos/T6.1/`, `scripts/capture_screenshots.py`) | pending; script writes to the agent's private folder |
-| T2.2 | other agent (no Agent trailer) | b416e8b | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
-| T2.3 | other agent (no Agent trailer) | 862ebfc | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
-| T2.4 | other agent (no Agent trailer) | 258489f | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
-| T2.5 | other agent (no Agent trailer) | 8096466 | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
-| T2.6 | other agent (no Agent trailer) | 907a945 | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
-| T2.8 | other agent (no Agent trailer) | 1f15e0c | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
-| T2.7 | other agent (no Agent trailer) | ad9b922 | **pending lead review** (marked done in tasks.json; `just verify` green 2026-09-27) |
-| T3.2 | other agent | 2ad559e | **pending lead review** — note: ships owner-only test hook `simulate_sys_unknown_once` in the prod interface |
-| T3.3 | other agent | a002eff | **pending lead review** — note: `sync_credit_copy` lets the owner write arbitrary credits into its copy (spec: platform-pulled) |
+| T2.2 | other agent (no Agent trailer) | b416e8b | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (verify callable by anyone; provenance not compared; payments_id=caller; install not idempotent)** → fixes in T2.9 (platform) / T3.4 (AAA) |
+| T2.3 | other agent (no Agent trailer) | 862ebfc | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (**gold answers exposed by public queries**; full lease/pool scans)** → fixes in T2.9 (platform) / T3.4 (AAA) |
+| T2.4 | other agent (no Agent trailer) | 258489f | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (consensus not reputation-weighted; duplicate receipt loses xp)** → fixes in T2.9 (platform) / T3.4 (AAA) |
+| T2.5 | other agent (no Agent trailer) | 8096466 | **Reviewed 2026-09-27 (Opus): DONE** → fixes in T2.9 (platform) / T3.4 (AAA) |
+| T2.6 | other agent (no Agent trailer) | 907a945 | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (leaderboard cursor ties/rank)** → fixes in T2.9 (platform) / T3.4 (AAA) |
+| T2.8 | other agent (no Agent trailer) | 1f15e0c | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (strict provenance missing; get_task lacks submitter check)** → fixes in T2.9 (platform) / T3.4 (AAA) |
+| T2.7 | other agent (no Agent trailer) | ad9b922 | **Reviewed 2026-09-27 (Opus): DONE** → fixes in T2.9 (platform) / T3.4 (AAA) |
+| T3.2 | other agent | 2ad559e | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (test hook in prod; task/review idempotency key collision)** → fixes in T2.9 (platform) / T3.4 (AAA) |
+| T3.3 | other agent | a002eff | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (sync_credit_copy forgeable; list_records unbounded; credit→record key wrong)** → fixes in T2.9 (platform) / T3.4 (AAA) |
 | docs/board, docs/guide | other agent | d767278 | pending |
 
 ## How to tell from git

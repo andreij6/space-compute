@@ -42,13 +42,14 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T2.6 | Public queries: stats, protocol, aaa_by_owner, aaa_public | L | 1 | 1 | T2.2 | 2026-10-21 | 2026-10-21 | 02 §7 | Queries paged ≤100 | test: just demo T2.6  (narrated PocketIC/pytest run) |
 | T2.8 | Submitter security: strict provenance, operator sync, submitted_by | H | 3 | 3 | T2.2 | 2026-10-21 | 2026-10-23 | 02 §4.6, §5; 08 S21-23 | Foreign/expired/unsynced submitter rejected | test: just demo T2.8  (narrated PocketIC/pytest run) |
 | T2.7 | Platform PocketIC tests (02 §11 #1-3) | M | 1 | 2 | T2.4, T1.4 | 2026-10-23 | 2026-10-26 | 02 §11 | Tests green | test: just demo T2.7  (narrated PocketIC/pytest run) |
+| T2.9 | Lead-review fixes for P2 (gold leak, verify auth, provenance, install idempotency, payments_id, scans, limits) | H | 1 | 2 | T2.7, T2.8 | 2026-10-27 | 2026-10-28 | 02 §4-7, 08 §3 | Review defects #1-2,4-6,10-18,20-21 closed with tests | test: just demo T2.9  (narrated PocketIC/pytest run) |
 
 ## P3 — AAA canister & agent kit
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
 | T3.1 | AAA skeleton: roles, operators, config, inspect_message | M | 2 | 2 | T1.2 | 2026-10-23 | 2026-10-26 | 03 §1-3 | Role matrix enforced | test: just demo T3.1  (narrated PocketIC/pytest run) |
-| T3.2 | AAA forwarding w/ fees, retries, idempotency, low-cycles guard | H | 1 | 3 | T3.1, T2.4 | 2026-10-27 | 2026-10-29 | 03 §4.1 | One record per task under SYS_UNKNOWN | test: just demo T3.2  (narrated PocketIC/pytest run) |
+| T3.2 | AAA forwarding w/ fees, retries, idempotency, low-cycles guard | H | 2 | 3 | T3.1, T2.4 | 2026-10-27 | 2026-10-29 | 03 §4.1 | One record per task under SYS_UNKNOWN | test: just demo T3.2  (narrated PocketIC/pytest run) |
 | T3.3 | AAA repository records + queries + credits copy | L | 1 | 2 | T3.2 | 2026-10-30 | 2026-11-02 | 03 §5 | Records survive upgrade | test: just demo T3.3  (narrated PocketIC/pytest run) |
 | T3.4 | AAA timers: burn EMA, heartbeat, credits sync, auto top-up trigger | M | 1 | 2 | T3.3 | 2026-11-03 | 2026-11-04 | 03 §6 | Timer tests pass | test: just demo T3.4  (narrated PocketIC/pytest run) |
 | T3.5 | get_api_doc + wasm size budget ≤1.5 MiB gz | L | 2 | 1 | T3.2 | 2026-10-30 | 2026-10-30 | 03 §4.3 | Size check in just verify | test: just demo T3.5  (narrated PocketIC/pytest run) |
