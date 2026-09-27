@@ -183,7 +183,14 @@ mod tests {
         new_discovery_at(aaa, category, 0.0, 0.0)
     }
 
-    fn query_at<'a>(caller: Principal, category: &'a str, cell: (i32, i32), now: u64, ra: f64, dec: f64) -> ClaimQuery<'a> {
+    fn query_at<'a>(
+        caller: Principal,
+        category: &'a str,
+        cell: (i32, i32),
+        now: u64,
+        ra: f64,
+        dec: f64,
+    ) -> ClaimQuery<'a> {
         ClaimQuery {
             field: "ceers",
             cell,
