@@ -8,6 +8,10 @@ default:
 deploy-local:
     @bash scripts/deploy-local.sh
 
+# Seed the local network: protocol v1, 500 subjects (SEED_SUBJECTS), AAA wasm; serves target/bucket on :8765
+seed-local:
+    @bash tools/seed-local/seed.sh
+
 # Fast local verification suite (fmt, clippy, unit/integration tests, wasm size)
 verify:
     @bash scripts/verify-local.sh

@@ -1,0 +1,220 @@
+{
+ "version": 1,
+ "questions": [
+  {
+   "id": "shape",
+   "prompt": "Smooth, featured/disk, point-like/compact, or artifact/star?",
+   "answers": [
+    {
+     "id": "smooth",
+     "label": "Smooth",
+     "next": "clumps"
+    },
+    {
+     "id": "featured",
+     "label": "Featured or disk",
+     "next": "edgeon"
+    },
+    {
+     "id": "compact",
+     "label": "Point-like or compact",
+     "next": "odd"
+    },
+    {
+     "id": "artifact",
+     "label": "Artifact or star",
+     "next": null
+    }
+   ]
+  },
+  {
+   "id": "edgeon",
+   "prompt": "Edge-on disk?",
+   "answers": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "clumps"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "bar"
+    }
+   ]
+  },
+  {
+   "id": "bar",
+   "prompt": "Bar?",
+   "answers": [
+    {
+     "id": "strong",
+     "label": "Strong bar",
+     "next": "spiral"
+    },
+    {
+     "id": "weak",
+     "label": "Weak bar",
+     "next": "spiral"
+    },
+    {
+     "id": "none",
+     "label": "No bar",
+     "next": "spiral"
+    }
+   ]
+  },
+  {
+   "id": "spiral",
+   "prompt": "Spiral arms?",
+   "answers": [
+    {
+     "id": "yes",
+     "label": "Yes",
+     "next": "clumps"
+    },
+    {
+     "id": "no",
+     "label": "No",
+     "next": "clumps"
+    }
+   ]
+  },
+  {
+   "id": "clumps",
+   "prompt": "Clumpy star-forming regions?",
+   "answers": [
+    {
+     "id": "none",
+     "label": "None",
+     "next": "merger"
+    },
+    {
+     "id": "few",
+     "label": "Few (1-3)",
+     "next": "merger"
+    },
+    {
+     "id": "many",
+     "label": "Many",
+     "next": "merger"
+    }
+   ]
+  },
+  {
+   "id": "merger",
+   "prompt": "Merging, interacting or tidal features?",
+   "answers": [
+    {
+     "id": "none",
+     "label": "None",
+     "next": "odd"
+    },
+    {
+     "id": "minor",
+     "label": "Minor",
+     "next": "odd"
+    },
+    {
+     "id": "major",
+     "label": "Major",
+     "next": "odd"
+    }
+   ]
+  },
+  {
+   "id": "odd",
+   "prompt": "Anything odd?",
+   "answers": [
+    {
+     "id": "none",
+     "label": "None",
+     "next": null
+    },
+    {
+     "id": "arc",
+     "label": "Arc",
+     "next": null
+    },
+    {
+     "id": "ring",
+     "label": "Ring",
+     "next": null
+    },
+    {
+     "id": "red-compact",
+     "label": "Red and compact",
+     "next": null
+    },
+    {
+     "id": "dropout",
+     "label": "Dropout",
+     "next": null
+    },
+    {
+     "id": "unusual-color",
+     "label": "Unusual colour",
+     "next": null
+    },
+    {
+     "id": "other",
+     "label": "Other",
+     "next": null
+    }
+   ]
+  }
+ ],
+ "discovery_categories": [
+  {
+   "id": "lensed_arc",
+   "label": "Lensed arc",
+   "description": "Gravitational arc or multiple images."
+  },
+  {
+   "id": "merger_interaction",
+   "label": "Merger or interaction",
+   "description": "Two or more galaxies interacting or merging."
+  },
+  {
+   "id": "clumpy_disk",
+   "label": "Clumpy disk",
+   "description": "Disk dominated by giant star-forming clumps."
+  },
+  {
+   "id": "little_red_dot",
+   "label": "Little red dot",
+   "description": "Compact and very red in F277W-F444W; high-z AGN candidate. Cite the colour and r_e."
+  },
+  {
+   "id": "high_z_candidate",
+   "label": "High-z candidate",
+   "description": "Dropout signature with z_phot >= 8."
+  },
+  {
+   "id": "ring",
+   "label": "Ring",
+   "description": "Ring galaxy or ring-like structure."
+  },
+  {
+   "id": "tidal_feature",
+   "label": "Tidal feature",
+   "description": "Tidal tails, shells or streams."
+  },
+  {
+   "id": "unusual_color",
+   "label": "Unusual colour",
+   "description": "Photometry at odds with the photo-z."
+  },
+  {
+   "id": "artifact",
+   "label": "Artifact",
+   "description": "Snowball, persistence, diffraction spike or wisp."
+  },
+  {
+   "id": "other",
+   "label": "Other",
+   "description": "Anything else worth a second look."
+  }
+ ],
+ "guidance_md": "Walk the tree from `shape`. Answer only from visible evidence in the RGB image and the verified dossier values (redshift, photometry, morphology). Flag a discovery only for a clear detection and cite the supporting dossier fields in the rationale."
+}

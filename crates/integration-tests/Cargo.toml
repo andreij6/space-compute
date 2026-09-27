@@ -17,3 +17,5 @@ payments = { path = "../payments" }
 treasury = { path = "../treasury" }
 sc-types.workspace = true
 sha2.workspace = true
+serde_json = "1"
+flate2.workspace = true

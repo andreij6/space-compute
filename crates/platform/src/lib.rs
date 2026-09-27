@@ -38,6 +38,16 @@ fn init() {
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    let upgrader = ic_cdk::api::msg_caller();
+    if upgrader != Principal::anonymous() {
+        config::update(|c| {
+            if c.admins.is_empty() {
+                c.admins = vec![upgrader];
+            }
+            Ok(())
+        })
+        .expect("bootstrap admin");
+    }
     timers::start();
 }
 

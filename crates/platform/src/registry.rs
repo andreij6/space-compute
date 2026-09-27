@@ -171,6 +171,15 @@ pub fn upload_wasm(version: u32, blob: Vec<u8>, sha256: Vec<u8>) -> Result<(), A
     if actual_hash != sha256 {
         return Err(ApiError::invalid("sha256 mismatch"));
     }
+    if let Some(existing) = WASM_META.with_borrow(|m| m.get(&version)) {
+        return if existing.sha256 == sha256 {
+            Ok(())
+        } else {
+            Err(ApiError::Conflict(format!(
+                "wasm version {version} already exists with different bytes; use a new version"
+            )))
+        };
+    }
     let module_sha256 = if blob.starts_with(&[0x1f, 0x8b]) {
         let mut module = Vec::new();
         GzDecoder::new(&blob[..])
@@ -1539,6 +1548,22 @@ mod tests {
         record_update_profile(canister, args("ProfAaa3"), 1 + HOUR_NS).unwrap();
         assert_eq!(get_aaa(&canister).unwrap().name, "ProfAaa3");
         assert!(is_approved_module_hash(&hash));
+    }
+
+    #[test]
+    fn t3_8_existing_wasm_version_is_immutable_and_identical_reupload_is_a_no_op() {
+        let blob = vec![0u8, 97, 115, 109, 1, 0, 0, 0];
+        let sha = Sha256::digest(&blob).to_vec();
+        upload_wasm(7, blob.clone(), sha.clone()).unwrap();
+        approve_wasm(7, 1).unwrap();
+        upload_wasm(7, blob, sha).unwrap();
+        assert!(WASM_META.with_borrow(|m| m.get(&7)).unwrap().approved);
+        let other = vec![0u8, 97, 115, 109, 1, 0, 0, 1];
+        let other_sha = Sha256::digest(&other).to_vec();
+        assert!(matches!(
+            upload_wasm(7, other, other_sha),
+            Err(ApiError::Conflict(_))
+        ));
     }
 
     #[test]

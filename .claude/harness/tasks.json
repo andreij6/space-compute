@@ -492,8 +492,8 @@
   "demo": "test: just demo T2.9  (narrated PocketIC/pytest run)",
   "start": "2026-10-27",
   "end": "2026-10-28",
-  "status": "in_progress",
-  "pct": 0.5
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T3.1",
@@ -569,8 +569,8 @@
   "demo": "test: just demo T3.4  (narrated PocketIC/pytest run)",
   "start": "2026-11-03",
   "end": "2026-11-04",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T3.5",
@@ -629,8 +629,8 @@
   "demo": "test: just demo T3.8  (narrated PocketIC/pytest run)",
   "start": "2026-10-30",
   "end": "2026-10-30",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T3.7",
@@ -920,8 +920,8 @@
   "demo": "test: just demo T5.2  (narrated PocketIC/pytest run)",
   "start": "2026-11-12",
   "end": "2026-11-13",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T5.3",

@@ -26,6 +26,10 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T5.1 | 08d322b, aef2b5b | payments skeleton — Sonnet sub-agent; Stripe removed by the lead |
 | T3.5 | (see commit) | started by the other agent (stopped mid-task); lead fixed the doc (wrong `icp identity get-principal`, 7 undocumented methods) and added a Candid-drift test |
 | T5.17, T5.18 | (see commits) | treasury keeper; Opus-reviewed, 8 defects fixed |
+| T2.9 | 10fca44 | Opus sub-agent; fixes for the other agent's P2 defects |
+| T3.4 | e6d521d | Sonnet sub-agent; AAA timers + fixes for the other agent's T3.2/T3.3 defects |
+| T5.2 | d277b51 | Sonnet sub-agent |
+| T3.8 | (see commit) | lead; seed + platform fixes (admin bootstrap, immutable wasm versions) |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 

@@ -1,4 +1,5 @@
 pub mod pic;
+pub mod seed;
 
 use std::path::PathBuf;
 
