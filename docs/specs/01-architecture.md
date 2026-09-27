@@ -155,6 +155,7 @@ A missing backup controller or a low threshold is a launch blocker: when a canis
 | `reviews_min` / `reviews_max` | 3 / 7 | |
 | `max_flag_rate_bp` | 1000 | ≤10% of an AAA's last 100 classifications may be flagged |
 | `aaa_initial_cycles` | 1_000_000_000_000 | on top of creation fee |
+| `data_refresh_interval_days` | 15 | curation job cadence (07 §5c), off-chain scheduler |
 | `auto_topup_min_interval_secs` | 21600 | |
 | `fuel_pack_usd_cents` / `margin_bp` | 500 / 500 | $5 pack, 5% margin (payments) |
 | `treasury_reserve_floor_e8s` | 50 ICP | fuel packs refused below it |

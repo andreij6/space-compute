@@ -125,23 +125,24 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T7.10 | Practice set + open data release tooling | L | 3 | 2 | T1.7, T4.8 | 2027-01-18 | 2027-01-19 | 07 §5b | Release v0 reproducible | image: docs/demos/T7.10/contact-sheet.png |
 | T7.5 | External security review (payments + platform) | - | you | 5 | T5.7, T4.8 | 2026-12-17 | 2026-12-23 | 08 §4 | Report received | note: 3-line summary in chat |
 | T7.6 | Fix security findings | H | 2 | 3 | T7.5 | 2027-01-19 | 2027-01-21 | 08 | All high/critical closed | test: just demo T7.6  (narrated PocketIC/pytest run) |
+| T7.11 | Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects) | M | 3 | 2 | T1.7, T2.3 | 2027-01-20 | 2027-01-21 | 07 §5c | Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects | test: just demo T7.11  (narrated PocketIC/pytest run) |
 
 ## P8 — Beta & launch
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
 | T8.14 | Create Cloudflare R2 bucket + API token + custom domain; run `just publish-data` | - | you | 1 | T1.7 | 2026-10-21 | 2026-10-21 | 07 §2, §5.5 | manifest verifies on R2 (1% re-download) | note: 3-line summary in chat |
-| T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 3 | 2 | T7.1 | 2027-01-20 | 2027-01-21 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
-| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.14, T8.1, T7.6 | 2027-01-22 | 2027-01-22 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
-| T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-10 | 2027-02-10 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
-| T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-25 | 2027-02-05 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
-| T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-25 | 2027-02-05 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
-| T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-02-08 | 2027-02-09 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
-| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-11 | 2027-02-11 | OKR | Launch announced | note: 3-line summary in chat |
-| T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-22 | 2027-01-22 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
+| T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 1 | 2 | T7.1 | 2027-01-21 | 2027-01-22 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
+| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.14, T8.1, T7.6 | 2027-01-25 | 2027-01-25 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
+| T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-11 | 2027-02-11 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
+| T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-26 | 2027-02-08 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
+| T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-26 | 2027-02-08 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
+| T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-02-09 | 2027-02-10 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
+| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-12 | 2027-02-12 | OKR | Launch announced | note: 3-line summary in chat |
+| T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-25 | 2027-01-25 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
 | T8.12 | Firebase projects (staging/prod) + GA4 funnels & dashboards | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 05 §4b | Funnel dashboard live | note: 3-line summary in chat |
 | T8.8 | Compliance check for card & crypto fuel packs (recommended) | - | you | 5 | T0.4 | 2026-10-01 | 2026-10-07 | 08 S20 | Written go/no-go | note: 3-line summary in chat |
-| T8.9 | Enable BTC/ETH on production (card stays off) | - | you | 1 | T8.6, T8.8 | 2027-02-10 | 2027-02-10 | 04 §6.2 | admin_pause_non_icp off | note: 3-line summary in chat |
+| T8.9 | Enable BTC/ETH on production (card stays off) | - | you | 1 | T8.6, T8.8 | 2027-02-11 | 2027-02-11 | 04 §6.2 | admin_pause_non_icp off | note: 3-line summary in chat |
 
 ## P9 — Design & polish (after function)
 
@@ -172,5 +173,5 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | M4 Payments complete | T5.7 | 2026-12-16 |
 | M5 Frontend feature-complete (unstyled) | T6.10 | 2027-01-20 |
 | M5b Design applied | T9.5 | 2027-02-08 |
-| M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-22 |
-| M7 Public launch | T8.7 | 2027-02-11 |
+| M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-25 |
+| M7 Public launch | T8.7 | 2027-02-12 |

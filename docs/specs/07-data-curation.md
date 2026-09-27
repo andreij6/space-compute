@@ -33,9 +33,9 @@ Path: `https://data.<domain>/v1/subjects/<subject_id>/`. Files:
 
 | File | Content |
 |---|---|
-| `rgb.png` | 512×512 color composite, R = F444W, G = F277W, B = F150W (or F115W), asinh stretch with fixed parameters recorded in `dossier.json`. The main image agents look at. |
+| `rgb.png` | 512×512 color composite resampled from the 390 px cutout, R = F444W, G = F277W, B = F150W, asinh stretch with fixed parameters recorded in `dossier.json`. The main image agents look at. |
 | `rgb_sw.png` | Short-wavelength composite (F200W/F150W/F115W) at native resolution. Better for clumps and fine structure. |
-| `<filter>.fits` | Per-filter science cutout (float32, `RICE_1`-compressed), 10″ (250 px) or larger for extended/lensed objects. Full WCS header, `PHOTFNU`, `PIXAR_SR`, units, plus a weight extension. |
+| `<filter>.fits` | Per-filter science cutout for F115W, F150W, F200W, F277W, F356W, F444W: 390 × 390 px at the DJA v7 native 0.0257″/px (≈ 10″), `RICE_1`-compressed (quantize 16), image in HDU 1. Full cutout WCS, `PHOTFNU`, `PIXAR_SR`, `FILTER`, `BUNIT`. The weight extension is deferred to data v2 (it would double the download). |
 | `seg.fits` | Segmentation cutout, so agents can tell the target apart from its neighbours |
 | `dossier.json` | Everything below, machine-readable |
 
@@ -109,7 +109,7 @@ Each category's guidance names the dossier fields that support it; for example, 
    - Run: `uv run python -m sc_curation.fetch` (≈ 4 GB into `~/.cache/space-compute/dja`) then `python -m sc_curation.select`; v1 output committed in `data/curation/v1/`, report in `docs/data/curation-report-v1.md`.
 2. `gold.py` (SP-7): Galaxy Zoo CANDELS answers mapped to protocol v1 — `t00`→`shape` (smooth/featured/artifact), `t09`→`edgeon`, `t11 no`→`bar=none`, `t12`→`spiral`, `t02 no`→`clumps=none`, `t16`→`merger` (neither→none, merging→major). A question is gold when its top-answer fraction is ≥ 0.8 with ≥ 20 votes, the source crossmatches a DJA object within 0.3″, and `z_phot < 2` (HST H-band ≈ JWST F150W rest-frame optical; morphology is robust there). `merger=none` alone does not make a subject gold. Target ≥ 2,000 gold subjects (SP-7 found 16,796 GZC subjects with ≥ 1 gold-grade answer before crossmatch).
    - **Fallback if the GZ labels aren't usable:** objective gold only. Known stars and artifacts from catalog flags and `shape`. Also spectroscopically confirmed high-z sources, so a dropout flag can be scored against them.
-3. `render.py`: cutouts via `astropy.nddata.Cutout2D` from the DJA mosaics (range-read from S3/HTTPS), RGB composites with fixed asinh parameters, and the segmentation cutout. Output is deterministic (pinned library versions, recorded parameters).
+3. `dossiers.py` + `stream.py`: DJA mosaics are gzip-compressed, so HTTP range reads are impossible. Instead each mosaic is **streamed once** (curl → zlib, row by row) and every subject cutout in that field is filled as its rows pass — no mosaic is stored (7 parallel streams per field; ~0.85 GB compressed each). Then RGB composites with fixed asinh parameters and the segmentation cutout. Deterministic (pinned libraries, recorded parameters). `just curate-dossiers`.
 4. `dossier.py`: joins the catalogs (phot, eazy, spec-z, morphology, lens μ, neighbours within 5″) → `dossier.json`, then computes all hashes.
 5. `publish.py`: uploads to the R2 bucket under `v1/` (immutable; a new version means a new prefix), writes `manifest_v1.jsonl`, then calls `admin_add_subjects` in batches of ≤ 500 (subject id, ra/dec, field, `rgb_url`, `rgb_sha256`, `dossier_url`, `dossier_sha256`).
 6. `honeypots.py`: 120 honeypots from gold subjects, both true and false claims.
@@ -123,6 +123,17 @@ Each category's guidance names the dossier fields that support it; for example, 
   - Everything is built from the platform's public queries and the event export, so it is reproducible.
   - The admin data screen shows the last release. Minting a DOI through Zenodo comes later.
 - **Data refresh:** the admin data screen shows the remaining pool and an estimated exhaustion date. When it drops below 30 days, run the pipeline for `v2` (new fields such as COSMOS-Web). `admin_add_subjects` appends; existing citations keep their `data_version`.
+
+## 5c. Continuous data refresh (owner, 2026-09-27; task T7.11)
+Agents need a steady supply of new subjects. A scheduled job, `just curate-refresh`, runs **every 15 days** (`data_refresh_interval_days = 15`), via a local launchd/cron entry since there is no remote CI.
+1. **Detect.** Compare the DJA v7+ catalogue list (file names and ETag/Last-Modified) and MAST newly public JWST observations in our six fields against `data/curation/state.json`. If nothing changed and the unused pool has > 30 days left, write "no new data" to the log and exit.
+2. **Select.** Run the §5 selection on the new or updated catalogues only, excluding every source already published (matched by catalogue id and within 0.3″ of any published subject). Top up gold the same way (§5.2).
+3. **Render + publish** into a **new immutable prefix** `v<N>/` with its own `manifest_v<N>.jsonl`, then verify hashes and upload (§5.5).
+4. **Register** the new subjects with `platform.admin_add_subjects` (batches of ≤ 500, carrying `data_version = N`) and record the run in `state.json`.
+5. **Never mutate** a published dossier or reuse a subject id. Citations are bound to exact pixels by SHA-256, and old versions stay online for them.
+- The admin data screen shows the last run, the next due date, subjects added per run and the remaining pool.
+- If a run fails, it retries at the next tick and raises an admin alert after 2 consecutive failures.
+- Other satellites (e.g. Euclid, HST archival) plug in later as new sources under the same flow.
 
 ## 6. Licensing & credit
 - JWST data are public after their exclusive-access period. Every chosen program has zero exclusive access (ERS/Treasury) or is past it; `select.py` verifies this through MAST.

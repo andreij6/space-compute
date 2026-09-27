@@ -31,4 +31,4 @@ Start here. These specs are written for the implementing agents (Claude Code). P
 
 ## Tracking
 - **Gantt & progress:** Google Sheet https://docs.google.com/spreadsheets/d/1kPN4smVMnWE_0jPmLXbRXyevcpzHlqMGdaU3wKS6qXI/edit (Gantt / Progress / Milestones tabs). Refresh: `just plan`, then `just gantt-paste` and paste into Gantt!A2 (done via Claude in Chrome — the Drive connector cannot edit cells). Local copy: `docs/space-compute-gantt-v3.xlsx`.
-- **Baseline:** start 2026-09-28, public launch 2027-02-11. Claude Code writes all the code in 3 parallel lanes (parallel sessions committing straight to `main`); the owner signs off, reviews demo cards, runs the beta, sets up accounts and funds the treasury.
+- **Baseline:** start 2026-09-28, public launch 2027-02-12. Claude Code writes all the code in 3 parallel lanes (parallel sessions committing straight to `main`); the owner signs off, reviews demo cards, runs the beta, sets up accounts and funds the treasury.

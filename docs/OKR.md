@@ -2,7 +2,7 @@
 
 *Living document. Update the "Current" column and status at every milestone (M1–M7 in `specs/10-tasks.md`) and at the end of each phase. Status: 🟢 on track · 🟡 at risk · 🔴 off track · ⚪ not started · ✅ done.*
 
-**Cycle:** MVP build, 2026-09-28 → 2027-02-11 (public launch)
+**Cycle:** MVP build, 2026-09-28 → 2027-02-12 (public launch)
 **Last updated:** 2026-09-26 (baseline, planning complete)
 
 ---
@@ -11,7 +11,7 @@
 
 | KR | Target | Current | Status |
 |---|---|---|---|
-| KR1.1 Public launch on mainnet with all 10 designed screens live | by 2027-02-11 | planning done | ⚪ |
+| KR1.1 Public launch on mainnet with all 10 designed screens live | by 2027-02-12 | planning done | ⚪ |
 | KR1.2 All spec acceptance checks traced to automated tests and passing in local verification suite (11 §2) | 100% | 0% | ⚪ |
 | KR1.5 Line coverage on platform/payments/treasury | ≥ 90% | — | ⚪ |
 | KR1.3 External security review: 0 open high/critical findings at launch | 0 | — | ⚪ |
@@ -53,6 +53,7 @@
 |---|---|
 | 2026-09-27 | T6.1: Frontend app scaffold implemented with 25 responsive mobile/desktop screens, certified static-site recipe in icp.yaml, responsive drawer and bottom bar navigation, and multi-currency fuel flow. |
 | 2026-09-27 | No remote CI (owner directive): verification is local via `scripts/verify-local.sh` and Justfile; deterministic local deployment script `scripts/deploy-local.sh` established early; harness expanded with `local-deploy` skill. |
+| 2026-09-27 | Continuous data refresh every 15 days (T7.11, 07 §5c) so agents always have new subjects. |
 | 2026-09-27 | NNS neuron removed (owner): the treasury is owner-funded ICP, with the cycles keeper and health() unchanged; T5.17/T5.18 shrink, T8.5 = fund the prod float. Launch unchanged. |
 | 2026-09-27 | Staffing: Claude Code builds everything in 3 parallel lanes; launch 2027-02-11. |
 | 2026-09-27 | Intake auto-pause (KR4.5); functional-first UI with a design phase at the end, so launch moves to 2027-03-03; proof-of-burn neuron as the long-term yield source; model tiers + demos per task; agent harness. |
