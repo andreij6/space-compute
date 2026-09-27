@@ -80,6 +80,7 @@ Technical unknowns and spikes resolution for Space Compute.
 - **Canary / Unknowns:** None.
 
 ### Q10 (SP-4): `canister_info` Cross-Subnet Cost & Latency
+> **Correction 2026-09-27 (SP-4, measured):** ~5.9M cycles (3% of the submission fee), +1–2 rounds; not a bottleneck. Strict per-call check kept on submissions. See `just demo SP-4`.
 - **Answer:** Cross-subnet `canister_info` costs ~1–2M cycles with 2–4s latency; calling it synchronously per submission creates severe bottlenecks.
 - **Confidence:** High.
 - **Evidence:** Subnet inter-canister management call benchmarks; IC consensus specification.

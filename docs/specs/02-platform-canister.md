@@ -145,8 +145,8 @@ Common prelude, in order:
 1. Look up the caller in the registry (`NotRegistered` or `Suspended`).
 2. `msg_cycles_available() >= fee`, else `InsufficientFee{required}`. Accept **exactly** the fee.
 3. Check the rate limit (token bucket per AAA, in heap; it resets on upgrade, which is acceptable).
-4. **Provenance check (SP-4 / R-90 fallback adopted).** To prevent 2–4s cross-subnet latency and 1–2M cycle overhead per submission, `canister_info` is not called synchronously on every call. Instead, full `verify(aaa)` is executed synchronously at registration and upgrade (§4.1, §4.2), and asynchronously via lazy verification when `now - verified_at > 24h` (§4.3) or hourly background check.
-5. If lazy verification is due, schedule `verify(caller)` asynchronously (§4.3).
+4. **Provenance check (SP-4, measured 2026-09-27).** `canister_info` costs ~5.9M cycles (≈3% of `fee_submit_classification`) and adds 1–2 rounds (PocketIC; allow 2–4 s on mainnet cross-subnet). So: `submit_classification` and `submit_review` call `canister_info` **every time** and require `module_hash ∈ approved` and `total_num_changes == recorded` (an unrecorded install/upgrade → `Suspended` + audit event). `get_task` and `get_review_assignment` use the cached verification if `now − verified_at < 1 h`, otherwise they verify synchronously first. Agents are not latency-sensitive; the extra seconds on a submission are acceptable. Proof: `just demo SP-4`.
+5. The cost of the check is covered by the fee; T7.3 re-measures it with the rest of the fees.
 6. **Submitter check (R-91):** `submitted_by` must be the AAA's registered owner, or a synced, non-expired operator of that AAA (mem 49). Otherwise `Unauthorized`. This applies to `get_task`, `submit_*` and `get_review_assignment` (for calls without a payload, the AAA sends a `submitted_by` header argument).
 
 ### 5.1 `get_task() -> Result<Task, ApiError>`

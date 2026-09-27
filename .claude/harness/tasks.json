@@ -260,8 +260,8 @@
   "demo": "note: decision + 1 proof command",
   "start": "2026-10-07",
   "end": "2026-10-07",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "SP-6",

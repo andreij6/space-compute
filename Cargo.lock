@@ -2090,6 +2090,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spike-probe"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk 0.20.3",
+ "serde",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -63,8 +63,11 @@ pub fn canister_wasm(name: &str) -> Vec<u8> {
             .success();
         assert!(ok, "building canister wasms failed");
     });
-    std::fs::read(root.join(format!("target/wasm32-unknown-unknown/release/{name}.wasm")))
-        .unwrap_or_else(|e| panic!("missing {name}.wasm: {e}"))
+    std::fs::read(root.join(format!(
+        "target/wasm32-unknown-unknown/release/{}.wasm",
+        name.replace('-', "_")
+    )))
+    .unwrap_or_else(|e| panic!("missing {name}.wasm: {e}"))
 }
 
 pub fn user(n: u8) -> Principal {
@@ -73,17 +76,23 @@ pub fn user(n: u8) -> Principal {
 
 impl IcpEnv {
     pub fn new() -> Self {
+        Self::with_app_subnets(1)
+    }
+
+    pub fn with_app_subnets(n: usize) -> Self {
         let features = IcpFeatures {
             icp_token: Some(IcpFeaturesConfig::DefaultConfig),
             cycles_minting: Some(IcpFeaturesConfig::DefaultConfig),
             registry: Some(IcpFeaturesConfig::DefaultConfig),
             ..Default::default()
         };
-        let pic = PocketIcBuilder::new()
+        let mut builder = PocketIcBuilder::new()
             .with_nns_subnet()
-            .with_application_subnet()
-            .with_icp_features(features)
-            .build();
+            .with_icp_features(features);
+        for _ in 0..n {
+            builder = builder.with_application_subnet();
+        }
+        let pic = builder.build();
         IcpEnv { pic }
     }
 
@@ -125,7 +134,17 @@ impl IcpEnv {
         controller: Principal,
         cycles: u128,
     ) -> Principal {
-        let subnet = self.pic.topology().get_app_subnets()[0];
+        self.install_on(name, controller, cycles, 0)
+    }
+
+    pub fn install_on(
+        &self,
+        name: &str,
+        controller: Principal,
+        cycles: u128,
+        subnet_index: usize,
+    ) -> Principal {
+        let subnet = self.pic.topology().get_app_subnets()[subnet_index];
         let id = self
             .pic
             .create_canister_on_subnet(Some(controller), None, subnet);

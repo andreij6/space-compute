@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — SP-4 canister_info cost/latency (done)
+- Measured with a probe canister (`crates/spike-probe`, test-only, not deployed): ~5.9M cycles and +1–2 rounds, same or cross subnet.
+- Decision (02 §5 step 4, REVIEW): strict per-call provenance on submit_*; get_* cached ≤ 1 h. Reverses the research-driven "lazy 24 h" fallback.
+- Demo: `just demo SP-4`. Harness: IcpEnv::with_app_subnets(n), install_on(subnet).
+
 ## 2026-09-27 — SP-3 Frozen canister behaviour (done)
 - Tested: frozen AAA rejects queries, updates, and even controller `canister_status`; CMC top-up works while frozen and unfreezes it.
 - Decision (REVIEW SP-3/R-68): dashboard uses platform-cached AAA data only; 05's frozen fallback already matches. research-unknowns Q9 corrected (again said the opposite).
