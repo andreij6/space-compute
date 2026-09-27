@@ -75,10 +75,9 @@ T = [
  ("T5.5","P5","Auto top-up mandates, rolling 30-day cap","BE-B",3,["T5.4","T3.4"],"04 §4","04 §5 #5",0),
  ("T5.6","P5","Payments PocketIC tests — ICP paths (04 §5)","BE-B",3,["T5.3","T5.5"],"04 §5","All 7 green",0),
  ("T5.8","P5","XRC rates, fuel treasury guard rails + auto intake pause","BE-B",4,["T5.2"],"04 §6.1-6.3, §6.2b","04 §6.7 #11-13, #15-17",0),
- ("T5.12","P5","stripe_credit endpoint (flag-gated, mock-relay tests)","BE-B",2,["T5.8"],"04 §6.4, 04b §3","Idempotent on stripe_ref",0),
  ("T5.9","P5","ckBTC fuel-pack deposits (address, update_balance, sweep)","BE-B",3,["T5.8"],"04 §6.5","04 §6.7 #10",0),
  ("T5.10","P5","ckETH fuel-pack deposits","BE-B",2,["T5.8","SP-6"],"04 §6.6","Mock mint → top-up",0),
- ("T5.13","P5","Non-ICP payment tests (04 §6.7)","BE-B",2,["T5.9","T5.10","T5.12"],"04 §6.7","All green",0),
+ ("T5.13","P5","Non-ICP payment tests (04 §6.7)","BE-B",2,["T5.9","T5.10"],"04 §6.7","All green",0),
  ("T5.15","P5","Payments admin APIs + audit log","BE-B",1,["T5.13"],"04 §4 admin","Overview matches ledger balances",0),
  ("T5.16","P5","Feature flags + invite codes (sponsored spawn)","BE-B",2,["T5.3"],"04 §0-0b","card=false → FeatureDisabled; invite single-use",0),
  ("T5.17","P5","treasury canister: owner-funded reserve, cycles keeper, health()","BE-A",3,["T2.1","T1.4"],"12 §1-4","Keeper tops up; health() drives intake pause",0),
@@ -92,7 +91,7 @@ T = [
  ("T6.7","P6","Owner dashboard","FE",4,["T6.1","T3.3","T4.6"],"05 §2-3","Frozen fallback works",0),
  ("T6.8","P6","Connect your agent + Activity & records","FE",3,["T6.7"],"05 §3","Operator add/revoke",0),
  ("T6.9","P6","Fuel & billing + auto top-up","FE",3,["T6.5","T5.5"],"05 §3","Mandate states render",0),
- ("T6.11","P6","BTC & ETH methods + feature-flag gating (card hidden)","FE",4,["T6.5","T5.9","T5.10"],"05 §3","Test-mode card + mock BTC/ETH e2e",0),
+ ("T6.11","P6","BTC & ETH methods + feature-flag gating","FE",4,["T6.5","T5.9","T5.10"],"05 §3","Mock BTC/ETH e2e",0),
  ("T6.12","P6","Admin console (8 screens)","FE",5,["T6.1","T4.10","T5.15"],"05 §2b","Non-admin gets 404/Unauthorized",0),
  ("T6.13","P6","Firebase analytics + consent + event taxonomy + perf traces","FE",2,["T6.1"],"05 §4b","No requests before consent",0),
  ("T6.14","P6","About/legal/practice pages, invite spawn UI, admin invites/treasury/moderation","FE",3,["T6.12","T5.16","T5.18"],"05 §2, §2b","E2E: invite spawn; non-admin blocked",0),
@@ -123,9 +122,13 @@ T = [
  ("T8.13","P8","Custom domain + II alternative origins","Owner",1,["T8.1"],"05 §1","Domain serves frontend; II principal stable",0),
  ("T8.12","P8","Firebase projects (staging/prod) + GA4 funnels & dashboards","Owner",1,["T0.4"],"05 §4b","Funnel dashboard live",0),
  ("T8.15","P8","Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits)","Owner",1,["T0.4"],"02 §5, 03, 06, 07 §4","Agree/changes recorded in OKR.md; spec edits filed as tasks",0),
- ("T8.8","P8","Compliance check for card & crypto fuel packs (recommended)","Owner",5,["T0.4"],"08 S20","Written go/no-go",0),
- ("T8.9","P8","Enable BTC/ETH on production (card stays off)","Owner",1,["T8.6","T8.8"],"04 §6.2","admin_pause_non_icp off",0),
+ ("T8.8","P8","Compliance check for crypto fuel packs (recommended)","Owner",5,["T0.4"],"08 S20","Written go/no-go",0),
+ ("T8.9","P8","Enable BTC/ETH on production","Owner",1,["T8.6","T8.8"],"04 §6.2","admin_pause_non_icp off",0),
 ]
+_ids = {t[0] for t in T}
+_missing = sorted({(t[0], d) for t in T for d in t[5] if d not in _ids})
+if _missing:
+    raise SystemExit(f"unknown deps: {_missing}")
 MILESTONES = [("M1 Foundations + JWST data ready","T1.7"),("M2 Local alpha: agent classifies end-to-end","T3.8"),
  ("M3 Review & credits complete","T4.8"),("M4 Payments complete","T5.7"),("M5 Frontend feature-complete (unstyled)","T6.10"),("M5b Design applied","T9.5"),
  ("M6 Staging loaded & beta-ready backend","T8.2"),("M7 Public launch","T8.7")]
@@ -138,7 +141,7 @@ T1.1:L T1.2:M T1.3:L T1.4:M T1.5:M T1.7:M T1.8:M
 T2.1:M T2.2:H T2.3:M T2.4:H T2.5:M T2.6:L T2.7:M T2.8:H
 T3.1:M T3.2:H T3.3:L T3.4:M T3.5:L T3.6:M T3.7:H T3.8:L T3.9:L
 T4.1:M T4.2:H T4.3:M T4.4:H T4.5:H T4.6:M T4.7:L T4.8:M T4.9:H T4.10:L T4.11:L
-T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.8:H T5.9:H T5.10:M T5.12:L T5.13:M T5.15:L T5.16:M T5.17:H T5.18:M
+T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.8:H T5.9:H T5.10:M T5.13:M T5.15:L T5.16:M T5.17:H T5.18:M
 T6.1:M T6.3:M T6.4:L T6.5:M T6.6:L T6.7:M T6.8:L T6.9:L T6.10:M T6.11:M T6.12:M T6.13:L T6.14:L
 T7.1:M T7.2:M T7.3:M T7.4:M T7.5:- T7.6:H T7.7:H T7.9:L T7.10:L T7.11:M
 T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.8:- T8.9:- T8.12:- T8.13:- T8.14:- T8.15:-
@@ -201,12 +204,13 @@ def md():
         for tid, _, name, owner, days, deps, spec, acc, _p in rows:
             out.append(f"| {tid} | {name} | {TIER[tid]} | {lane.get(tid, 'you')} | {days} | {', '.join(deps) or '—'} | {start[tid]} | {end[tid]} | {spec} | {acc} | {demo(tid, ph, name)} |")
         out.append("")
-    out += ["## Deferred (not scheduled — owner decision 2026-09-27: Stripe hidden at launch)", "",
+    out += ["## Deferred (not scheduled — owner decision 2026-09-27: no Stripe code until the whole app is ready)", "",
             "| ID | Task | Spec |", "|---|---|---|",
             "| D1 | Stripe relay Worker: checkout, webhook, portal | 04b |",
             "| D2 | Stripe account, products, Radar | 04b §2 |",
             "| D3 | Card tab + subscription management UI | 05 §3 |",
-            "| D4 | Stripe reconciliation job + enable `features.card` | 04b §3, 09 §3 |", ""]
+            "| D4 | Stripe reconciliation job + enable `features.card` | 04b §3, 09 §3 |",
+            "| D5 | payments `stripe_credit` endpoint, `Card` fuel source, `features.card`, `stripe_daily_usd_cap`, Stripe dedupe map (mem 6 reserved) | 04 §6.4, 04b §3 |", ""]
     out += ["## Milestones", "", "| Milestone | Gate task | Date |", "|---|---|---|"]
     out += [f"| {m} | {t} | {end[t]} |" for m, t in MILESTONES]
     return "\n".join(out) + "\n"

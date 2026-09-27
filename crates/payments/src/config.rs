@@ -16,7 +16,6 @@ pub struct Params {
     pub margin_bp: u16,
     pub treasury_reserve_floor_e8s: u64,
     pub treasury_daily_cap_e8s: u64,
-    pub stripe_daily_usd_cap: u32,
     pub per_aaa_daily_packs: u16,
     pub rate_max_age_secs: u64,
     pub auto_topup_min_interval_secs: u64,
@@ -30,7 +29,6 @@ impl Default for Params {
             margin_bp: 500,
             treasury_reserve_floor_e8s: 50 * 100_000_000,
             treasury_daily_cap_e8s: 100 * 100_000_000,
-            stripe_daily_usd_cap: 1_000,
             per_aaa_daily_packs: 4,
             rate_max_age_secs: 7_200,
             auto_topup_min_interval_secs: 21_600,
@@ -78,7 +76,6 @@ impl Params {
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Features {
-    pub card: bool,
     pub btc: bool,
     pub eth: bool,
     pub sponsored_spawn: bool,
@@ -87,7 +84,6 @@ pub struct Features {
 impl Default for Features {
     fn default() -> Self {
         Features {
-            card: false,
             btc: true,
             eth: true,
             sponsored_spawn: true,
@@ -187,7 +183,6 @@ mod tests {
         assert_eq!(p.treasury_reserve_floor_e8s, 5_000_000_000);
         p.validate().unwrap();
         let f = Features::default();
-        assert!(!f.card);
         assert!(f.btc && f.eth && f.sponsored_spawn);
     }
 

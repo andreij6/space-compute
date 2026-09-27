@@ -14,8 +14,6 @@ pub const MANDATE: u8 = 3;
 #[allow(dead_code)]
 pub const AUTO_TOPUP_HISTORY: u8 = 4;
 #[allow(dead_code)]
-pub const STRIPE_DEDUPE: u8 = 6;
-#[allow(dead_code)]
 pub const BTC_ADDR_CACHE: u8 = 7;
 pub const AUDIT_INDEX: u8 = 60;
 pub const AUDIT_DATA: u8 = 61;

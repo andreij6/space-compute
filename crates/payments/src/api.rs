@@ -85,8 +85,8 @@ fn admin_set_features(features: Features) -> Result<(), ApiError> {
         "admin_set_features",
         &features,
         format!(
-            "card={} btc={} eth={} sponsored_spawn={}",
-            features.card, features.btc, features.eth, features.sponsored_spawn
+            "btc={} eth={} sponsored_spawn={}",
+            features.btc, features.eth, features.sponsored_spawn
         ),
     );
     Ok(())

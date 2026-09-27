@@ -15,7 +15,6 @@ pub struct Account {
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
 pub enum FuelSource {
-    Card { stripe_ref: String },
     Btc { sats: u64 },
     Eth { wei: u128 },
 }

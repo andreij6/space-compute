@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T5.1 payments skeleton (done, Sonnet lane) + no Stripe code
+- Journal Pending→Pulled→Credited→TreasuryPaid→Notified→Registered→Done (+Failed/Refunded), validated transitions; per-key CallerGuard; config/params/features/pause; audit log (mem 60/61).
+- PocketIC proves the journal write before an await survives a trap after it. Coverage 96.1%. Commit 08d322b.
+- Owner: no Stripe code until the whole app is ready → removed Card source, features.card, stripe cap, dedupe mem const; T5.12 moved to Deferred (D5). Launch 2027-02-10.
+
 ## 2026-09-27 — T1.7 dossiers rendered (done) — Foundations complete
 - Owner: inclusive selection (stars, no-z, edge kept) and 5,000 subjects for v1 (20k before beta, R-62). 5,000 dossiers, 9.3 GB (inside R2's free 10 GB); 344 edge-flagged.
 - All 5,000 hashes verified; 40-subject QA 0 problems. Visual QA caught what automated QA missed: RGB channels mixed 0.02″ and 0.04″ grids → common-grid RGB, re-assembled from cache in 10 min.

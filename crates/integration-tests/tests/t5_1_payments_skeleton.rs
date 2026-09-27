@@ -31,10 +31,10 @@ fn t5_1_payments_skeleton_config_journal_guard_admin() {
     assert_eq!(params, Params::default());
     let features: Features = env.query(payments, eve, "get_features", ());
     assert_eq!(features, Features::default());
-    assert!(!features.card && features.btc && features.eth && features.sponsored_spawn);
+    assert!(features.btc && features.eth && features.sponsored_spawn);
     step(&format!(
-        "get_params/get_features are public: fuel_pack_usd_cents = {}, card enabled = {}",
-        params.fuel_pack_usd_cents, features.card
+        "get_params/get_features are public: fuel_pack_usd_cents = {}",
+        params.fuel_pack_usd_cents
     ));
 
     let bad = Params {

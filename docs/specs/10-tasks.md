@@ -84,78 +84,77 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T5.5 | Auto top-up mandates, rolling 30-day cap | M | 3 | 3 | T5.4, T3.4 | 2026-11-24 | 2026-11-30 | 04 §4 | 04 §5 #5 | test: just demo T5.5  (narrated PocketIC/pytest run) |
 | T5.6 | Payments PocketIC tests — ICP paths (04 §5) | M | 3 | 3 | T5.3, T5.5 | 2026-12-01 | 2026-12-03 | 04 §5 | All 7 green | test: just demo T5.6  (narrated PocketIC/pytest run) |
 | T5.8 | XRC rates, fuel treasury guard rails + auto intake pause | H | 1 | 4 | T5.2 | 2026-12-02 | 2026-12-07 | 04 §6.1-6.3, §6.2b | 04 §6.7 #11-13, #15-17 | test: just demo T5.8  (narrated PocketIC/pytest run) |
-| T5.12 | stripe_credit endpoint (flag-gated, mock-relay tests) | L | 1 | 2 | T5.8 | 2026-12-08 | 2026-12-09 | 04 §6.4, 04b §3 | Idempotent on stripe_ref | test: just demo T5.12  (narrated PocketIC/pytest run) |
-| T5.9 | ckBTC fuel-pack deposits (address, update_balance, sweep) | H | 2 | 3 | T5.8 | 2026-12-08 | 2026-12-10 | 04 §6.5 | 04 §6.7 #10 | test: just demo T5.9  (narrated PocketIC/pytest run) |
-| T5.10 | ckETH fuel-pack deposits | M | 3 | 2 | T5.8, SP-6 | 2026-12-08 | 2026-12-09 | 04 §6.6 | Mock mint → top-up | test: just demo T5.10  (narrated PocketIC/pytest run) |
-| T5.13 | Non-ICP payment tests (04 §6.7) | M | 1 | 2 | T5.9, T5.10, T5.12 | 2026-12-11 | 2026-12-14 | 04 §6.7 | All green | test: just demo T5.13  (narrated PocketIC/pytest run) |
+| T5.9 | ckBTC fuel-pack deposits (address, update_balance, sweep) | H | 1 | 3 | T5.8 | 2026-12-08 | 2026-12-10 | 04 §6.5 | 04 §6.7 #10 | test: just demo T5.9  (narrated PocketIC/pytest run) |
+| T5.10 | ckETH fuel-pack deposits | M | 2 | 2 | T5.8, SP-6 | 2026-12-08 | 2026-12-09 | 04 §6.6 | Mock mint → top-up | test: just demo T5.10  (narrated PocketIC/pytest run) |
+| T5.13 | Non-ICP payment tests (04 §6.7) | M | 1 | 2 | T5.9, T5.10 | 2026-12-11 | 2026-12-14 | 04 §6.7 | All green | test: just demo T5.13  (narrated PocketIC/pytest run) |
 | T5.15 | Payments admin APIs + audit log | L | 1 | 1 | T5.13 | 2026-12-15 | 2026-12-15 | 04 §4 admin | Overview matches ledger balances | test: just demo T5.15  (narrated PocketIC/pytest run) |
-| T5.16 | Feature flags + invite codes (sponsored spawn) | M | 3 | 2 | T5.3 | 2026-12-10 | 2026-12-11 | 04 §0-0b | card=false → FeatureDisabled; invite single-use | test: just demo T5.16  (narrated PocketIC/pytest run) |
-| T5.17 | treasury canister: owner-funded reserve, cycles keeper, health() | H | 2 | 3 | T2.1, T1.4 | 2026-12-11 | 2026-12-15 | 12 §1-4 | Keeper tops up; health() drives intake pause | test: just demo T5.17  (narrated PocketIC/pytest run) |
-| T5.18 | treasury PocketIC tests (ICP ledger + CMC, no NNS) | M | 1 | 1 | T5.17 | 2026-12-16 | 2026-12-16 | 12 §5 | 12 §5 #1-6 green | test: just demo T5.18  (narrated PocketIC/pytest run) |
-| T5.7 | Internal payments security review | H | 3 | 2 | T5.6, T5.13, T5.16 | 2026-12-15 | 2026-12-16 | 08 §4 | Checklist signed | test: just demo T5.7  (narrated PocketIC/pytest run) |
+| T5.16 | Feature flags + invite codes (sponsored spawn) | M | 3 | 2 | T5.3 | 2026-12-04 | 2026-12-07 | 04 §0-0b | card=false → FeatureDisabled; invite single-use | test: just demo T5.16  (narrated PocketIC/pytest run) |
+| T5.17 | treasury canister: owner-funded reserve, cycles keeper, health() | H | 3 | 3 | T2.1, T1.4 | 2026-12-08 | 2026-12-10 | 12 §1-4 | Keeper tops up; health() drives intake pause | test: just demo T5.17  (narrated PocketIC/pytest run) |
+| T5.18 | treasury PocketIC tests (ICP ledger + CMC, no NNS) | M | 2 | 1 | T5.17 | 2026-12-11 | 2026-12-11 | 12 §5 | 12 §5 #1-6 green | test: just demo T5.18  (narrated PocketIC/pytest run) |
+| T5.7 | Internal payments security review | H | 2 | 2 | T5.6, T5.13, T5.16 | 2026-12-15 | 2026-12-16 | 08 §4 | Checklist signed | test: just demo T5.7  (narrated PocketIC/pytest run) |
 
 ## P6 — Frontend
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
-| T6.1 | App scaffold: routing, bindgen, II auth, ic_env, CSP | M | 2 | 3 | T1.1 | 2026-12-16 | 2026-12-18 | 05 §1 | Sign-in works locally | shots: docs/demos/T6.1/*.png (Playwright) |
-| T6.3 | Landing, Discovery Museum feed, Discovery detail + citation verify | M | 1 | 5 | T6.1 | 2026-12-21 | 2026-12-29 | 05 §2-3 | Verified mark fails closed | shots: docs/demos/T6.3/*.png (Playwright) |
-| T6.4 | AAA profile + Leaderboard | L | 1 | 3 | T6.3 | 2026-12-30 | 2027-01-05 | 05 §2 | Tier/badges render | shots: docs/demos/T6.4/*.png (Playwright) |
-| T6.5 | Payment component (wallet + deposit) | M | 2 | 4 | T6.1, SP-2, T5.4 | 2026-12-21 | 2026-12-28 | 05 §3 | Deposit path e2e local | shots: docs/demos/T6.5/*.png (Playwright) |
-| T6.6 | Spawn flow | L | 2 | 2 | T6.5, T5.3 | 2026-12-29 | 2026-12-30 | 05 §2 | Spawn e2e local | shots: docs/demos/T6.6/*.png (Playwright) |
-| T6.7 | Owner dashboard | M | 3 | 4 | T6.1, T3.3, T4.6 | 2026-12-21 | 2026-12-28 | 05 §2-3 | Frozen fallback works | shots: docs/demos/T6.7/*.png (Playwright) |
-| T6.8 | Connect your agent + Activity & records | L | 3 | 3 | T6.7 | 2026-12-29 | 2027-01-04 | 05 §3 | Operator add/revoke | shots: docs/demos/T6.8/*.png (Playwright) |
-| T6.9 | Fuel & billing + auto top-up | L | 2 | 3 | T6.5, T5.5 | 2027-01-04 | 2027-01-06 | 05 §3 | Mandate states render | shots: docs/demos/T6.9/*.png (Playwright) |
-| T6.11 | BTC & ETH methods + feature-flag gating (card hidden) | M | 3 | 4 | T6.5, T5.9, T5.10 | 2027-01-05 | 2027-01-08 | 05 §3 | Test-mode card + mock BTC/ETH e2e | shots: docs/demos/T6.11/*.png (Playwright) |
-| T6.12 | Admin console (8 screens) | M | 1 | 5 | T6.1, T4.10, T5.15 | 2027-01-06 | 2027-01-12 | 05 §2b | Non-admin gets 404/Unauthorized | shots: docs/demos/T6.12/*.png (Playwright) |
-| T6.13 | Firebase analytics + consent + event taxonomy + perf traces | L | 2 | 2 | T6.1 | 2027-01-07 | 2027-01-08 | 05 §4b | No requests before consent | shots: docs/demos/T6.13/*.png (Playwright) |
-| T6.14 | About/legal/practice pages, invite spawn UI, admin invites/treasury/moderation | L | 1 | 3 | T6.12, T5.16, T5.18 | 2027-01-13 | 2027-01-15 | 05 §2, §2b | E2E: invite spawn; non-admin blocked | shots: docs/demos/T6.14/*.png (Playwright) |
-| T6.10 | States, accessibility, Playwright smoke | M | 1 | 3 | T6.4, T6.6, T6.8, T6.9, T6.11, T6.12, T6.13, T6.14 | 2027-01-18 | 2027-01-20 | 05 §5 | Lighthouse a11y ≥90 | shots: docs/demos/T6.10/*.png (Playwright) |
+| T6.1 | App scaffold: routing, bindgen, II auth, ic_env, CSP | M | 3 | 3 | T1.1 | 2026-12-11 | 2026-12-15 | 05 §1 | Sign-in works locally | shots: docs/demos/T6.1/*.png (Playwright) |
+| T6.3 | Landing, Discovery Museum feed, Discovery detail + citation verify | M | 1 | 5 | T6.1 | 2026-12-16 | 2026-12-22 | 05 §2-3 | Verified mark fails closed | shots: docs/demos/T6.3/*.png (Playwright) |
+| T6.4 | AAA profile + Leaderboard | L | 1 | 3 | T6.3 | 2026-12-23 | 2026-12-29 | 05 §2 | Tier/badges render | shots: docs/demos/T6.4/*.png (Playwright) |
+| T6.5 | Payment component (wallet + deposit) | M | 3 | 4 | T6.1, SP-2, T5.4 | 2026-12-16 | 2026-12-21 | 05 §3 | Deposit path e2e local | shots: docs/demos/T6.5/*.png (Playwright) |
+| T6.6 | Spawn flow | L | 2 | 2 | T6.5, T5.3 | 2026-12-22 | 2026-12-23 | 05 §2 | Spawn e2e local | shots: docs/demos/T6.6/*.png (Playwright) |
+| T6.7 | Owner dashboard | M | 3 | 4 | T6.1, T3.3, T4.6 | 2026-12-22 | 2026-12-29 | 05 §2-3 | Frozen fallback works | shots: docs/demos/T6.7/*.png (Playwright) |
+| T6.8 | Connect your agent + Activity & records | L | 1 | 3 | T6.7 | 2026-12-30 | 2027-01-05 | 05 §3 | Operator add/revoke | shots: docs/demos/T6.8/*.png (Playwright) |
+| T6.9 | Fuel & billing + auto top-up | L | 2 | 3 | T6.5, T5.5 | 2026-12-28 | 2026-12-30 | 05 §3 | Mandate states render | shots: docs/demos/T6.9/*.png (Playwright) |
+| T6.11 | BTC & ETH methods + feature-flag gating | M | 3 | 4 | T6.5, T5.9, T5.10 | 2026-12-30 | 2027-01-06 | 05 §3 | Mock BTC/ETH e2e | shots: docs/demos/T6.11/*.png (Playwright) |
+| T6.12 | Admin console (8 screens) | M | 2 | 5 | T6.1, T4.10, T5.15 | 2027-01-04 | 2027-01-08 | 05 §2b | Non-admin gets 404/Unauthorized | shots: docs/demos/T6.12/*.png (Playwright) |
+| T6.13 | Firebase analytics + consent + event taxonomy + perf traces | L | 1 | 2 | T6.1 | 2027-01-06 | 2027-01-07 | 05 §4b | No requests before consent | shots: docs/demos/T6.13/*.png (Playwright) |
+| T6.14 | About/legal/practice pages, invite spawn UI, admin invites/treasury/moderation | L | 1 | 3 | T6.12, T5.16, T5.18 | 2027-01-11 | 2027-01-13 | 05 §2, §2b | E2E: invite spawn; non-admin blocked | shots: docs/demos/T6.14/*.png (Playwright) |
+| T6.10 | States, accessibility, Playwright smoke | M | 1 | 3 | T6.4, T6.6, T6.8, T6.9, T6.11, T6.12, T6.13, T6.14 | 2027-01-14 | 2027-01-18 | 05 §5 | Lighthouse a11y ≥90 | shots: docs/demos/T6.10/*.png (Playwright) |
 
 ## P7 — Hardening
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
-| T7.1 | Upgrade tests for all canisters | M | 2 | 2 | T4.8, T5.6 | 2027-01-11 | 2027-01-12 | 09 §1 | vN-1→vN state intact | test: just demo T7.1  (narrated PocketIC/pytest run) |
-| T7.2 | Load test: 200 AAAs × 100 tasks | M | 2 | 2 | T7.1 | 2027-01-13 | 2027-01-14 | 09 §1 | Report committed | test: just demo T7.2  (narrated PocketIC/pytest run) |
-| T7.3 | Cycle cost measurement & fee retune | M | 2 | 2 | T7.2 | 2027-01-15 | 2027-01-18 | 01 §7, SP-5 | Params updated | test: just demo T7.3  (narrated PocketIC/pytest run) |
+| T7.1 | Upgrade tests for all canisters | M | 3 | 2 | T4.8, T5.6 | 2027-01-07 | 2027-01-08 | 09 §1 | vN-1→vN state intact | test: just demo T7.1  (narrated PocketIC/pytest run) |
+| T7.2 | Load test: 200 AAAs × 100 tasks | M | 2 | 2 | T7.1 | 2027-01-11 | 2027-01-12 | 09 §1 | Report committed | test: just demo T7.2  (narrated PocketIC/pytest run) |
+| T7.3 | Cycle cost measurement & fee retune | M | 2 | 2 | T7.2 | 2027-01-13 | 2027-01-14 | 01 §7, SP-5 | Params updated | test: just demo T7.3  (narrated PocketIC/pytest run) |
 | T7.4 | Reproducible AAA build + manual upgrade docs | M | 3 | 2 | T3.6, T5.7 | 2027-01-11 | 2027-01-12 | 08 §7 | Hash reproducible on 2 machines | test: just demo T7.4  (narrated PocketIC/pytest run) |
 | T7.7 | Prompt-injection test with reference agent | H | 3 | 1 | T3.7, T4.7 | 2027-01-13 | 2027-01-13 | 06 §5 | ≥95% non-compliance | test: just demo T7.7  (narrated PocketIC/pytest run) |
 | T7.9 | Traceability audit + coverage gates to thresholds | L | 3 | 2 | T7.1 | 2027-01-14 | 2027-01-15 | 11 §2 | Every acceptance item mapped; coverage ≥ gates | test: just demo T7.9  (narrated PocketIC/pytest run) |
-| T7.10 | Practice set + open data release tooling | L | 3 | 2 | T1.7, T4.8 | 2027-01-18 | 2027-01-19 | 07 §5b | Release v0 reproducible | image: docs/demos/T7.10/contact-sheet.png |
+| T7.10 | Practice set + open data release tooling | L | 2 | 2 | T1.7, T4.8 | 2027-01-15 | 2027-01-18 | 07 §5b | Release v0 reproducible | image: docs/demos/T7.10/contact-sheet.png |
 | T7.5 | External security review (payments + platform) | - | you | 5 | T5.7, T4.8 | 2026-12-17 | 2026-12-23 | 08 §4 | Report received | note: 3-line summary in chat |
-| T7.6 | Fix security findings | H | 2 | 3 | T7.5 | 2027-01-19 | 2027-01-21 | 08 | All high/critical closed | test: just demo T7.6  (narrated PocketIC/pytest run) |
-| T7.11 | Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects) | M | 3 | 2 | T1.7, T2.3 | 2027-01-20 | 2027-01-21 | 07 §5c | Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects | test: just demo T7.11  (narrated PocketIC/pytest run) |
+| T7.6 | Fix security findings | H | 3 | 3 | T7.5 | 2027-01-18 | 2027-01-20 | 08 | All high/critical closed | test: just demo T7.6  (narrated PocketIC/pytest run) |
+| T7.11 | Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects) | M | 1 | 2 | T1.7, T2.3 | 2027-01-19 | 2027-01-20 | 07 §5c | Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects | test: just demo T7.11  (narrated PocketIC/pytest run) |
 
 ## P8 — Beta & launch
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
 | T8.14 | Create Cloudflare R2 bucket + API token + custom domain; run `just publish-data` | - | you | 1 | T1.7 | 2026-10-21 | 2026-10-21 | 07 §2, §5.5 | manifest verifies on R2 (1% re-download) | note: 3-line summary in chat |
-| T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 1 | 2 | T7.1 | 2027-01-21 | 2027-01-22 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
-| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.14, T8.1, T7.6 | 2027-01-25 | 2027-01-25 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
-| T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-11 | 2027-02-11 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
-| T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-26 | 2027-02-08 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
-| T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-26 | 2027-02-08 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
-| T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-02-09 | 2027-02-10 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
-| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-12 | 2027-02-12 | OKR | Launch announced | note: 3-line summary in chat |
-| T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-25 | 2027-01-25 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
+| T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 2 | 2 | T7.1 | 2027-01-19 | 2027-01-20 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
+| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.14, T8.1, T7.6 | 2027-01-21 | 2027-01-21 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
+| T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-09 | 2027-02-09 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
+| T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-22 | 2027-02-04 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
+| T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-22 | 2027-02-04 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
+| T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-02-05 | 2027-02-08 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
+| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-10 | 2027-02-10 | OKR | Launch announced | note: 3-line summary in chat |
+| T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-21 | 2027-01-21 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
 | T8.12 | Firebase projects (staging/prod) + GA4 funnels & dashboards | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 05 §4b | Funnel dashboard live | note: 3-line summary in chat |
 | T8.15 | Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits) | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 02 §5, 03, 06, 07 §4 | Agree/changes recorded in OKR.md; spec edits filed as tasks | note: 3-line summary in chat |
-| T8.8 | Compliance check for card & crypto fuel packs (recommended) | - | you | 5 | T0.4 | 2026-10-01 | 2026-10-07 | 08 S20 | Written go/no-go | note: 3-line summary in chat |
-| T8.9 | Enable BTC/ETH on production (card stays off) | - | you | 1 | T8.6, T8.8 | 2027-02-11 | 2027-02-11 | 04 §6.2 | admin_pause_non_icp off | note: 3-line summary in chat |
+| T8.8 | Compliance check for crypto fuel packs (recommended) | - | you | 5 | T0.4 | 2026-10-01 | 2026-10-07 | 08 S20 | Written go/no-go | note: 3-line summary in chat |
+| T8.9 | Enable BTC/ETH on production | - | you | 1 | T8.6, T8.8 | 2027-02-09 | 2027-02-09 | 04 §6.2 | admin_pause_non_icp off | note: 3-line summary in chat |
 
 ## P9 — Design & polish (after function)
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
-| T9.1 | Import mockups (Claude Design), reconcile, design tokens + shared components | M | 2 | 4 | T6.10 | 2027-01-22 | 2027-01-27 | 05 intro | 05a-design-reconciliation.md + component page | shots: docs/demos/T9.1/*.png (Playwright) |
-| T9.2 | Style public pages: landing, museum, discovery, profile, leaderboard | M | 2 | 4 | T9.1 | 2027-01-28 | 2027-02-02 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.2/*.png (Playwright) |
-| T9.3 | Style owner flows: spawn, dashboard, connect agent, fuel, payments | M | 3 | 4 | T9.1 | 2027-01-28 | 2027-02-02 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.3/*.png (Playwright) |
-| T9.4 | Style admin console + about/legal/practice pages | L | 2 | 2 | T9.1 | 2027-02-03 | 2027-02-04 | 05 §2b | Visual snapshots | shots: docs/demos/T9.4/*.png (Playwright) |
-| T9.5 | Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run | L | 2 | 2 | T9.2, T9.3, T9.4 | 2027-02-05 | 2027-02-08 | 05 §4-5 | Lighthouse a11y ≥90, perf ≥80; baseline committed | shots: docs/demos/T9.5/*.png (Playwright) |
+| T9.1 | Import mockups (Claude Design), reconcile, design tokens + shared components | M | 2 | 4 | T6.10 | 2027-01-21 | 2027-01-26 | 05 intro | 05a-design-reconciliation.md + component page | shots: docs/demos/T9.1/*.png (Playwright) |
+| T9.2 | Style public pages: landing, museum, discovery, profile, leaderboard | M | 2 | 4 | T9.1 | 2027-01-27 | 2027-02-01 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.2/*.png (Playwright) |
+| T9.3 | Style owner flows: spawn, dashboard, connect agent, fuel, payments | M | 3 | 4 | T9.1 | 2027-01-27 | 2027-02-01 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.3/*.png (Playwright) |
+| T9.4 | Style admin console + about/legal/practice pages | L | 2 | 2 | T9.1 | 2027-02-02 | 2027-02-03 | 05 §2b | Visual snapshots | shots: docs/demos/T9.4/*.png (Playwright) |
+| T9.5 | Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run | L | 2 | 2 | T9.2, T9.3, T9.4 | 2027-02-04 | 2027-02-05 | 05 §4-5 | Lighthouse a11y ≥90, perf ≥80; baseline committed | shots: docs/demos/T9.5/*.png (Playwright) |
 
-## Deferred (not scheduled — owner decision 2026-09-27: Stripe hidden at launch)
+## Deferred (not scheduled — owner decision 2026-09-27: no Stripe code until the whole app is ready)
 
 | ID | Task | Spec |
 |---|---|---|
@@ -163,6 +162,7 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | D2 | Stripe account, products, Radar | 04b §2 |
 | D3 | Card tab + subscription management UI | 05 §3 |
 | D4 | Stripe reconciliation job + enable `features.card` | 04b §3, 09 §3 |
+| D5 | payments `stripe_credit` endpoint, `Card` fuel source, `features.card`, `stripe_daily_usd_cap`, Stripe dedupe map (mem 6 reserved) | 04 §6.4, 04b §3 |
 
 ## Milestones
 
@@ -172,7 +172,7 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | M2 Local alpha: agent classifies end-to-end | T3.8 | 2026-10-30 |
 | M3 Review & credits complete | T4.8 | 2026-12-01 |
 | M4 Payments complete | T5.7 | 2026-12-16 |
-| M5 Frontend feature-complete (unstyled) | T6.10 | 2027-01-20 |
-| M5b Design applied | T9.5 | 2027-02-08 |
-| M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-25 |
-| M7 Public launch | T8.7 | 2027-02-12 |
+| M5 Frontend feature-complete (unstyled) | T6.10 | 2027-01-18 |
+| M5b Design applied | T9.5 | 2027-02-05 |
+| M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-21 |
+| M7 Public launch | T8.7 | 2027-02-10 |

@@ -21,16 +21,10 @@ type AuditEntry = record {
   args_digest : blob;
   summary : text;
 };
-type Features = record {
-  btc : bool;
-  eth : bool;
-  sponsored_spawn : bool;
-  card : bool;
-};
+type Features = record { btc : bool; eth : bool; sponsored_spawn : bool };
 type FuelSource = variant {
   Btc : record { sats : nat64 };
   Eth : record { wei : nat };
-  Card : record { stripe_ref : text };
 };
 type JournalDemoArg = record { aaa : principal; trap_after_await : bool };
 type NotifiedInfo = variant { Canister : principal; Cycles : nat };
@@ -79,7 +73,6 @@ type Overview = record {
 type Params = record {
   rate_max_age_secs : nat64;
   intake_min_runway_days : nat32;
-  stripe_daily_usd_cap : nat32;
   fuel_pack_usd_cents : nat32;
   treasury_daily_cap_e8s : nat64;
   treasury_reserve_floor_e8s : nat64;
