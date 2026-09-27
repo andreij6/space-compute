@@ -298,8 +298,8 @@
   "demo": "note: decision + 1 proof command",
   "start": "2026-10-08",
   "end": "2026-10-08",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T1.8",

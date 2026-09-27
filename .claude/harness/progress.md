@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — SP-2 OISY approve w/ spender subaccount (done)
+- Real ICP ledger ICRC-21 consent message for icrc2_approve shows the full spender account incl. subaccount (generic + fields display). Wallet path stays; deposit path for non-ICRC-21 wallets.
+- Recorded in 04 §1 + REVIEW; research Q2 corrected. Residual: one manual OISY approve on staging in beta (T8.3).
+- Demo: `just demo SP-2`.
+
 ## 2026-09-27 — SP-6 ckETH/ckBTC deposits (done)
 - Read-only mainnet minter queries: ckETH subaccount deposits supported (helper contract); ETH minimum 0.005 ETH ≈ $15 → ETH path is "any amount ≥ minimum", credited at full value. ckBTC: 4 confirmations, 300-sat min, 100-sat fee.
 - Recorded in 04 §6.5/§6.6 + REVIEW; research Q3 corrected. Values must be read from `get_minter_info` at runtime.

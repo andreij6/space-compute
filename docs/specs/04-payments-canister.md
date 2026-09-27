@@ -27,6 +27,8 @@ External canisters: ICP ledger `ryjl3-tyaaa-aaaaa-aaaba-cai`, CMC `rkp4c-7iaaa-a
 
 ## 1. Funding paths
 
+**SP-2 (resolved 2026-09-27, tested):** the ICP ledger's ICRC-21 consent message for `icrc2_approve` shows the full spender account, subaccount included (`owner-checksum.subaccounthex`), in both generic and fields display. The wallet (ICRC-2) path stays primary for OISY; the deposit-address path serves wallets without ICRC-21 support. Residual check: one real OISY approve on staging during beta (T8.3). Proof: `just demo SP-2`.
+
 | Path | User action | Canister action |
 |---|---|---|
 | **A. Wallet (ICRC-2)** | Approves in OISY (via `@icp-sdk/signer`) an allowance to spender `(payments, spender_subaccount = S(purpose, beneficiary))` | `icrc2_transfer_from(from = payer, spender_subaccount = S(..), to = CMC deposit account, memo)` then `notify_*` |

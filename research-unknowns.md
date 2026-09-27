@@ -15,6 +15,7 @@ Technical unknowns and spikes resolution for Space Compute.
 - **Canary / Unknowns:** None (verified on mainnet).
 
 ### Q2 (SP-2): OISY Spender Subaccount Approval
+> **Correction 2026-09-27 (SP-2, tested):** the ICP ledger's consent message (which OISY renders) does show the spender subaccount. Wallet path stays. See `just demo SP-2`.
 - **Answer:** The ICP ledger supports ICRC-21 consent messages for `Account`, but OISY wallet UIs often omit spender subaccounts, causing consent ambiguity.
 - **Confidence:** High.
 - **Evidence:** OISY `@icp-sdk/signer` ICRC-21 specification; tests on non-empty subaccount decoders.
@@ -141,7 +142,7 @@ Technical unknowns and spikes resolution for Space Compute.
 | Unknown / Spike | Result Summary | Spec / Plan Impact | Fallback Triggered? |
 |---|---|---|---|
 | **SP-1 (CMC Notify)** | ~~CMC rejects ICRC-2~~ Tested: CMC accepts ICRC-2 with 8-byte LE memo. | `04 §2`: pull directly into the CMC deposit account. | No |
-| **SP-2 (OISY Spender)** | Wallet UI consent messages omit spender subaccount. | `04 §1`: Deposit address primary; wallet post-MVP. | **YES (Confirmed Fallback)** |
+| **SP-2 (OISY Spender)** | Tested: ledger consent message shows the spender subaccount. | `04 §1`: wallet path stays. | No |
 | **SP-3 (Frozen Canister)** | Queries and `canister_status` work; inter-canister fails. | `01 §4`: Frontend checks status via platform cache. | No (As Designed) |
 | **SP-4 (`canister_info`)** | Cross-subnet call is 1–2M cycles and 2–4s latency. | `02 §3`: Verify at register/upgrade & 24h timer. | **YES (Confirmed Fallback)** |
 | **SP-6 (ckETH/ckBTC)** | ckETH min ~0.002 ETH; ckBTC needs 12 confs. | `04 §6`: Pack price floats to minter minimum. | No (Compatible) |
