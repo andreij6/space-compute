@@ -86,5 +86,11 @@
 | 02 §8.2: admin_replay_progression rebuilds Progress + leaderboard from event 0 in batches, driven by a timer to completion | T4.3 | t4_3_replay_from_event_0_reproduces_identical_progress |
 | 02 §11 #8: replay from event 0 reproduces an identical Progress (PocketIC, get_aaa_public + get_leaderboard before/after) | T4.3 | t4_3_new_aaa_reaches_tier2_in_60_tasks_and_replay_matches_incremental |
 | 02 §8: list_aaa_credits(aaa, cursor) paginated by discovery_seq (mem 45 credit index), matching the AAA's daily pull | T4.3 | t4_3_list_aaa_credits_pages_by_discovery_seq_per_aaa |
+| 02 §6: `public_id = SC-{year}-{seq:06}`, monotonic per discovery | T4.1 | t4_1_create_assigns_monotonic_seq_and_well_formed_public_id |
+| 01 §7 / 02 §5.2: flag rate enforced — `max_flag_rate_bp` (≤10% of an AAA's last 100 classifications) rejects the flag, not the submission | T4.1 | t4_1_discovery_flag_creates_record_and_enforces_rolling_rate_limit |
+| 02 §5.2: mismatched-image and unknown-category flags are dropped without failing the classification | T4.1 | t4_1_mismatched_image_and_unknown_category_silently_drop_the_flag |
+| 02 §11: PocketIC — a flag creates a Discovery with a well-formed public_id, and the 101st flag in a rolling 100-classification window is dropped while submit_classification still succeeds | T4.1 | t4_1_discovery_flag_public_id_and_rolling_rate_limit |
 | 04 §5 #2: Deposit spawn reaches Done, platform shows the AAA registered, and the deposit account is swept to zero | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
 | 04 §5 #4: platform can't register mid-saga → op stays Notified with no double charge; resume completes it; a duplicate resume on a Done op is a no-op | T5.3 | t5_3_spawn_saga_deposit_path_reaches_done_and_resumes_after_platform_failure |
+| 04 §4: top_up(aaa, path) — anyone may gift fuel to any registered AAA, no owner check; min 0.1 ICP enforced before any funds move | T5.4 | t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_is_rejected |
+| 04 §2: Top-up transfer to (CMC, subaccount = principal_to_subaccount(aaa)) with memo TPUP, then notify_top_up; Deposit path sweeps D(topup, aaa) to zero and the AAA's real cycle balance increases | T5.4 | t5_4_a_stranger_gifts_fuel_to_a_registered_aaa_via_deposit_and_below_minimum_is_rejected |

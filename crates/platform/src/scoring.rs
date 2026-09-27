@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::catalog;
 use crate::config::Params;
+use crate::discoveries::{self, NewDiscovery};
 use crate::memory::{self, Memory};
+use crate::registry;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Classification {
@@ -77,13 +79,77 @@ impl ic_stable_structures::Storable for SubjectClassificationKey {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AaaClassificationKey {
+    pub aaa: Principal,
+    pub classification_id: u64,
+}
+
+impl ic_stable_structures::Storable for AaaClassificationKey {
+    const BOUND: ic_stable_structures::storable::Bound =
+        ic_stable_structures::storable::Bound::Bounded {
+            max_size: 38,
+            is_fixed_size: false,
+        };
+
+    fn to_bytes(&self) -> std::borrow::Cow<'_, [u8]> {
+        let p_bytes = self.aaa.as_slice();
+        let mut bytes = Vec::with_capacity(1 + p_bytes.len() + 8);
+        bytes.push(p_bytes.len() as u8);
+        bytes.extend_from_slice(p_bytes);
+        bytes.extend_from_slice(&self.classification_id.to_be_bytes());
+        std::borrow::Cow::Owned(bytes)
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        self.to_bytes().into_owned()
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+        let len = bytes[0] as usize;
+        let aaa = Principal::from_slice(&bytes[1..1 + len]);
+        let classification_id = u64::from_be_bytes(bytes[1 + len..9 + len].try_into().unwrap());
+        AaaClassificationKey {
+            aaa,
+            classification_id,
+        }
+    }
+}
+
 thread_local! {
     static CLASSIFICATIONS: RefCell<StableBTreeMap<u64, Classification, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::CLASSIFICATIONS)));
     static SUBJECT_CLASSIFICATIONS: RefCell<StableBTreeMap<SubjectClassificationKey, (), Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::SUBJECT_CLASSIFICATIONS)));
+    static AAA_CLASSIFICATIONS: RefCell<StableBTreeMap<AaaClassificationKey, (), Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::AAA_CLASSIFICATIONS)));
     static CONSENSUS: RefCell<StableBTreeMap<u32, SubjectConsensus, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::CONSENSUS)));
+}
+
+const FLAG_RATE_WINDOW: usize = 100;
+
+fn recent_flagged_count(aaa: Principal, window: usize) -> u32 {
+    let ids: Vec<u64> = AAA_CLASSIFICATIONS.with_borrow(|m| {
+        let start = AaaClassificationKey {
+            aaa,
+            classification_id: 0,
+        };
+        let end = AaaClassificationKey {
+            aaa,
+            classification_id: u64::MAX,
+        };
+        m.range(start..=end)
+            .rev()
+            .take(window)
+            .map(|e| e.key().classification_id)
+            .collect()
+    });
+    CLASSIFICATIONS.with_borrow(|m| {
+        ids.iter()
+            .filter(|id| m.get(id).is_some_and(|c| c.discovery_seq.is_some()))
+            .count() as u32
+    })
 }
 
 pub fn validate_answers(protocol: &Protocol, answers: &[Answer]) -> Result<(), ApiError> {
@@ -319,7 +385,10 @@ pub fn process_submission(
             .ok_or_else(|| ApiError::Internal("consumed lease without classification".into()))?;
         return Ok(ClassificationReceipt {
             classification_id: cid,
-            discovery_id: None,
+            discovery_id: original
+                .discovery_seq
+                .and_then(discoveries::get)
+                .map(|d| d.public_id),
             xp_awarded: original.xp_awarded,
             duplicate: true,
             claim: None,
@@ -376,6 +445,37 @@ pub fn process_submission(
     lease.consumed_by = Some(classification_id);
     catalog::update_lease(submission.task_id, lease);
 
+    let mut discovery_seq = None;
+    let mut discovery_public_id = None;
+    if let Some(flag) = submission.discovery.as_ref() {
+        let category_known = protocol
+            .discovery_categories
+            .iter()
+            .any(|c| c.id == flag.category);
+        let cap = (FLAG_RATE_WINDOW as u32 * params.max_flag_rate_bp as u32) / 10_000;
+        let within_rate = recent_flagged_count(caller, FLAG_RATE_WINDOW) < cap;
+        if !image_mismatch && category_known && within_rate {
+            let discoverer_name = registry::get_aaa(&caller)
+                .map(|r| r.name)
+                .unwrap_or_default();
+            let discovery = discoveries::create(NewDiscovery {
+                subject_id: subject.ref_.subject_id,
+                classification_id,
+                discoverer_aaa: caller,
+                discoverer_owner: owner,
+                discoverer_name_at_time: discoverer_name,
+                category: flag.category.clone(),
+                rationale: flag.rationale.clone(),
+                confidence: flag.confidence,
+                fee,
+                needed_reviews: params.reviews_min as u8,
+                created_at: now,
+            });
+            discovery_seq = Some(discovery.seq);
+            discovery_public_id = Some(discovery.public_id);
+        }
+    }
+
     let classification = Classification {
         v: 1,
         classification_id,
@@ -386,7 +486,7 @@ pub fn process_submission(
         answers: submission.answers,
         observed_image_sha256: submission.observed_image_sha256,
         image_mismatch,
-        discovery_seq: None,
+        discovery_seq,
         is_gold,
         gold_score,
         consensus_score,
@@ -401,6 +501,15 @@ pub fn process_submission(
         m.insert(
             SubjectClassificationKey {
                 subject_id: subject.ref_.subject_id,
+                classification_id,
+            },
+            (),
+        )
+    });
+    AAA_CLASSIFICATIONS.with_borrow_mut(|m| {
+        m.insert(
+            AaaClassificationKey {
+                aaa: caller,
                 classification_id,
             },
             (),
@@ -434,9 +543,18 @@ pub fn process_submission(
         );
     }
 
+    if let Some(seq) = discovery_seq {
+        crate::events::record_event(
+            now,
+            caller,
+            owner,
+            crate::events::EventKind::DiscoveryFlagged { seq },
+        );
+    }
+
     Ok(ClassificationReceipt {
         classification_id,
-        discovery_id: None,
+        discovery_id: discovery_public_id,
         xp_awarded,
         duplicate: false,
         claim: None,
@@ -848,5 +966,156 @@ mod tests {
                 Err(ApiError::InvalidInput(_))
             ));
         }
+    }
+
+    fn flagged_submission(task_id: u64, caller: Principal, flag: bool) -> ClassificationSubmission {
+        ClassificationSubmission {
+            task_id,
+            answers: vec![Answer {
+                question_id: "q1".into(),
+                answer_id: "smooth".into(),
+            }],
+            observed_image_sha256: vec![1; 32],
+            discovery: flag.then(|| sc_types::DiscoveryFlag {
+                category: "lens".into(),
+                rationale: "possible arc near the core".into(),
+                confidence: 70,
+                claim_position: None,
+            }),
+            agent_label: None,
+            submitted_by: caller,
+        }
+    }
+
+    #[test]
+    fn t4_1_discovery_flag_creates_record_and_enforces_rolling_rate_limit() {
+        let proto = sample_tree_protocol();
+        catalog::add_protocol(proto).unwrap();
+
+        let params = Params {
+            gold_rate_bp: 0,
+            calibration_gold_rate_bp: 0,
+            calibration_tasks: 0,
+            max_open_leases_per_aaa: 5,
+            ..Params::default()
+        };
+        let caller = p(1);
+        let now = 1_790_467_200_000_000_000u64;
+
+        let issue = |subject_id: u32, at: u64| {
+            catalog::add_subjects(vec![catalog::SubjectInput {
+                subject: sample_ref(subject_id),
+                gold: None,
+            }])
+            .unwrap();
+            catalog::issue_task(caller, 0, &params, 1, at, 0).unwrap()
+        };
+
+        let first_task = issue(1, now);
+        let receipt = process_submission(
+            caller,
+            caller,
+            flagged_submission(first_task.task_id, caller, true),
+            &params,
+            1,
+            now,
+            0,
+        )
+        .unwrap();
+        let public_id = receipt
+            .discovery_id
+            .expect("first flag creates a discovery");
+        assert_eq!(public_id, "SC-2026-000001");
+        assert!(discoveries::get_by_public_id(&public_id).is_some());
+        let d = discoveries::get_by_public_id(&public_id).unwrap();
+        assert_eq!(d.status, crate::discoveries::DiscoveryStatus::UnderReview);
+        assert_eq!(d.needed_reviews, params.reviews_min as u8);
+        assert_eq!(d.classification_id, receipt.classification_id);
+
+        for i in 2..=10u32 {
+            let task = issue(i, now + i as u64);
+            let r = process_submission(
+                caller,
+                caller,
+                flagged_submission(task.task_id, caller, true),
+                &params,
+                1,
+                now + i as u64,
+                0,
+            )
+            .unwrap();
+            assert!(
+                r.discovery_id.is_some(),
+                "flag {i} of 10 must still be within the 10% cap"
+            );
+        }
+
+        for i in 11..=100u32 {
+            let task = issue(i, now + i as u64);
+            let r = process_submission(
+                caller,
+                caller,
+                flagged_submission(task.task_id, caller, false),
+                &params,
+                1,
+                now + i as u64,
+                0,
+            )
+            .unwrap();
+            assert!(r.discovery_id.is_none());
+            assert!(!r.duplicate);
+        }
+
+        let task_101 = issue(101, now + 101);
+        let r101 = process_submission(
+            caller,
+            caller,
+            flagged_submission(task_101.task_id, caller, true),
+            &params,
+            1,
+            now + 101,
+            0,
+        )
+        .unwrap();
+        assert!(
+            r101.discovery_id.is_none(),
+            "the 101st flag exceeds max_flag_rate_bp and must be dropped, not error the submission"
+        );
+        assert!(!r101.duplicate);
+        assert_eq!(discoveries::count(), 10);
+    }
+
+    #[test]
+    fn t4_1_mismatched_image_and_unknown_category_silently_drop_the_flag() {
+        let proto = sample_tree_protocol();
+        catalog::add_protocol(proto).unwrap();
+        let params = Params::default();
+        let caller = p(2);
+        let now = 1_790_467_200_000_000_000u64;
+
+        catalog::add_subjects(vec![catalog::SubjectInput {
+            subject: sample_ref(9101),
+            gold: None,
+        }])
+        .unwrap();
+        let task = catalog::issue_task(caller, 0, &params, 1, now, 0).unwrap();
+        let mut sub = flagged_submission(task.task_id, caller, true);
+        sub.observed_image_sha256 = vec![9; 32];
+        let r = process_submission(caller, caller, sub, &params, 1, now, 0).unwrap();
+        assert!(r.discovery_id.is_none());
+        assert!(!r.duplicate);
+
+        catalog::add_subjects(vec![catalog::SubjectInput {
+            subject: sample_ref(9102),
+            gold: None,
+        }])
+        .unwrap();
+        let task2 = catalog::issue_task(caller, 0, &params, 1, now, 0).unwrap();
+        let mut sub2 = flagged_submission(task2.task_id, caller, true);
+        sub2.discovery.as_mut().unwrap().category = "unknown-category".into();
+        let r2 = process_submission(caller, caller, sub2, &params, 1, now, 0).unwrap();
+        assert!(r2.discovery_id.is_none());
+        assert!(!r2.duplicate);
+        assert_eq!(discoveries::count(), 0);
     }
 }

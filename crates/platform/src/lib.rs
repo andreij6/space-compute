@@ -3,6 +3,7 @@ pub mod audit;
 pub mod catalog;
 pub mod config;
 pub mod credits;
+pub mod discoveries;
 pub mod events;
 mod guard;
 mod memory;
