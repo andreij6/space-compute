@@ -104,6 +104,7 @@ type ReviewReceipt = record { review_id : nat64; xp_awarded : nat32; duplicate :
 | 50 | `StableBTreeMap` | `aaa` → `Provenance { module_hash, total_num_changes, checked_at }` (§5 strict check) |
 | 51 | `StableBTreeMap` | `discovery_seq` → `Vec<Corroboration { aaa, owner, classification_id, at }>` |
 | 52 | `StableLog` (52/53) | admin audit log `{ at, admin, method, args_digest, summary }` |
+| 54 | `StableBTreeMap` | `discovery_seq` → `()` (starvation: `awaiting_reviewers` flag, cleared when a reviewer appears or the discovery resolves) |
 
 `AaaRecord { v, owner, name, avatar_seed, wasm_version, status: Installing|Active|Suspended|SelfManaged|Deleted, created_at, last_seen_at, last_cycles: nat, platform_is_controller: bool, verified_at, install_attempts, admin_suspended: bool }`. Every stored record carries `v: u8` (01 §6). `WasmMeta` also stores `module_sha256` (sha256 of the decompressed module, computed once at upload) so provenance checks never gunzip.
 
