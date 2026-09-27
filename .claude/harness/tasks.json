@@ -1936,6 +1936,25 @@
   "pct": 0
  },
  {
+  "id": "T8.15",
+  "phase": "P8",
+  "name": "Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits)",
+  "lane": null,
+  "tier": "-",
+  "model": "human",
+  "days": 1,
+  "deps": [
+   "T0.4"
+  ],
+  "spec": "02 §5, 03, 06, 07 §4",
+  "acceptance": "Agree/changes recorded in OKR.md; spec edits filed as tasks",
+  "demo": "note: 3-line summary in chat",
+  "start": "2026-10-01",
+  "end": "2026-10-01",
+  "status": "todo",
+  "pct": 0
+ },
+ {
   "id": "T8.8",
   "phase": "P8",
   "name": "Compliance check for card & crypto fuel packs (recommended)",

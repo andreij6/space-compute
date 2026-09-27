@@ -141,6 +141,7 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.5 | 2027-02-12 | 2027-02-12 | OKR | Launch announced | note: 3-line summary in chat |
 | T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-25 | 2027-01-25 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
 | T8.12 | Firebase projects (staging/prod) + GA4 funnels & dashboards | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 05 §4b | Funnel dashboard live | note: 3-line summary in chat |
+| T8.15 | Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits) | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 02 §5, 03, 06, 07 §4 | Agree/changes recorded in OKR.md; spec edits filed as tasks | note: 3-line summary in chat |
 | T8.8 | Compliance check for card & crypto fuel packs (recommended) | - | you | 5 | T0.4 | 2026-10-01 | 2026-10-07 | 08 S20 | Written go/no-go | note: 3-line summary in chat |
 | T8.9 | Enable BTC/ETH on production (card stays off) | - | you | 1 | T8.6, T8.8 | 2027-02-11 | 2027-02-11 | 04 §6.2 | admin_pause_non_icp off | note: 3-line summary in chat |
 
