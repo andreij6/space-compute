@@ -1,5 +1,10 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T1.2 sc-types shared crate (done)
+- ApiError (12 variants + Display), SubjectRef/FIELDS, Protocol/Question/Answer, Task, submissions/receipts/assignments, Vote, ClaimOutcome; `limits` module mirrors 08 §3.
+- Demo: `just demo T1.2` → 4 tests (candid round-trip of every type; ApiError variants; input limits; candid shapes vs 02 §2).
+- Harness: no friction.
+
 ## 2026-09-27 — T1.1 Repo scaffold (done)
 - Cargo workspace: sc-types + platform/payments/treasury/aaa canisters + integration-tests; toolchain pinned 1.95.0 + wasm32; icp.yaml (icp-cli 1.6, rust recipe v3.4.0, gateway port 0; local/staging/production envs; aaa built but not deployed).
 - Demo: `just demo T1.1` → 3 tests (icp build → 3 wasms with candid metadata; every .did committed; toolchain pinned).
