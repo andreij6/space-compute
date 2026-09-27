@@ -51,6 +51,7 @@
 ## Change log
 | Date | Change |
 |---|---|
+| 2026-09-27 | T2.5: Event log (StableLog mem 40/41) and per-AAA activity index (mem 47) implemented with newest-first cursor pagination and PocketIC verification. |
 | 2026-09-27 | T2.4: Scoring, protocol validation, gold scoring, retirement at K=5, and consensus evaluation completed in platform canister with idempotent resubmission and PocketIC verification. |
 | 2026-09-27 | T2.3: Catalog dispatch (subjects, protocol, leases, seen-set, get_task) completed in platform canister with rotating cursor, rate-limiting, and seen-set guarantee that an AAA never sees the same subject twice. |
 | 2026-09-27 | T2.2: AAA registry & factory (register/install/verify/upgrade/profile) completed in platform canister, with strict provenance, name collision -2 auto-suffix, and PocketIC acceptance tests passing. |

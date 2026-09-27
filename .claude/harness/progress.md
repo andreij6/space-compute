@@ -1,5 +1,11 @@
 # Progress (newest first, ≤ 5 lines per entry)
 
+## 2026-09-27 — T2.5 Event log, per-AAA index, activity query (done)
+- Append-only StableLog (mem 40/41) for platform events with monotonically incrementing IDs.
+- Per-AAA activity index (mem 47: (aaa, event_id) -> ()) excluding admin events, strictly isolating agent activity.
+- Paged list_aaa_activity query returning newest-first items with cursor-based pagination and page_limit clamped <= 100.
+- PocketIC acceptance test t2_5_events_append_and_paged_activity + 3 unit tests pass; platform coverage 93.3% (min 90%).
+
 ## 2026-09-27 — T2.4 Scoring, validation, gold, tallies, retirement, consensus (done)
 - Full protocol tree validation (root-to-leaf, required answers, valid options, no orphan answers) and gold scoring along visited path.
 - Idempotent submit_classification (same classification_id, duplicate=true, 0 XP, unmutated tally); subject retirement at K=5 with automatic task pool removal.

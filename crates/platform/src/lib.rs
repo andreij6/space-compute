@@ -2,6 +2,7 @@ pub mod api;
 pub mod audit;
 pub mod catalog;
 pub mod config;
+pub mod events;
 mod memory;
 pub mod registry;
 mod rng;

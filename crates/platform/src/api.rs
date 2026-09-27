@@ -6,6 +6,7 @@ use serde::Deserialize;
 use crate::audit::{self, AuditEntry};
 use crate::catalog::{self, AdminListSubjectsFilter, Lease, Subject, SubjectInput};
 use crate::config::{self, Params, PauseFlags};
+use crate::events;
 use crate::registry::{
     self, AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput,
     RegisterArgs, UpdateAaaProfileArgs, WasmMeta,
@@ -194,6 +195,16 @@ fn admin_list_wasms() -> Result<Vec<(u32, WasmMeta)>, ApiError> {
 fn admin_suspend_aaa(aaa: Principal, reason: String) -> Result<(), ApiError> {
     let caller = require_admin()?;
     registry::suspend_aaa(aaa)?;
+    if let Some(rec) = registry::get_aaa(&aaa) {
+        events::record_event(
+            ic_cdk::api::time(),
+            aaa,
+            rec.owner,
+            events::EventKind::AaaSuspended {
+                reason: reason.clone(),
+            },
+        );
+    }
     audit(
         caller,
         "admin_suspend_aaa",
@@ -207,6 +218,14 @@ fn admin_suspend_aaa(aaa: Principal, reason: String) -> Result<(), ApiError> {
 fn admin_unsuspend_aaa(aaa: Principal) -> Result<(), ApiError> {
     let caller = require_admin()?;
     registry::unsuspend_aaa(aaa)?;
+    if let Some(rec) = registry::get_aaa(&aaa) {
+        events::record_event(
+            ic_cdk::api::time(),
+            aaa,
+            rec.owner,
+            events::EventKind::AaaUnsuspended,
+        );
+    }
     audit(
         caller,
         "admin_unsuspend_aaa",
@@ -701,4 +720,18 @@ fn get_subject_consensus(subject_id: u32) -> Option<scoring::SubjectConsensus> {
 #[ic_cdk::query]
 fn list_subject_classifications(subject_id: u32) -> Vec<scoring::Classification> {
     scoring::get_subject_classifications(subject_id)
+}
+
+#[ic_cdk::query]
+fn list_aaa_activity(
+    aaa: Principal,
+    cursor: Option<u64>,
+    limit: u32,
+) -> events::Page<events::ActivityItem> {
+    events::list_aaa_activity(aaa, cursor, limit)
+}
+
+#[ic_cdk::query]
+fn get_event(id: u64) -> Option<events::Event> {
+    events::get_event(id)
 }

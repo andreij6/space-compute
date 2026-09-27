@@ -316,14 +316,14 @@ pub fn complete_register_aaa(
     if !is_approved_module_hash(&module_hash) {
         return Err(ApiError::invalid("module hash not approved"));
     }
-    AAA_REGISTRY.with_borrow_mut(|m| match m.get(&canister_id) {
+    let (name, owner) = AAA_REGISTRY.with_borrow_mut(|m| match m.get(&canister_id) {
         Some(mut rec) => {
             rec.status = AaaStatus::Active;
             rec.platform_is_controller = true;
             rec.verified_at = now;
             rec.wasm_version = version;
-            m.insert(canister_id, rec);
-            Ok(())
+            m.insert(canister_id, rec.clone());
+            Ok((rec.name, rec.owner))
         }
         None => Err(ApiError::NotFound),
     })?;
@@ -337,6 +337,12 @@ pub fn complete_register_aaa(
             },
         )
     });
+    crate::events::record_event(
+        now,
+        canister_id,
+        owner,
+        crate::events::EventKind::AaaSpawned { name },
+    );
     Ok(())
 }
 

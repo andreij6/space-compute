@@ -266,6 +266,17 @@ pub fn evaluate_consensus(subject_id: u32, retired_at: u64) -> Option<SubjectCon
             let mut updated = (*c).clone();
             updated.consensus_score = Some((matches, compared));
             m.insert(updated.classification_id, updated);
+            let agree = compared > 0 && matches == compared;
+            crate::events::record_event(
+                retired_at,
+                c.aaa,
+                c.owner,
+                crate::events::EventKind::ConsensusScored {
+                    subject_id,
+                    agree,
+                    trials: compared,
+                },
+            );
         }
     });
 
@@ -377,6 +388,29 @@ pub fn process_submission(
 
     if !is_gold && subject.tally_count == params.retire_after_k {
         evaluate_consensus(subject.ref_.subject_id, now);
+    }
+
+    crate::events::record_event(
+        now,
+        caller,
+        owner,
+        crate::events::EventKind::Classified {
+            classification_id,
+            subject_id: subject.ref_.subject_id,
+            gold: gold_score,
+            fee: fee as u64,
+        },
+    );
+
+    if image_mismatch {
+        crate::events::record_event(
+            now,
+            caller,
+            owner,
+            crate::events::EventKind::ImageMismatch {
+                subject_id: subject.ref_.subject_id,
+            },
+        );
     }
 
     Ok(ClassificationReceipt {
