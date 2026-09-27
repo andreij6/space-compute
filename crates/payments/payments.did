@@ -72,8 +72,12 @@ type Overview = record {
 };
 type Params = record {
   rate_max_age_secs : nat64;
+  icp_ledger_fee_e8s : nat64;
   intake_min_runway_days : nat32;
   fuel_pack_usd_cents : nat32;
+  spawn_creation_fee_cycles : nat;
+  aaa_initial_cycles : nat;
+  spawn_quote_buffer_bp : nat16;
   treasury_daily_cap_e8s : nat64;
   treasury_reserve_floor_e8s : nat64;
   auto_topup_min_interval_secs : nat64;
@@ -91,12 +95,29 @@ type PayPath = variant {
   Treasury;
   Wallet : record { payer : Account };
 };
+type Purpose = variant { Spawn; Auto; TopUp };
+type Quote = record {
+  v : nat8;
+  rate_age_secs : nat64;
+  fee_e8s : nat64;
+  total_e8s : nat64;
+  rate_xdr_permyriad_per_icp : nat64;
+  cycles : nat;
+  deposit_e8s : nat64;
+};
+type RateCache = record {
+  v : nat8;
+  fetched_at_secs : nat64;
+  xdr_permyriad_per_icp : nat64;
+};
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : vec AuditEntry; Err : ApiError };
 type Result_2 = variant { Ok : nat64; Err : ApiError };
 type Result_3 = variant { Ok : vec principal; Err : ApiError };
 type Result_4 = variant { Ok : vec Op; Err : ApiError };
 type Result_5 = variant { Ok : Overview; Err : ApiError };
+type Result_6 = variant { Ok : RateCache; Err : ApiError };
+type Result_7 = variant { Ok : Quote; Err : ApiError };
 service : () -> {
   admin_add_admin : (principal) -> (Result);
   admin_audit_log : (opt nat64, nat32) -> (Result_1) query;
@@ -105,11 +126,16 @@ service : () -> {
   admin_list_ops : (opt nat64, nat32) -> (Result_4) query;
   admin_overview : () -> (Result_5) query;
   admin_pause : (PauseFlags) -> (Result);
+  admin_refresh_rate : () -> (Result_6);
   admin_remove_admin : (principal) -> (Result);
   admin_set_features : (Features) -> (Result);
   admin_set_params : (Params) -> (Result);
+  get_deposit_account : (Purpose, principal) -> (text, Account) query;
   get_features : () -> (Features) query;
   get_op : (nat64) -> (opt Op) query;
   get_params : () -> (Params) query;
+  get_quote_spawn : () -> (Result_7) query;
+  get_quote_topup : (nat) -> (Result_7) query;
+  get_rate : () -> (RateCache) query;
   version : () -> (text) query;
 }

@@ -25,6 +25,7 @@ ic-cdk-timers = "1.0"
 ic-stable-structures = "0.7"
 rand_chacha = { version = "0.3", default-features = false }
 sha2 = "0.10"
+ic-ledger-types = "0.16.0"
 flate2 = { version = "1.0", default-features = false, features = ["rust_backend"] }
 
 [profile.release]

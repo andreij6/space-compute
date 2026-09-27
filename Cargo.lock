@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "ic-cdk 0.20.3",
+ "ic-cdk-timers",
  "ic-stable-structures",
  "sc-types",
  "serde",
@@ -1144,6 +1145,7 @@ version = "0.1.0"
 dependencies = [
  "aaa",
  "candid",
+ "flate2",
  "ic-ledger-types",
  "icrc-ledger-types",
  "payments",
@@ -1151,6 +1153,7 @@ dependencies = [
  "pocket-ic",
  "sc-types",
  "serde",
+ "serde_json",
  "sha2",
  "treasury",
 ]
@@ -1468,6 +1471,7 @@ dependencies = [
  "candid",
  "ic-cdk 0.20.3",
  "ic-cdk-timers",
+ "ic-ledger-types",
  "ic-stable-structures",
  "sc-types",
  "serde",

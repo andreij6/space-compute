@@ -5,8 +5,11 @@ use serde::Deserialize;
 
 use crate::audit::{self, AuditEntry};
 use crate::config::{self, Features, Params, PauseFlags};
+use crate::deposit::{self, Purpose};
 use crate::guard::{self, CallerGuard};
-use crate::journal::{self, NotifiedInfo, Op, OpState, PayPath};
+use crate::journal::{self, Account, NotifiedInfo, Op, OpState, PayPath};
+use crate::quote::{self, Quote};
+use crate::rate::{self, RateCache};
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct Overview {
@@ -152,6 +155,36 @@ fn get_features() -> Features {
 #[ic_cdk::query]
 fn get_op(id: u64) -> Option<Op> {
     journal::get(id)
+}
+
+#[ic_cdk::query]
+fn get_rate() -> RateCache {
+    rate::get()
+}
+
+#[ic_cdk::update]
+async fn admin_refresh_rate() -> Result<RateCache, ApiError> {
+    require_admin()?;
+    rate::refresh().await
+}
+
+#[ic_cdk::query]
+fn get_quote_spawn() -> Result<Quote, ApiError> {
+    let params = config::get().params;
+    let now_secs = ic_cdk::api::time() / 1_000_000_000;
+    quote::quote_spawn(&params, &rate::get(), now_secs)
+}
+
+#[ic_cdk::query]
+fn get_quote_topup(cycles: u128) -> Result<Quote, ApiError> {
+    let params = config::get().params;
+    let now_secs = ic_cdk::api::time() / 1_000_000_000;
+    quote::quote_topup(cycles, &rate::get(), now_secs, params.icp_ledger_fee_e8s)
+}
+
+#[ic_cdk::query]
+fn get_deposit_account(purpose: Purpose, beneficiary: Principal) -> (String, Account) {
+    deposit::deposit_account(ic_cdk::api::canister_self(), purpose, beneficiary)
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]

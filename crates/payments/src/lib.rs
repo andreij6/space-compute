@@ -1,16 +1,22 @@
 pub mod api;
 pub mod audit;
 pub mod config;
+pub mod deposit;
 pub mod guard;
 pub mod journal;
 mod memory;
+pub mod quote;
+pub mod rate;
 mod timers;
 
 use api::{JournalDemoArg, Overview};
 use audit::AuditEntry;
 use candid::Principal;
 use config::{Features, Params, PauseFlags};
-use journal::Op;
+use deposit::Purpose;
+use journal::{Account, Op};
+use quote::Quote;
+use rate::RateCache;
 use sc_types::ApiError;
 
 #[ic_cdk::init]

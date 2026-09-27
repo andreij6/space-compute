@@ -20,6 +20,10 @@ pub struct Params {
     pub rate_max_age_secs: u64,
     pub auto_topup_min_interval_secs: u64,
     pub intake_min_runway_days: u32,
+    pub aaa_initial_cycles: u128,
+    pub spawn_creation_fee_cycles: u128,
+    pub spawn_quote_buffer_bp: u16,
+    pub icp_ledger_fee_e8s: u64,
 }
 
 impl Default for Params {
@@ -33,6 +37,10 @@ impl Default for Params {
             rate_max_age_secs: 7_200,
             auto_topup_min_interval_secs: 21_600,
             intake_min_runway_days: 21,
+            aaa_initial_cycles: 1_000_000_000_000,
+            spawn_creation_fee_cycles: 100_000_000_000,
+            spawn_quote_buffer_bp: 200,
+            icp_ledger_fee_e8s: 10_000,
         }
     }
 }
@@ -66,6 +74,25 @@ impl Params {
                 0,
                 3_650,
             ),
+            (
+                "aaa_initial_cycles",
+                self.aaa_initial_cycles as u64,
+                1,
+                u64::MAX,
+            ),
+            (
+                "spawn_creation_fee_cycles",
+                self.spawn_creation_fee_cycles as u64,
+                0,
+                u64::MAX,
+            ),
+            (
+                "spawn_quote_buffer_bp",
+                self.spawn_quote_buffer_bp as u64,
+                0,
+                BP as u64,
+            ),
+            ("icp_ledger_fee_e8s", self.icp_ledger_fee_e8s, 1, u64::MAX),
         ];
         if let Some((name, _, lo, hi)) = ranges.iter().find(|(_, v, lo, hi)| v < lo || v > hi) {
             return Err(ApiError::invalid(format!("{name} must be in {lo}..={hi}")));
