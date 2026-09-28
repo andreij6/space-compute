@@ -50,6 +50,11 @@ export const AdminAAAsPage: React.FC = () => {
     mutationFn: async () => unwrapAdmin(await platformActor(identity!).admin_retry_install(Principal.fromText(selected!))),
     onSuccess: invalidate,
   });
+  const setHouse = useMutation({
+    mutationFn: async (isHouse: boolean) =>
+      unwrapAdmin(await platformActor(identity!).admin_set_house(Principal.fromText(selected!), isHouse)),
+    onSuccess: invalidate,
+  });
 
   return (
     <div>
@@ -106,7 +111,15 @@ export const AdminAAAsPage: React.FC = () => {
               <dt>Status</dt>
               <dd>{detail.data.status}</dd>
               <dt>House AAA</dt>
-              <dd>{detail.data.is_house ? 'yes' : 'no'}</dd>
+              <dd>
+                {detail.data.is_house ? 'yes' : 'no'}{' '}
+                <ConfirmAction
+                  label={detail.data.is_house ? 'unset house' : 'set house'}
+                  phrase={detail.data.name}
+                  disabled={setHouse.isPending}
+                  onConfirm={() => setHouse.mutate(!detail.data!.is_house)}
+                />
+              </dd>
               <dt>Wasm version</dt>
               <dd>{detail.data.wasm_version}</dd>
               <dt>Install attempts</dt>
@@ -145,9 +158,9 @@ export const AdminAAAsPage: React.FC = () => {
               />
             </p>
           )}
-          {(suspend.isError || unsuspend.isError || retryInstall.isError) && (
+          {(suspend.isError || unsuspend.isError || retryInstall.isError || setHouse.isError) && (
             <p role="alert">
-              {suspend.error?.message ?? unsuspend.error?.message ?? retryInstall.error?.message}
+              {suspend.error?.message ?? unsuspend.error?.message ?? retryInstall.error?.message ?? setHouse.error?.message}
             </p>
           )}
         </section>

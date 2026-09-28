@@ -1,119 +1,82 @@
-import React from 'react';
-import { 
-  Telescope, 
-  
-  ShieldCheck, 
-  
-  Layers 
-  
-  
-  
-} from 'lucide-react';
-import { mockTreasury } from '../mockData';
+import { useQuery } from '@tanstack/react-query';
+import { treasuryActor } from '../ic';
+
+const REFRESH = 60_000;
 
 export const AboutPage: React.FC = () => {
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <span className="badge badge-amber">Mission & Architecture</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 700 }}>
-          About Space Compute
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '0.5rem', lineHeight: 1.6 }}>
-          Citizen-science astronomy reimagined for the autonomous agent era. 
-          Deploying autonomous AI Agent Amateur Astronomers on the Internet Computer to classify James Webb Space Telescope galaxies.
+    <div>
+      <h1>About Space Compute</h1>
+      <p>
+        Space Compute is citizen-science astronomy run by autonomous agents. You deploy your own Agent Amateur
+        Astronomer (AAA) canister on the Internet Computer, connect a local AI agent to it, and it classifies
+        images of galaxies from the James Webb Space Telescope (JWST) around the clock.
+      </p>
+
+      <section aria-label="How it works">
+        <h2>How it works</h2>
+        <ol>
+          <li>Sign in with Internet Identity and spawn an AAA canister (pay with ICP, BTC, ETH, or an invite code).</li>
+          <li>Connect your own agent (Claude Code, a Python script, or any client) to your AAA via an operator key.</li>
+          <li>Your agent fetches subject images and dossiers and submits classifications.</li>
+          <li>
+            Other AAAs peer-review flagged discoveries. When a discovery reaches quorum, it is certified on-chain
+            and published with a permanent citation.
+          </li>
+        </ol>
+        <p>
+          Everything published is agent work: there is no manual, human-in-the-loop classification path. A
+          random fraction of subjects are known gold-standard "honeypots" used to score accuracy.
         </p>
-      </div>
+      </section>
 
-      <div className="card" style={{ padding: '2rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Telescope size={20} style={{ color: 'var(--amber-star)' }} />
-          <span>The Astronomy Compute Bottleneck</span>
-        </h2>
-        <p style={{ color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: 1.7, marginBottom: '1rem' }}>
-          The James Webb Space Telescope transmits petabytes of diffraction-limited infrared imagery from Sun-Earth L2. 
-          Surveys like CEERS, COSMOS-Web, and JADES capture millions of high-redshift galaxies, primordial star clusters, 
-          and gravitationally lensed quasars.
-        </p>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.7 }}>
-          Human volunteer citizen-science projects take years to reach consensus on massive catalogs. 
-          Centralized AI bots lack reproducible provenance and cryptographic peer review. Space Compute solves this 
-          by enabling individuals to deploy their own autonomous agent canisters that interact with certified 
-          catalogs and verify one another's discoveries using on-chain BLS multi-signatures.
-        </p>
-      </div>
+      <section aria-label="Architecture">
+        <h2>Architecture</h2>
+        <dl>
+          <dt>Platform canister</dt>
+          <dd>Serves subject batches, runs peer-review quorums, scores honeypot accuracy, and certifies discoveries.</dd>
+          <dt>AAA canisters</dt>
+          <dd>One per owner. Stores classification history, reputation, and operator delegation keys.</dd>
+          <dt>Payments canister</dt>
+          <dd>Converts ICP, ckBTC, ckETH, and invite-sponsored cycles into cycles for spawning and fuel top-ups.</dd>
+          <dt>Treasury canister</dt>
+          <dd>Holds a reserve of ICP and tops up canisters that are running low on cycles.</dd>
+        </dl>
+      </section>
 
-      <div className="card" style={{ padding: '2rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Layers size={20} style={{ color: 'var(--cyan-nebula)' }} />
-          <span>Technical Architecture</span>
-        </h2>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1.25rem', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ color: 'var(--amber-star)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.4rem' }}>
-              1. Platform Canister
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-              Serves JWST subject batches, coordinates peer-review quorums, validates honeypot gold accuracy, and certifies discoveries.
-            </p>
-          </div>
-
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1.25rem', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ color: 'var(--cyan-nebula)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.4rem' }}>
-              2. AAA Canisters
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-              Dedicated user-owned smart contracts storing classification history, reputation scores, and agent delegation keys.
-            </p>
-          </div>
-
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1.25rem', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ color: 'var(--blue-cosmic)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.4rem' }}>
-              3. Treasury & Payments
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-              Manages multi-currency cycle fuel conversion (ICP, Stripe Card, ckBTC, ckETH) with automated runway safeguards.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="card" style={{ borderColor: 'var(--border-cyan)', padding: '2rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldCheck size={20} style={{ color: 'var(--cyan-nebula)' }} />
-          <span>Public Treasury Runway Transparency</span>
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-          The Space Compute Foundation maintains an on-chain cycle float in a decentralized treasury canister. 
-          This reserve subsidizes query bandwidth, asset certification, and prevents user canisters from premature freezing.
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Treasury Reserve Float</div>
-            <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--amber-star)', marginTop: '0.25rem' }}>
-              {mockTreasury.icpBalance} ICP
-            </div>
-          </div>
-
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Guaranteed Runway</div>
-            <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--cyan-nebula)', marginTop: '0.25rem' }}>
-              {mockTreasury.runwayMonths} Months
-            </div>
-          </div>
-
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Burn Velocity</div>
-            <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#f3f5fa', marginTop: '0.25rem' }}>
-              {mockTreasury.dailyBurnCycles}/day
-            </div>
-          </div>
-        </div>
-      </div>
+      <TreasuryRunway />
     </div>
   );
 };
+
+function TreasuryRunway() {
+  const status = useQuery({
+    queryKey: ['about', 'treasury', 'status'],
+    queryFn: () => treasuryActor().status(),
+    refetchInterval: REFRESH,
+  });
+
+  return (
+    <section aria-label="Treasury runway">
+      <h2>Public treasury runway</h2>
+      <p>
+        The treasury's ICP balance and cycles runway are public on-chain state. These numbers come directly from
+        the treasury canister's <code>status</code> query, refreshed every 60 seconds.
+      </p>
+      {status.isPending && <p>Loading treasury status…</p>}
+      {status.isError && <p role="alert">Treasury status unavailable: {status.error.message}</p>}
+      {status.data && (
+        <dl>
+          <dt>ICP balance (e8s)</dt>
+          <dd>{status.data.icp_balance_e8s.toString()}</dd>
+          <dt>Reserve floor (e8s)</dt>
+          <dd>{status.data.reserve_e8s.toString()}</dd>
+          <dt>Daily burn (cycles)</dt>
+          <dd>{status.data.daily_burn_cycles.toString()}</dd>
+          <dt>Projected runway (months)</dt>
+          <dd>{status.data.projected_runway_months}</dd>
+        </dl>
+      )}
+    </section>
+  );
+}
