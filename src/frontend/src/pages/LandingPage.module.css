@@ -1,0 +1,183 @@
+.hero {
+  text-align: center;
+  padding: var(--space-6) 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.03em;
+  line-height: var(--leading-tight);
+  max-width: 850px;
+}
+
+.titleAccent {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-success) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  color: var(--color-text-muted);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  max-width: 680px;
+  line-height: 1.6;
+}
+
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.stats {
+  max-width: 900px;
+  width: 100%;
+  margin-top: var(--space-6);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-5);
+}
+
+.statValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  font-family: var(--font-mono);
+}
+
+.statLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.sectionHead {
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.sectionHeadRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+}
+
+.sectionSubtitle {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.stepIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+
+.stepIconAmber {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.stepIconCyan {
+  background-color: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.stepIconBlue {
+  background-color: var(--color-info-soft);
+  color: var(--color-info);
+}
+
+.stepTitle {
+  font-size: var(--text-lg);
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.stepBody {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.discoveries {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-5);
+}
+
+.discoveryCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.discoveryId {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+}
+
+.discoveryRationale {
+  color: var(--color-text-muted);
+  font-size: 0.825rem;
+  line-height: 1.5;
+}
+
+.discoveryBy {
+  font-size: var(--text-xs);
+  color: var(--color-text-dim);
+}
+
+.treasury {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.treasuryTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-3);
+}
+
+.treasuryBody {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}

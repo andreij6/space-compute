@@ -6,6 +6,10 @@ import { platformActor } from '../ic';
 import { DiscoveryStatus, type DiscoveryCard } from '../bindings/platform';
 import { DISCOVERY_CATEGORIES, categoryLabel, formatNs } from '../categories';
 import { loadVerifiedImage } from '../imageHash';
+import { Badge } from '../components/ui/Badge';
+import { Card } from '../components/ui/Card';
+import { CategoryIcon } from '../components/ui/CategoryIcon';
+import styles from './MuseumPage.module.css';
 
 const REFRESH = 60_000;
 const PAGE_SIZE = 24;
@@ -18,30 +22,12 @@ function CardThumbnail({ url, sha256, alt }: { url: string; sha256: Uint8Array; 
     enabled: !!url,
   });
   if (!url || verifyQuery.isError || (verifyQuery.data && verifyQuery.data.kind !== 'ok')) {
-    return (
-      <div
-        role="img"
-        aria-label="Image unavailable"
-        style={{ width: '100%', height: '150px', backgroundColor: '#03040a', borderRadius: '6px' }}
-      />
-    );
+    return <div role="img" aria-label="Image unavailable" className={styles.thumb} />;
   }
   if (verifyQuery.data?.kind !== 'ok') {
-    return (
-      <div
-        role="img"
-        aria-label="Verifying image integrity…"
-        style={{ width: '100%', height: '150px', backgroundColor: '#03040a', borderRadius: '6px' }}
-      />
-    );
+    return <div role="img" aria-label="Verifying image integrity…" className={styles.thumb} />;
   }
-  return (
-    <img
-      src={verifyQuery.data.src}
-      alt={alt}
-      style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '6px', backgroundColor: '#03040a' }}
-    />
-  );
+  return <img src={verifyQuery.data.src} alt={alt} className={styles.thumb} />;
 }
 
 type StatusFilter = 'all' | 'confirmed' | 'rejected';
@@ -79,25 +65,23 @@ export const MuseumPage = () => {
   const items: DiscoveryCard[] = query.data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <span className="badge badge-amber">Public Science Gallery</span>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Discovery Museum
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '750px', marginTop: '0.25rem' }}>
-          Browse resolved candidate anomalies flagged by autonomous agent astronomers and peer-reviewed
-          on the Internet Computer.
+    <div className={styles.page}>
+      <div className={styles.head}>
+        <Badge tone="accent">Public Science Gallery</Badge>
+        <h1 className={styles.title}>Discovery Museum</h1>
+        <p className={styles.subtitle}>
+          Browse resolved candidate anomalies flagged by autonomous agent astronomers and peer-reviewed on the
+          Internet Computer.
         </p>
       </div>
 
-      <div className="card" style={{ padding: '1.25rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div role="group" aria-label="Category filter" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Category:</span>
+      <Card>
+        <div className={styles.filters}>
+          <div role="group" aria-label="Category filter" className={styles.filterRow}>
+            <span className={styles.filterLabel}>Category:</span>
             <button
               type="button"
-              className={`badge ${category === undefined ? 'badge-amber' : 'badge-subtle'}`}
+              className={`${styles.chip} ${category === undefined ? styles.chipActive : ''}`}
               onClick={() => setCategory(undefined)}
             >
               All Anomalies
@@ -106,60 +90,57 @@ export const MuseumPage = () => {
               <button
                 key={cat.id}
                 type="button"
-                className={`badge ${category === cat.id ? 'badge-amber' : 'badge-subtle'}`}
+                className={`${styles.chip} ${category === cat.id ? styles.chipActive : ''}`}
                 onClick={() => setCategory(cat.id)}
               >
+                <CategoryIcon category={cat.id} size={14} />
                 {cat.label}
               </button>
             ))}
           </div>
 
-          <div role="group" aria-label="Status filter" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Status:</span>
+          <div role="group" aria-label="Status filter" className={styles.filterRow}>
+            <span className={styles.filterLabel}>Status:</span>
             {(['all', 'confirmed', 'rejected'] as StatusFilter[]).map((s) => (
               <button
                 key={s}
                 type="button"
-                className={`btn-secondary ${status === s ? 'active' : ''}`}
+                className={`${styles.chip} ${status === s ? styles.chipActive : ''}`}
                 onClick={() => setStatus(s)}
               >
-                {s === 'confirmed' && <CheckCircle2 size={13} />}
-                {s === 'rejected' && <XCircle size={13} />}
+                {s === 'confirmed' && <CheckCircle2 size={13} aria-hidden />}
+                {s === 'rejected' && <XCircle size={13} aria-hidden />}
                 <span>{s === 'all' ? 'All' : s[0].toUpperCase() + s.slice(1)}</span>
               </button>
             ))}
           </div>
         </div>
-      </div>
+      </Card>
 
       {query.isPending && <p>Loading discoveries…</p>}
       {query.isError && <p role="alert">Discoveries unavailable: {query.error.message}</p>}
-      {query.isSuccess && items.length === 0 && (
-        <p>No resolved discoveries match these filters yet.</p>
-      )}
+      {query.isSuccess && items.length === 0 && <p>No resolved discoveries match these filters yet.</p>}
 
-      <div className="grid-responsive">
+      <div className={styles.grid}>
         {items.map((disc) => (
-          <Link to={`/d/${disc.public_id}`} key={disc.public_id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            <CardThumbnail
-              url={disc.image_url}
-              sha256={disc.image_sha256}
-              alt={`${categoryLabel(disc.category)} candidate, subject ${disc.subject_id}`}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="badge badge-amber">{categoryLabel(disc.category)}</span>
-              <span className={`badge ${disc.status === DiscoveryStatus.Confirmed ? 'badge-cyan' : 'badge-subtle'}`}>
-                {disc.status}
-              </span>
-            </div>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--amber-star)' }}>
-              {disc.public_id}
-            </span>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', lineHeight: 1.5 }}>{disc.rationale}</p>
-            <div style={{ marginTop: 'auto', paddingTop: '0.6rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-              <span>Discovered by {disc.discoverer_name}</span>
-              <span>{formatNs(disc.created_at)}</span>
-            </div>
+          <Link to={`/d/${disc.public_id}`} key={disc.public_id} className={styles.card}>
+            <Card>
+              <CardThumbnail
+                url={disc.image_url}
+                sha256={disc.image_sha256}
+                alt={`${categoryLabel(disc.category)} candidate, subject ${disc.subject_id}`}
+              />
+              <div className={styles.cardTop}>
+                <Badge tone="accent">{categoryLabel(disc.category)}</Badge>
+                <Badge tone={disc.status === DiscoveryStatus.Confirmed ? 'success' : 'neutral'}>{disc.status}</Badge>
+              </div>
+              <p className={styles.publicId}>{disc.public_id}</p>
+              <p className={styles.rationale}>{disc.rationale}</p>
+              <div className={styles.cardFoot}>
+                <span>Discovered by {disc.discoverer_name}</span>
+                <span>{formatNs(disc.created_at)}</span>
+              </div>
+            </Card>
           </Link>
         ))}
       </div>

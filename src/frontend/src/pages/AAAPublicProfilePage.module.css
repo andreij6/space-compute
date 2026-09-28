@@ -1,0 +1,123 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.banner {
+  padding: var(--space-6) var(--space-5);
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+}
+
+.xp {
+  margin-top: var(--space-4);
+}
+
+.xpRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+}
+
+.xpRowLabel {
+  color: var(--color-text-muted);
+}
+
+.xpValue {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+}
+
+.xpTrack {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-raised);
+  overflow: hidden;
+}
+
+.xpFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent-strong) 0%, var(--color-accent) 100%);
+  border-radius: var(--radius-full);
+}
+
+.counters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background-color: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+}
+
+.counterValue {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.counterLabel {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-4);
+}
+
+.badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.badgeCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.badgeLocked {
+  opacity: 0.45;
+}
+
+.badgeLabel {
+  font-weight: var(--weight-semibold);
+}
+
+.credits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.creditCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.creditId {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.creditAt {
+  color: var(--color-text-dim);
+  font-size: var(--text-xs);
+}

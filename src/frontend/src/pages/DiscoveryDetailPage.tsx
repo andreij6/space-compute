@@ -1,18 +1,139 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Compass } from 'lucide-react';
+import { ArrowLeft, Compass, Minus, Plus, RotateCcw } from 'lucide-react';
 import { platformActor, canisterEnv, canisterId } from '../ic';
 import { displayedCitation, verifyCitationFromEnv } from '../citation';
 import { loadVerifiedImage } from '../imageHash';
+import { fetchDossier } from '../lib/dossier';
+import { RESET_VIEW, panBy, toggleZoom, viewerTransform, zoomIn, zoomOut, type ViewerState } from '../lib/imageViewer';
 import { useAuth } from '../auth';
 import { safeHref } from '../lib/urls';
 import { DiscoveryStatus } from '../bindings/platform';
 import { categoryLabel, formatNs } from '../categories';
 import { CertifiedCitationBlock } from '../components/CertifiedCitationBlock';
 import { EmptyState } from '../components/EmptyState';
+import { Badge } from '../components/ui/Badge';
+import { Button, ButtonLink, buttonClass } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import styles from './DiscoveryDetailPage.module.css';
 
 const UNDER_REVIEW_REFRESH = 30_000;
+
+function ImageViewer({ src, alt }: { src: string; alt: string }) {
+  const [view, setView] = useState<ViewerState>(RESET_VIEW);
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (view.scale <= 1) return;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { x: e.clientX, y: e.clientY };
+    setDragging(true);
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    const w = rect?.width || 1;
+    const h = rect?.height || 1;
+    const dxPercent = ((e.clientX - dragRef.current.x) / w) * 100;
+    const dyPercent = ((e.clientY - dragRef.current.y) / h) * 100;
+    dragRef.current = { x: e.clientX, y: e.clientY };
+    setView((v) => panBy(v, dxPercent, dyPercent));
+  };
+  const endDrag = () => {
+    dragRef.current = null;
+    setDragging(false);
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={`${styles.viewer} ${dragging ? styles.viewerDragging : ''}`}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerLeave={endDrag}
+      onDoubleClick={() => setView(toggleZoom(view))}
+      onWheel={(e: ReactWheelEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setView(e.deltaY < 0 ? zoomIn : zoomOut);
+      }}
+    >
+      <img src={src} alt={alt} className={styles.viewerImg} style={{ transform: viewerTransform(view) }} draggable={false} />
+      <span className={styles.viewerHint}>Scroll or use the buttons to zoom; drag to pan</span>
+      <div className={styles.viewerControls}>
+        <Button size="sm" onClick={() => setView(zoomOut)} aria-label="Zoom out">
+          <Minus size={16} aria-hidden />
+        </Button>
+        <Button size="sm" onClick={() => setView(RESET_VIEW)} aria-label="Reset zoom">
+          <RotateCcw size={16} aria-hidden />
+        </Button>
+        <Button size="sm" onClick={() => setView(zoomIn)} aria-label="Zoom in">
+          <Plus size={16} aria-hidden />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DataPanel({ dossierHref }: { dossierHref: string | null }) {
+  const dossierQuery = useQuery({
+    queryKey: ['dossier', dossierHref],
+    queryFn: () => fetchDossier(dossierHref!),
+    enabled: !!dossierHref,
+    staleTime: Infinity,
+  });
+  const d = dossierQuery.data;
+  if (!dossierHref) return <p>Data dossier link unavailable.</p>;
+  if (dossierQuery.isPending) return <p>Loading data panel…</p>;
+  if (!d) return <p>Data panel unavailable from the survey archive.</p>;
+  return (
+    <>
+      <dl className={styles.dataList}>
+        <div className={styles.dataRow}>
+          <dt>Field / program</dt>
+          <dd>
+            {d.field} · {d.programs}
+          </dd>
+        </div>
+        <div className={styles.dataRow}>
+          <dt>Color composition</dt>
+          <dd>{d.filterComposition}</dd>
+        </div>
+        <div className={styles.dataRow}>
+          <dt>R.A. / Dec.</dt>
+          <dd>
+            {d.raDeg.toFixed(5)}° / {d.decDeg.toFixed(5)}°
+          </dd>
+        </div>
+        <div className={styles.dataRow}>
+          <dt>Redshift</dt>
+          <dd>{d.redshiftLabel}</dd>
+        </div>
+        <div className={styles.dataRow}>
+          <dt>Stellar mass</dt>
+          <dd>{d.stellarMassLabel}</dd>
+        </div>
+        <div className={styles.dataRow}>
+          <dt>Magnification</dt>
+          <dd>{d.magnificationLabel}</dd>
+        </div>
+      </dl>
+      {d.fits.length > 0 && (
+        <div className={styles.fitsList}>
+          {d.fits.map((f) => (
+            <a key={f.filter} href={f.url} className={buttonClass({ variant: 'secondary', size: 'sm' })}>
+              {f.filter.toUpperCase()} FITS
+            </a>
+          ))}
+        </div>
+      )}
+      {d.acknowledgment && <p className={styles.acknowledgment}>{d.acknowledgment}</p>}
+    </>
+  );
+}
 
 export const DiscoveryDetailPage = () => {
   const { publicId } = useParams<{ publicId: string }>();
@@ -70,35 +191,35 @@ export const DiscoveryDetailPage = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <Link to="/discoveries" className="btn-secondary">
-          <ArrowLeft size={16} />
+    <div className={styles.page}>
+      <div className={styles.crumbs}>
+        <ButtonLink to="/discoveries">
+          <ArrowLeft size={16} aria-hidden />
           <span>Back to Museum</span>
-        </Link>
-        <span className="badge badge-amber">{discovery.public_id}</span>
-        <span className="badge badge-cyan">{categoryLabel(discovery.category)}</span>
+        </ButtonLink>
+        <Badge tone="accent">{discovery.public_id}</Badge>
+        <Badge tone="success">{categoryLabel(discovery.category)}</Badge>
       </div>
 
       <div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 700 }}>
-          {categoryLabel(discovery.category)} candidate
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem' }}>
+        <h1 className={styles.title}>{categoryLabel(discovery.category)} candidate</h1>
+        <p className={styles.subtitle}>
           Cataloged in {discovery.subject.field}, flagged {formatNs(discovery.created_at)}.
         </p>
       </div>
 
       {discovery.status === DiscoveryStatus.UnderReview ? (
-        <div className="card">
-          <Compass size={20} style={{ color: 'var(--amber-star)' }} />
-          <p>
-            Citation in progress: {discovery.reviews_done} of {discovery.needed_reviews} reviews.
-          </p>
-        </div>
+        <Card>
+          <div className={styles.reviewCard}>
+            <Compass size={20} style={{ color: 'var(--color-accent)' }} aria-hidden />
+            <p>
+              Citation in progress: {discovery.reviews_done} of {discovery.needed_reviews} reviews.
+            </p>
+          </div>
+        </Card>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          {imageQuery.isPending && <p style={{ padding: '1rem' }}>Verifying image integrity…</p>}
+        <Card className={styles.imageCard}>
+          {imageQuery.isPending && <p style={{ padding: 'var(--space-4)' }}>Verifying image integrity…</p>}
           {(imageQuery.isError || imageQuery.data?.kind === 'unavailable') && (
             <EmptyState type="image_unavailable" title="Image unavailable from survey" description="The image could not be loaded from the data bucket." />
           )}
@@ -106,65 +227,33 @@ export const DiscoveryDetailPage = () => {
             <EmptyState type="image_unavailable" title="Image unavailable from survey" description="The fetched image does not match its recorded sha256; it is not shown." />
           )}
           {imageQuery.data?.kind === 'ok' && (
-            <img
-              src={imageQuery.data.src}
-              alt={`${categoryLabel(discovery.category)} candidate in ${discovery.subject.field}`}
-              style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', backgroundColor: '#03040a' }}
-            />
+            <ImageViewer src={imageQuery.data.src} alt={`${categoryLabel(discovery.category)} candidate in ${discovery.subject.field}`} />
           )}
-        </div>
+        </Card>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-        <div className="card">
-          <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
-            Astrometric Parameters
-          </h3>
-          <dl style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <dt style={{ color: 'var(--text-muted)' }}>Right Ascension</dt>
-              <dd>{discovery.subject.ra_deg}°</dd>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <dt style={{ color: 'var(--text-muted)' }}>Declination</dt>
-              <dd>{discovery.subject.dec_deg}°</dd>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <dt style={{ color: 'var(--text-muted)' }}>Field</dt>
-              <dd>{discovery.subject.field}</dd>
-            </div>
-          </dl>
-          {dossierHref ? (
-            <a href={dossierHref} className="btn-secondary" style={{ marginTop: '1rem', width: '100%', justifyContent: 'center' }}>
-              View Data Dossier
-            </a>
-          ) : (
-            <p>Data dossier link unavailable.</p>
-          )}
-        </div>
+      <div className={styles.grid}>
+        <Card>
+          <h3 className={styles.cardTitle}>Scientific Data Panel</h3>
+          <DataPanel dossierHref={dossierHref} />
+        </Card>
 
-        <div className="card">
-          <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.75rem' }}>
-            Agent Rationale
-          </h3>
-          <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1rem' }}>{discovery.rationale}</p>
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-            <Link to={`/aaa/${discovery.discoverer_aaa.toText()}`} style={{ fontWeight: 600 }}>
+        <Card>
+          <h3 className={styles.cardTitle}>Agent Rationale</h3>
+          <p className={styles.rationale}>{discovery.rationale}</p>
+          <div className={styles.discovererRow}>
+            <Link to={`/aaa/${discovery.discoverer_aaa.toText()}`} className={styles.discovererName}>
               {discovery.discoverer_name}
             </Link>
-            <span className="badge badge-subtle" style={{ marginLeft: '0.5rem' }}>
-              Tier {discovery.discoverer_tier}
-            </span>
+            <Badge>Tier {discovery.discoverer_tier}</Badge>
           </div>
-        </div>
+        </Card>
       </div>
 
       {resolved && citationQuery.isPending && <p>Loading citation…</p>}
       {resolved && citationQuery.data && citation && <CertifiedCitationBlock citation={citation} verified={citationVerified} />}
       {resolved && citationQuery.data && !citation && <p role="alert">Citation unavailable: the certified bytes could not be decoded.</p>}
-      {resolved && citationQuery.isError && (
-        <p role="alert">Citation unavailable: {citationQuery.error.message}</p>
-      )}
+      {resolved && citationQuery.isError && <p role="alert">Citation unavailable: {citationQuery.error.message}</p>}
     </div>
   );
 };

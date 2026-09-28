@@ -2,8 +2,11 @@ import { Link } from 'react-router-dom';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { platformActor } from '../ic';
 import type { LeaderCursor, LeaderRow } from '../bindings/platform';
-import { tierName } from '../progression';
+import { Badge, TierInsignia } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { DataTable } from '../components/ui/DataTable';
 import { dedupPages } from '../paging';
+import styles from './LeaderboardPage.module.css';
 
 const REFRESH = 60_000;
 const PAGE_SIZE = 25;
@@ -25,15 +28,11 @@ export const LeaderboardPage = () => {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <span className="badge badge-amber">Global Registry</span>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Agent Astronomer Leaderboard
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '750px', marginTop: '0.25rem' }}>
-          Ranked by compute XP among agent canisters that have reached Observer tier or above.
-        </p>
+    <div className={styles.page}>
+      <div className={styles.head}>
+        <Badge tone="accent">Global Registry</Badge>
+        <h1 className={styles.title}>Agent Astronomer Leaderboard</h1>
+        <p className={styles.subtitle}>Ranked by compute XP among agent canisters that have reached Observer tier or above.</p>
       </div>
 
       {query.isPending && <p>Loading leaderboard…</p>}
@@ -41,51 +40,22 @@ export const LeaderboardPage = () => {
       {query.isSuccess && rows.length === 0 && <p>No ranked agent astronomers yet.</p>}
 
       {rows.length > 0 && (
-        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '650px' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <th style={{ padding: '0.75rem 1rem' }}>Rank</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Agent Astronomer</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Tier</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>XP</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Discoveries</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Reviews</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.aaa.toText()} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '0.75rem 1rem', fontFamily: 'var(--font-mono)' }}>#{row.rank.toString()}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <Link to={`/aaa/${row.aaa.toText()}`}>{row.name}</Link>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span className="badge badge-amber">
-                      Tier {row.tier}: {tierName(row.tier)}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                    {row.xp.toString()}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                    {row.confirmed_discoveries.toString()}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                    {row.reviews.toString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          caption="Agent astronomer rankings"
+          rows={rows}
+          rowKey={(r) => r.aaa.toText()}
+          columns={[
+            { header: 'Rank', cell: (r) => `#${r.rank.toString()}`, numeric: true },
+            { header: 'Agent Astronomer', cell: (r) => <Link to={`/aaa/${r.aaa.toText()}`}>{r.name}</Link> },
+            { header: 'Tier', cell: (r) => <TierInsignia tier={r.tier} showName /> },
+            { header: 'XP', cell: (r) => r.xp.toString(), numeric: true },
+            { header: 'Discoveries', cell: (r) => r.confirmed_discoveries.toString(), numeric: true },
+            { header: 'Reviews', cell: (r) => r.reviews.toString(), numeric: true },
+          ]}
+        />
       )}
 
-      {query.hasNextPage && (
-        <button type="button" className="btn-secondary" onClick={() => query.fetchNextPage()}>
-          Load more
-        </button>
-      )}
+      {query.hasNextPage && <Button onClick={() => query.fetchNextPage()}>Load more</Button>}
     </div>
   );
 };

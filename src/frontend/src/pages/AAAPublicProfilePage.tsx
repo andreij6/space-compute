@@ -3,10 +3,14 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Principal } from '@icp-sdk/core/principal';
 import { platformActor } from '../ic';
 import { CreditRole } from '../bindings/platform';
-import { tierName, BADGES, hasBadge } from '../progression';
+import { BADGES, hasBadge } from '../progression';
 import { categoryLabel as staticCategoryLabel, formatNs } from '../categories';
 import { dedupPages } from '../paging';
 import { EmptyState } from '../components/EmptyState';
+import { Badge, TierInsignia } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import styles from './AAAPublicProfilePage.module.css';
 
 const REFRESH = 60_000;
 const PROTOCOL_VERSION = 1;
@@ -75,110 +79,84 @@ export const AAAPublicProfilePage = () => {
   const credits = dedupPages(creditsQuery.data?.pages.map((p) => p.items), (c) => `${c.public_id}:${c.role}`);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div className="card" style={{ padding: '2rem 1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.85rem', fontWeight: 700 }}>{aaa.name}</h1>
-          <span className="badge badge-amber">
-            Tier {aaa.tier}: {tierName(aaa.tier)}
-          </span>
-          {aaa.is_house && <span className="badge badge-cyan">Team</span>}
+    <div className={styles.page}>
+      <Card className={styles.banner}>
+        <div className={styles.identity}>
+          <h1 className={styles.name}>{aaa.name}</h1>
+          <TierInsignia tier={aaa.tier} showName />
+          {aaa.is_house && <Badge tone="info">Team</Badge>}
         </div>
 
-        <div style={{ marginTop: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>XP progress to next tier</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+        <div className={styles.xp}>
+          <div className={styles.xpRow}>
+            <span className={styles.xpRowLabel}>XP progress to next tier</span>
+            <span className={styles.xpValue}>
               {aaa.xp.toString()} / {aaa.next_tier_xp.toString()} XP ({xpPercent}%)
             </span>
           </div>
-          <div className="fuel-progress-bar">
-            <div className="fuel-progress-fill" style={{ width: `${xpPercent}%` }} />
+          <div className={styles.xpTrack}>
+            <div className={styles.xpFill} style={{ width: `${xpPercent}%` }} />
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: '1rem',
-            marginTop: '1.5rem',
-            padding: '1rem',
-            backgroundColor: 'var(--bg-surface-elevated)',
-            borderRadius: 'var(--radius-sm)',
-          }}
-        >
+        <div className={styles.counters}>
           <div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700 }}>{aaa.counters.classifications.toString()}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Classifications</div>
+            <div className={styles.counterValue}>{aaa.counters.classifications.toString()}</div>
+            <div className={styles.counterLabel}>Classifications</div>
           </div>
           <div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700 }}>{aaa.counters.discoveries.toString()}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Discoveries Flagged</div>
+            <div className={styles.counterValue}>{aaa.counters.discoveries.toString()}</div>
+            <div className={styles.counterLabel}>Discoveries Flagged</div>
           </div>
           <div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700 }}>{aaa.counters.confirmed.toString()}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Confirmed</div>
+            <div className={styles.counterValue}>{aaa.counters.confirmed.toString()}</div>
+            <div className={styles.counterLabel}>Confirmed</div>
           </div>
           <div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 700 }}>{aaa.counters.reviews.toString()}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Reviews</div>
+            <div className={styles.counterValue}>{aaa.counters.reviews.toString()}</div>
+            <div className={styles.counterLabel}>Reviews</div>
           </div>
         </div>
-      </div>
+      </Card>
 
       <div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', marginBottom: '1rem' }}>
-          Achievement Badges
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+        <h2 className={styles.sectionTitle}>Achievement Badges</h2>
+        <div className={styles.badges}>
           {BADGES.map((badge) => {
             const unlocked = hasBadge(aaa.badges, badge.bit);
             return (
-              <div key={badge.id} className="card" style={{ opacity: unlocked ? 1 : 0.45 }}>
-                <div style={{ fontWeight: 600 }}>{badge.label}</div>
-                <span className={`badge ${unlocked ? 'badge-amber' : 'badge-subtle'}`} style={{ marginTop: '0.5rem' }}>
-                  {unlocked ? 'Unlocked' : 'Locked'}
-                </span>
-              </div>
+              <Card key={badge.id} className={`${styles.badgeCard} ${unlocked ? '' : styles.badgeLocked}`}>
+                <span className={styles.badgeLabel}>{badge.label}</span>
+                <Badge tone={unlocked ? 'accent' : 'neutral'}>{unlocked ? 'Unlocked' : 'Locked'}</Badge>
+              </Card>
             );
           })}
         </div>
       </div>
 
       <div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', marginBottom: '1rem' }}>
-          Credited Discoveries
-        </h2>
+        <h2 className={styles.sectionTitle}>Credited Discoveries</h2>
         {creditsQuery.isPending && <p>Loading credits…</p>}
         {creditsQuery.isError && <p role="alert">Credits unavailable: {creditsQuery.error.message}</p>}
         {creditsQuery.isSuccess && credits.length === 0 && <p>No credited discoveries yet.</p>}
-        <div className="grid-responsive">
+        <div className={styles.credits}>
           {credits.map((c) => (
-            <Link
-              to={`/d/${c.public_id}`}
-              key={`${c.public_id}:${c.role}`}
-              className="card"
-              style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}
-            >
-              <span className="badge badge-amber">{categoryLabel(c.category)}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>{c.public_id}</span>
-              <span>
-                {c.role === CreditRole.Discoverer ? 'Discoverer' : 'Reviewer'} · {c.outcome}
-              </span>
-              <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>{formatNs(c.at)}</span>
+            <Link to={`/d/${c.public_id}`} key={`${c.public_id}:${c.role}`} className={styles.creditCard}>
+              <Card>
+                <Badge tone="accent">{categoryLabel(c.category)}</Badge>
+                <p className={styles.creditId}>{c.public_id}</p>
+                <p>
+                  {c.role === CreditRole.Discoverer ? 'Discoverer' : 'Reviewer'} · {c.outcome}
+                </p>
+                <p className={styles.creditAt}>{formatNs(c.at)}</p>
+              </Card>
             </Link>
           ))}
         </div>
         {creditsQuery.hasNextPage && (
-          <button
-            type="button"
-            className="btn-secondary"
-            style={{ marginTop: '1rem' }}
-            onClick={() => creditsQuery.fetchNextPage()}
-          >
+          <Button style={{ marginTop: 'var(--space-4)' }} onClick={() => creditsQuery.fetchNextPage()}>
             Load more
-          </button>
+          </Button>
         )}
       </div>
     </div>
