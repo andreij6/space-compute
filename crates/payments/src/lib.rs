@@ -37,6 +37,7 @@ fn init() {
     }
     config::update(|c| {
         c.admins = vec![installer];
+        c.indexes_backfilled = Some(true);
         Ok(())
     })
     .expect("init config");
@@ -55,7 +56,7 @@ fn post_upgrade() {
         })
         .expect("bootstrap admin");
     }
-    journal::backfill_indexes();
+    journal::backfill_indexes_once();
     timers::start();
 }
 

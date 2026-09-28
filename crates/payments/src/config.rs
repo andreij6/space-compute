@@ -144,6 +144,7 @@ pub struct Config {
     pub features: Features,
     pub paused: PauseFlags,
     pub platform_id: Option<Principal>,
+    pub indexes_backfilled: Option<bool>,
 }
 
 impl Default for Config {
@@ -155,6 +156,7 @@ impl Default for Config {
             features: Features::default(),
             paused: PauseFlags::default(),
             platform_id: None,
+            indexes_backfilled: None,
         }
     }
 }

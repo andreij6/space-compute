@@ -198,6 +198,18 @@ pub fn backfill_indexes() {
     });
 }
 
+pub fn backfill_indexes_once() {
+    if crate::config::get().indexes_backfilled == Some(true) {
+        return;
+    }
+    backfill_indexes();
+    crate::config::update(|c| {
+        c.indexes_backfilled = Some(true);
+        Ok(())
+    })
+    .expect("mark indexes backfilled");
+}
+
 pub fn create(kind: OpKind, path: PayPath, amount_e8s: u64, created_by: Principal, now: u64) -> Op {
     let id = OPS.with_borrow(|m| m.last_key_value().map(|(k, _)| k + 1).unwrap_or(0));
     let op = Op {
@@ -878,5 +890,21 @@ mod tests {
         let mut ids: Vec<u64> = owner_page.items.iter().map(|o| o.id).collect();
         ids.sort_unstable();
         assert_eq!(ids, [topup.id, spawn.id]);
+    }
+
+    #[test]
+    fn t5_19_backfill_indexes_runs_only_once() {
+        let aaa = p(7);
+        let first = create(OpKind::TopUp { aaa }, PayPath::Deposit, 0, p(8), 1);
+        backfill_indexes_once();
+        assert_eq!(crate::config::get().indexes_backfilled, Some(true));
+        create(OpKind::TopUp { aaa }, PayPath::Deposit, 0, p(8), 2);
+        backfill_indexes_once();
+        let ids: Vec<u64> = list_for_aaa(aaa, None, 100)
+            .items
+            .iter()
+            .map(|o| o.id)
+            .collect();
+        assert_eq!(ids, [first.id]);
     }
 }
