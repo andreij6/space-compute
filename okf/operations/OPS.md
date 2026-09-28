@@ -42,18 +42,33 @@ Space Compute operates a dual-treasury architecture to ensure 100% autonomous cy
 
 Every value-holding and stateful canister must have at least 2 controllers before mainnet launch.
 
+`scripts/treasury-watch.sh <env>` (`just watch-treasury <env>`) automates the treasury half of
+this: it adds `platform`/`payments`/`frontend`/`treasury` to the treasury canister's watch
+list (`admin_watch`) and adds `treasury` as a co-controller of `platform`/`payments`/`frontend`
+(needed for `canister_status` reads). It is idempotent — safe to re-run. The human backup
+controller is still added by hand:
+
 ```bash
 # Add backup controller
-icp canister settings update <canister> --add-controller <BACKUP_PRINCIPAL> -e production
+icp canister settings update <canister> --add-controller <BACKUP_PRINCIPAL> -e production --identity <identity>
 
 # Verify controllers
-icp canister status <canister> -e production
+icp canister status <canister> -e production --identity <identity>
 ```
 
 Recommended controller configuration:
 - `treasury`: Team hardware wallet + offline cold backup principal.
 - `platform` & `payments`: Team hardware wallet + backup principal + `treasury` canister principal (enables autonomous cycle checks and top-ups).
 - `aaa`: User owner principal + `platform` canister principal (for managed wasm upgrades).
+
+### Cycles monitoring script
+
+`scripts/cycles-report.sh <env>` (`just cycles <env>`) prints per-canister cycles, burn/day,
+and runway (from `icp canister status`) plus `treasury.health()`, and exits non-zero if any
+canister is under `CYCLES_ALERT_DAYS` (default 30) or the treasury reserve is breached — wire
+it into cron or launchd (`scripts/com.spacecompute.cycles-report.plist` is a launchd
+template) for the "every 6h, alert below 30 days of burn" monitor in
+`docs/specs/09-testing-ops.md` §3.
 
 ---
 

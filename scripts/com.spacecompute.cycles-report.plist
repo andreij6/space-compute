@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.spacecompute.cycles-report</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>bash</string>
+    <string>/absolute/path/to/space-compute/scripts/cycles-report.sh</string>
+    <string>production</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>DEPLOY_IDENTITY</key>
+    <string>sc-admin</string>
+    <key>CYCLES_ALERT_DAYS</key>
+    <string>30</string>
+  </dict>
+  <key>StartInterval</key>
+  <integer>21600</integer>
+  <key>StandardOutPath</key>
+  <string>/tmp/sc-cycles-report.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/sc-cycles-report.err</string>
+</dict>
+</plist>

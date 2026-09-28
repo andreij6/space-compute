@@ -17,8 +17,8 @@ Local deployment is 100% deterministic and managed via script:
 # Recommended one-shot command
 bash scripts/deploy-local.sh
 
-# Or via Makefile
-make deploy-local
+# Or via Justfile
+just deploy-local
 ```
 
 ### What it does:
@@ -40,8 +40,8 @@ Run the local verification suite before any deployment or task completion:
 # Full local verification (cargo fmt, clippy, unit/integration tests, wasm size)
 bash scripts/verify-local.sh
 
-# Or via Makefile
-make verify
+# Or via Justfile
+just verify
 ```
 
 - Disallow test skips from masking failures (`L-007`).
@@ -49,43 +49,44 @@ make verify
 
 ---
 
-## 3. Production Deployment Protocol
+## 3. Staging & Production Deployment Protocol (T8.1)
 
-Mainnet deployments are performed strictly via `icp deploy -e production` using named deployment identities with hardware wallet protection.
+Staging and production deploys go through `scripts/deploy-env.sh <env>` (`just release <env>`),
+never ad-hoc `icp deploy`. It is the single release workflow for every environment,
+including `local`; see `docs/ops/deploy-runbook.md` for the full first-staging-deploy
+walkthrough.
 
 ```bash
-# 1. Switch to hardware deployment identity
-icp identity use deploy-mainnet
-
-# 2. Confirm principal
-icp identity get-principal
-
-# 3. Verify treasury and core canister builds
-icp build -e production
-
-# 4. Deploy core canisters
-icp deploy treasury payments platform frontend -e production --yes
-
-# 5. Add backup controllers immediately
-icp canister settings update treasury --add-controller <BACKUP_KEY> -e production
-icp canister settings update payments --add-controller <BACKUP_KEY> --add-controller <TREASURY_ID> -e production
-icp canister settings update platform --add-controller <BACKUP_KEY> --add-controller <TREASURY_ID> -e production
-
-# 6. Fund the treasury ICP float (10–20 ICP)
-icp ledger transfer --to <TREASURY_ACCOUNT> --amount 10.0 -e production
+export SC_ALLOW_MAINNET=1        # only when the owner asked this session
+export DEPLOY_IDENTITY=<named identity>   # never the machine default (prod-deployer)
+just release production          # or: bash scripts/deploy-env.sh production
 ```
+
+It enforces, in order: `just verify` green, clean git tree, on `main`, an explicitly named
+non-default identity, and a typed confirmation of the environment name (all skipped for
+`local`, which is a dev loop, not a release). It then snapshots every canister about to be
+upgraded, deploys, wires `platform.payments_id` <-> `payments.platform_id`, optionally
+registers/approves the AAA template wasm (`AAA_REGISTER=1`), smoke-tests every canister
+(`version()`, a public query, an HTTP GET for `frontend`), and rolls back automatically on
+any smoke failure (§4). Add controllers and fund the treasury float right after the first
+successful deploy — see `docs/ops/deploy-runbook.md` §3.
 
 ---
 
 ## 4. Rollback & Disaster Recovery
 
-There is no automatic rollback on ICP. If a broken wasm is deployed:
-1. Keep the previous wasm binary: `target/wasm32-unknown-unknown/release/<canister>_vN-1.wasm`.
-2. Reinstall/upgrade in-place:
+`scripts/deploy-env.sh` snapshots every canister it is about to upgrade
+(`icp canister snapshot create`) before installing, and restores that snapshot
+(`icp canister snapshot restore`) automatically if the post-deploy smoke test fails — no
+manual step needed for a bad release caught by smoke. Snapshots are pruned to the last 3
+per canister after a successful release. To roll back by hand (e.g. a regression found
+after smoke passed):
+
 ```bash
-icp canister install <canister> \
-  --mode upgrade \
-  --wasm target/wasm32-unknown-unknown/release/<canister>_vN-1.wasm \
-  -e production
+icp canister snapshot list <canister> -e production --identity <identity>
+icp canister stop <canister> -e production --identity <identity>
+icp canister snapshot restore <canister> <snapshot_id> -e production --identity <identity>
+icp canister start <canister> -e production --identity <identity>
 ```
-3. Run post-deploy smoke tests against `health()` and `get_config()`.
+
+Every release (success or rollback) is appended to `docs/ops/releases.md`.

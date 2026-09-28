@@ -8,6 +8,18 @@ default:
 deploy-local:
     @bash scripts/deploy-local.sh
 
+# Release workflow for any env: snapshot -> deploy -> wire -> smoke -> rollback-on-failure (needs DEPLOY_IDENTITY)
+release ENV:
+    @bash scripts/deploy-env.sh {{ENV}}
+
+# Cycles/burn/runway per canister + treasury health; exits non-zero below CYCLES_ALERT_DAYS (needs DEPLOY_IDENTITY)
+cycles ENV:
+    @bash scripts/cycles-report.sh {{ENV}}
+
+# Add platform/payments/frontend/treasury to the treasury watch list + treasury as co-controller (needs DEPLOY_IDENTITY)
+watch-treasury ENV:
+    @bash scripts/treasury-watch.sh {{ENV}}
+
 # Seed the local network: protocol v1, 500 subjects (SEED_SUBJECTS), AAA wasm; serves target/bucket on :8765
 seed-local:
     @bash tools/seed-local/seed.sh
@@ -31,6 +43,10 @@ test:
 # Run PocketIC integration tests only
 test-integration:
     @cargo test -p integration-tests -- --nocapture
+
+# T7.2 load test (200x100 and a faster repeatable 20x20 variant); writes docs/perf/load-test-T7.2.{md,json}
+load-test:
+    @cargo test -p integration-tests --test t7_2_load -- --ignored --nocapture --test-threads=1
 
 # Run acceptance demo for a specific task (e.g. just demo T1.1)
 demo TASK_ID:
