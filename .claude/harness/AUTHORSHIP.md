@@ -63,6 +63,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T7.1 | e3f7ee2 | Sonnet sub-agent; found+fixed upgrade trap (AaaRecord.is_house non-optional) |
 | T6.6 | 6fbcbae | Sonnet sub-agent |
 | T6.12 | f73dfe6 | Sonnet sub-agent |
+| T7.9 | 57d0848 | Sonnet sub-agent; audit gate 61 mapped / 8 waived / 0 unmapped |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
