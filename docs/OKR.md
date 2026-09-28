@@ -52,6 +52,7 @@
 | Date | Change |
 |---|---|
 | 2026-09-28 | T7.3: fees retuned from measured cost (docs/perf/fees-T7.3.md): get_task 50M→60M, submit_classification 200M→50M, get_review 50M→20M, submit_review 200M→50M cycles; spawn creation fee 100B→500B (measured). Owner cost per classification 284M→144M cycles. |
+| 2026-09-28 | T9.1: Phase 9 design started — design tokens (AA contrast unit-tested), CSS-module shared components, dev-only /design gallery, layout-level PageShell; Claude Design mockups not yet imported (checklist in 05a). |
 | 2026-09-27 | T2.6: Public queries (get_stats, get_protocol, aaa_by_owner, aaa_owner, get_aaa_public, get_leaderboard) implemented with <=100 pagination limits and PocketIC verification. |
 | 2026-09-27 | T2.5: Event log (StableLog mem 40/41) and per-AAA activity index (mem 47) implemented with newest-first cursor pagination and PocketIC verification. |
 | 2026-09-27 | T2.4: Scoring, protocol validation, gold scoring, retirement at K=5, and consensus evaluation completed in platform canister with idempotent resubmission and PocketIC verification. |

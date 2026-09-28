@@ -1,42 +1,27 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Compass, PlusCircle, LayoutDashboard, Trophy } from 'lucide-react';
+import { Compass, Home, LayoutDashboard, PlusCircle, Trophy } from 'lucide-react';
+import styles from './MobileBottomBar.module.css';
 
-export const MobileBottomBar: React.FC = () => {
-  const location = useLocation();
+const ITEMS: [string, string, typeof Home][] = [
+  ['/', 'Home', Home],
+  ['/discoveries', 'Museum', Compass],
+  ['/spawn', 'Spawn', PlusCircle],
+  ['/dashboard', 'Agent', LayoutDashboard],
+  ['/leaderboard', 'Ranks', Trophy],
+];
 
-  const isActive = (path: string) => {
-    if (path === '/' && location.pathname === '/') return true;
-    if (path !== '/' && location.pathname.startsWith(path)) return true;
-    return false;
-  };
+export const isActivePath = (path: string, pathname: string) => (path === '/' ? pathname === '/' : pathname.startsWith(path));
 
+export function MobileBottomBar() {
+  const { pathname } = useLocation();
   return (
-    <nav className="mobile-bottom-bar">
-      <Link to="/" className={`bottom-bar-item ${isActive('/') ? 'active' : ''}`}>
-        <Home size={20} />
-        <span>Home</span>
-      </Link>
-
-      <Link to="/discoveries" className={`bottom-bar-item ${isActive('/discoveries') ? 'active' : ''}`}>
-        <Compass size={20} />
-        <span>Museum</span>
-      </Link>
-
-      <Link to="/spawn" className={`bottom-bar-item ${isActive('/spawn') ? 'active' : ''}`}>
-        <PlusCircle size={22} style={{ color: 'var(--amber-star)' }} />
-        <span>Spawn</span>
-      </Link>
-
-      <Link to="/dashboard" className={`bottom-bar-item ${isActive('/dashboard') ? 'active' : ''}`}>
-        <LayoutDashboard size={20} />
-        <span>Agent</span>
-      </Link>
-
-      <Link to="/leaderboard" className={`bottom-bar-item ${isActive('/leaderboard') ? 'active' : ''}`}>
-        <Trophy size={20} />
-        <span>Ranks</span>
-      </Link>
+    <nav aria-label="Quick" className={styles.bar}>
+      {ITEMS.map(([to, label, Icon]) => (
+        <Link key={to} to={to} className={styles.item} aria-current={isActivePath(to, pathname) ? 'page' : undefined}>
+          <Icon size={20} aria-hidden />
+          <span>{label}</span>
+        </Link>
+      ))}
     </nav>
   );
-};
+}

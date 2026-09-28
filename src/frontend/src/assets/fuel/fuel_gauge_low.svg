@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 56" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="fg_low" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#FBBF24"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer Casing -->
+  <rect x="8" y="10" width="134" height="36" rx="8" fill="#0B132B" stroke="#F59E0B" stroke-width="2"/>
+  <rect x="144" y="20" width="8" height="16" rx="2" fill="#F59E0B"/>
+  
+  <!-- 2 Level Bars (2 filled, 2 empty = Low 3-14 days) -->
+  <rect x="16" y="17" width="26" height="22" rx="4" fill="url(#fg_low)"/>
+  <rect x="46" y="17" width="26" height="22" rx="4" fill="url(#fg_low)"/>
+  <rect x="76" y="17" width="26" height="22" rx="4" stroke="#334155" stroke-dasharray="2 2" fill="none"/>
+  <rect x="106" y="17" width="26" height="22" rx="4" stroke="#334155" stroke-dasharray="2 2" fill="none"/>
+  
+  <!-- Warning Exclamation Point -->
+  <circle cx="119" cy="28" r="7" fill="#78350F" stroke="#F59E0B" stroke-width="1.5"/>
+  <line x1="119" y1="24" x2="119" y2="28" stroke="#FDE68A" stroke-width="1.5"/>
+  <circle cx="119" cy="31" r="0.8" fill="#FDE68A"/>
+</svg>

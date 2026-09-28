@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="100%" height="100%" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Sensor Warning Octagon Boundary -->
+  <polygon points="15,4 33,4 44,15 44,33 33,44 15,44 4,33 4,15" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="4 2" opacity="0.6"/>
+  
+  <!-- Saturated Foreground Star Diffraction Spikes -->
+  <line x1="24" y1="4" x2="24" y2="44" stroke="#EF4444" stroke-width="2"/>
+  <line x1="4" y1="24" x2="44" y2="24" stroke="#EF4444" stroke-width="2"/>
+  <line x1="10" y1="10" x2="38" y2="38" stroke="#F59E0B" stroke-width="1.5"/>
+  <line x1="10" y1="38" x2="38" y2="10" stroke="#F59E0B" stroke-width="1.5"/>
+  
+  <!-- Cosmic Ray Glitch Stripe -->
+  <line x1="6" y1="32" x2="16" y2="34" stroke="#F87171" stroke-width="2.5"/>
+  
+  <!-- Core Saturation Snowball -->
+  <circle cx="24" cy="24" r="5" fill="#EF4444" stroke="#FFFFFF" stroke-width="1.5"/>
+</svg>

@@ -9,6 +9,8 @@ const lazyPages = Object.fromEntries(
     return [name, lazy(() => load().then((m) => ({ default: m[name] })))];
   }),
 );
+const DesignGallery = import.meta.env.DEV ? lazy(() => import('./design/DesignGallery')) : null;
+
 const page = (name: string) => {
   const Page = lazyPages[name];
   return (
@@ -83,6 +85,17 @@ export function App() {
               <Route key={path} path={path} element={page(name)} />
             ))}
           </Route>
+
+          {DesignGallery && (
+            <Route
+              path="design"
+              element={
+                <Suspense fallback={<p>Loading…</p>}>
+                  <DesignGallery />
+                </Suspense>
+              }
+            />
+          )}
 
           <Route path="*" element={page('NotFoundPage')} />
         </Route>

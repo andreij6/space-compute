@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Distant Background Nebula / Stars -->
+  <circle cx="35" cy="45" r="1.5" fill="#64748B"/>
+  <circle cx="85" cy="25" r="2" fill="#94A3B8"/>
+  <circle cx="210" cy="40" r="1.5" fill="#64748B"/>
+  <circle cx="190" cy="165" r="2" fill="#94A3B8"/>
+  <circle cx="40" cy="155" r="1" fill="#64748B"/>
+  
+  <!-- "404" Faint Constellation Lines -->
+  <g stroke="#334155" stroke-width="2" opacity="0.4" stroke-dasharray="3 3">
+    <!-- '4' -->
+    <path d="M45,70 L45,95 L65,95 M65,65 L65,115"/>
+    <!-- '0' -->
+    <ellipse cx="120" cy="90" rx="18" ry="25"/>
+    <!-- '4' -->
+    <path d="M175,70 L175,95 L195,95 M195,65 L195,115"/>
+  </g>
+  
+  <!-- Drifting Astronaut Helmet / Probe -->
+  <g transform="rotate(-15 120 100)">
+    <!-- Helmet Outer Shell -->
+    <circle cx="120" cy="100" r="28" fill="#0B132B" stroke="#94A3B8" stroke-width="2.5"/>
+    <!-- Visor with Gold Reflection -->
+    <path d="M102,96 C102,84 138,84 138,96 C138,108 102,108 102,96 Z" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+    <path d="M108,92 C115,88 125,88 132,92" stroke="#FDE68A" stroke-width="1.5" opacity="0.8"/>
+    <!-- Detached Umbilical Tether Cable drifting into void -->
+    <path d="M96,115 C85,125 70,118 60,135 C50,150 35,145 20,160" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4 2"/>
+    <!-- Communication Antenna -->
+    <line x1="138" y1="78" x2="150" y2="65" stroke="#94A3B8" stroke-width="2"/>
+    <circle cx="152" cy="63" r="2.5" fill="#EF4444"/>
+  </g>
+</svg>

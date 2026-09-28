@@ -1,196 +1,97 @@
-import React, { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Telescope, 
-  Compass, 
-  Trophy, 
-  PlusCircle, 
-  LayoutDashboard, 
-  Menu, 
-  X, 
-  ShieldCheck, 
-  Wallet,
-  BookOpen
-} from 'lucide-react';
+import { BookOpen, Compass, LayoutDashboard, Menu, PlusCircle, ShieldCheck, Telescope, Trophy, Wallet, X } from 'lucide-react';
 import { useAuth } from '../auth';
+import { Badge, type BadgeTone } from './ui/Badge';
+import { buttonClass } from './ui/Button';
+import styles from './Navbar.module.css';
 
-export const Navbar: React.FC = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const PRIMARY: [string, string, ReactNode][] = [
+  ['/discoveries', 'Museum', <Compass key="i" size={17} aria-hidden />],
+  ['/leaderboard', 'Leaderboard', <Trophy key="i" size={17} aria-hidden />],
+  ['/dashboard', 'Dashboard', <LayoutDashboard key="i" size={17} aria-hidden />],
+  ['/about', 'About', <BookOpen key="i" size={17} aria-hidden />],
+  ['/admin', 'Admin', <ShieldCheck key="i" size={17} aria-hidden />],
+];
+
+const DRAWER: { to: string; label: string; icon?: ReactNode; badge?: [string, BadgeTone] }[] = [
+  { to: '/discoveries', label: 'Discovery Museum', icon: <Compass size={18} aria-hidden />, badge: ['Gallery', 'accent'] },
+  { to: '/leaderboard', label: 'Agent Leaderboard', icon: <Trophy size={18} aria-hidden />, badge: ['Ranks', 'success'] },
+  { to: '/dashboard', label: 'Owner Command Center', icon: <LayoutDashboard size={18} aria-hidden />, badge: ['Online', 'neutral'] },
+  { to: '/connect', label: 'Connect Local Agent', icon: <Telescope size={18} aria-hidden /> },
+  { to: '/records', label: 'Activity & Audit Records' },
+  { to: '/fuel', label: 'Cycle Fuel & Top-Up' },
+  { to: '/about', label: 'About & Treasury Runway' },
+  { to: '/practice', label: 'Practice & Benchmarks' },
+  { to: '/admin', label: 'Admin Console', icon: <ShieldCheck size={18} aria-hidden /> },
+];
+
+export function Navbar() {
+  const [open, setOpen] = useState(false);
   const { principal, signOut } = useAuth();
-  const location = useLocation();
-
-  const isActive = (path: string) => location.pathname === path;
-
-  const closeMobileMenu = () => setMobileMenuOpen(false);
+  const { pathname } = useLocation();
+  const close = () => setOpen(false);
 
   return (
-    <header className="navbar">
-      <div className="navbar-inner">
-        <Link to="/" className="nav-brand" onClick={closeMobileMenu}>
-          <img src="/logo.svg" alt="Space Compute Logo" />
+    <header className={styles.navbar}>
+      <div className={styles.inner}>
+        <Link to="/" className={styles.brand} onClick={close}>
+          <img src="/logo.svg" alt="Space Compute Logo" width={32} height={32} />
           <span>Space Compute</span>
         </Link>
 
-        <nav className="nav-links-desktop">
-          <Link 
-            to="/discoveries" 
-            className={`nav-link ${isActive('/discoveries') ? 'active' : ''}`}
-          >
-            <Compass size={17} />
-            <span>Museum</span>
-          </Link>
-
-          <Link 
-            to="/leaderboard" 
-            className={`nav-link ${isActive('/leaderboard') ? 'active' : ''}`}
-          >
-            <Trophy size={17} />
-            <span>Leaderboard</span>
-          </Link>
-
-          <Link 
-            to="/dashboard" 
-            className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}
-          >
-            <LayoutDashboard size={17} />
-            <span>Dashboard</span>
-          </Link>
-
-          <Link 
-            to="/about" 
-            className={`nav-link ${isActive('/about') ? 'active' : ''}`}
-          >
-            <BookOpen size={17} />
-            <span>About</span>
-          </Link>
-
-          <Link 
-            to="/admin" 
-            className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
-          >
-            <ShieldCheck size={17} />
-            <span>Admin</span>
-          </Link>
+        <nav aria-label="Primary" className={styles.links}>
+          {PRIMARY.map(([to, label, icon]) => (
+            <Link key={to} to={to} className={styles.link} aria-current={pathname === to ? 'page' : undefined}>
+              {icon}
+              <span>{label}</span>
+            </Link>
+          ))}
         </nav>
 
-        <div className="nav-actions">
-          <Link to="/spawn" className="btn-primary" style={{ textDecoration: 'none' }}>
-            <PlusCircle size={16} />
+        <div className={styles.actions}>
+          <Link to="/spawn" className={buttonClass({ variant: 'primary' })}>
+            <PlusCircle size={16} aria-hidden />
             <span>Spawn AAA</span>
           </Link>
 
           {principal ? (
-            <button className="btn-secondary" onClick={() => void signOut()} title={principal.toText()}>
-              <Wallet size={15} />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
-                {principal.toText().slice(0, 5)}… Sign out
-              </span>
+            <button type="button" className={buttonClass({})} onClick={() => void signOut()} title={principal.toText()}>
+              <Wallet size={15} aria-hidden />
+              <span className={styles.principal}>{principal.toText().slice(0, 5)}… Sign out</span>
             </button>
           ) : (
-            <Link to="/signin" className="btn-secondary">
-              <Wallet size={15} />
+            <Link to="/signin" className={buttonClass({})}>
+              <Wallet size={15} aria-hidden />
               <span>Sign in</span>
             </Link>
           )}
 
-          <button 
-            className="mobile-menu-btn" 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          <button
+            type="button"
+            className={styles.menuButton}
+            onClick={() => setOpen(!open)}
             aria-label="Toggle navigation menu"
+            aria-expanded={open}
+            aria-controls="mobile-drawer"
           >
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            {open ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
           </button>
         </div>
       </div>
 
-      {mobileMenuOpen && (
-        <div className="mobile-drawer">
-          <Link 
-            to="/discoveries" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <Compass size={18} /> Discovery Museum
-            </span>
-            <span className="badge badge-amber">Gallery</span>
-          </Link>
-
-          <Link 
-            to="/leaderboard" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <Trophy size={18} /> Agent Leaderboard
-            </span>
-            <span className="badge badge-cyan">Ranks</span>
-          </Link>
-
-          <Link 
-            to="/dashboard" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <LayoutDashboard size={18} /> Owner Command Center
-            </span>
-            <span className="badge badge-subtle">Online</span>
-          </Link>
-
-          <Link 
-            to="/connect" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <Telescope size={18} /> Connect Local Agent
-            </span>
-          </Link>
-
-          <Link 
-            to="/records" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span>Activity & Audit Records</span>
-          </Link>
-
-          <Link 
-            to="/fuel" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span>Cycle Fuel & Top-Up</span>
-          </Link>
-
-          <Link 
-            to="/about" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span>About & Treasury Runway</span>
-          </Link>
-
-          <Link 
-            to="/practice" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span>Practice & Benchmarks</span>
-          </Link>
-
-          <Link 
-            to="/admin" 
-            className="mobile-nav-link" 
-            onClick={closeMobileMenu}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <ShieldCheck size={18} /> Admin Console
-            </span>
-          </Link>
-        </div>
+      {open && (
+        <nav id="mobile-drawer" aria-label="Menu" className={styles.drawer}>
+          {DRAWER.map(({ to, label, icon, badge }) => (
+            <Link key={to} to={to} className={styles.drawerLink} onClick={close}>
+              <span className={styles.drawerLabel}>
+                {icon} {label}
+              </span>
+              {badge && <Badge tone={badge[1]}>{badge[0]}</Badge>}
+            </Link>
+          ))}
+        </nav>
       )}
     </header>
   );
-};
+}

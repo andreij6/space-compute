@@ -337,6 +337,10 @@
 | 08 §2 S13: frozen AAA losing data — frozen AAA rejects queries until topped up | SP-3 | sp_3_frozen_aaa_rejects_queries_until_topped_up_via_the_cmc |
 | 08 §2 S15: platform is a co-controller of every AAA — controllers restricted to {owner, platform}, real total_num_changes recorded | T2.9 | t2_9_register_requires_owner_and_platform_and_records_real_changes |
 | 08 §2 S16: XP farming onto the leaderboard — the leaderboard admits tier >= 2 only | T7.9 | t7_9_s16_leaderboard_excludes_aaa_below_tier2_then_admits_it_at_tier2 |
+| 05 §3 WCAG AA: every text/background design-token pair (text, muted, dim, accent, success, danger, info on bg/surface/raised; on-accent; badge soft fills) computes ≥ 4.5:1 from `styles/tokens.css` (vitest) | T9.1 | src/frontend/src/styles/tokens.test.ts |
+| 05 intro (CSS modules + design tokens): shared components Button, Card, Badge/TierInsignia, CategoryIcon, EmptyState (assets/states), FuelGauge (assets/fuel, 05 §3 thresholds), PageShell/Nav/Footer, DataTable, Tabs, Dialog, ConfirmAction render with the roles/labels/texts the e2e selectors rely on (vitest) | T9.1 | src/frontend/src/components/ui/ui.test.tsx |
+| T9.1 reconciliation of design sources (brief, screen inventory, assets, old mock) with the pending Claude Design comparison checklist [doc-proof] | T9.1 | docs/specs/05a-design-reconciliation.md |
+| T9.1 demo screenshot: dev-only /design component gallery [doc-proof] | T9.1 | docs/demos/T9.1/01_design_gallery.png |
 | 08 §2 S21: someone other than the owner or the owner's agent submitting through an AAA — foreign/expired/unsynced submitter rejected | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |
 | 08 §2 S22: tampered AAA code vouching for arbitrary callers — num_changes mismatch triggers re-verification | T2.9 | t2_9_verify_never_lifts_admin_suspension_and_checks_num_changes |
 | 08 §2 S23: stolen operator key — expired/unsynced operator rejected immediately | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |

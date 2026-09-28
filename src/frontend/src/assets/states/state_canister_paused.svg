@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <radialGradient id="frost_glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Background Frost Halo -->
+  <circle cx="120" cy="100" r="65" fill="url(#frost_glow)"/>
+  <circle cx="120" cy="100" r="60" stroke="#0284C7" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.4"/>
+  
+  <!-- Frost Crystal / Snowflake Accents -->
+  <path d="M120,40 L120,60 M110,48 L130,48" stroke="#38BDF8" stroke-width="1.5"/>
+  <path d="M120,140 L120,160 M110,152 L130,152" stroke="#38BDF8" stroke-width="1.5"/>
+  <path d="M60,100 L80,100 M68,90 L68,110" stroke="#38BDF8" stroke-width="1.5"/>
+  <path d="M160,100 L180,100 M172,90 L172,110" stroke="#38BDF8" stroke-width="1.5"/>
+  
+  <!-- Sleeping / Hibernating Spacecraft Core -->
+  <rect x="100" y="80" width="40" height="40" rx="6" fill="#0F172A" stroke="#38BDF8" stroke-width="2.5"/>
+  
+  <!-- Folded Solar Panels (Stowed position) -->
+  <rect x="74" y="86" width="22" height="28" rx="2" fill="#0C1B33" stroke="#60A5FA" stroke-width="1.5"/>
+  <line x1="85" y1="86" x2="85" y2="114" stroke="#60A5FA" stroke-width="1"/>
+  <rect x="144" y="86" width="22" height="28" rx="2" fill="#0C1B33" stroke="#60A5FA" stroke-width="1.5"/>
+  <line x1="155" y1="86" x2="155" y2="114" stroke="#60A5FA" stroke-width="1"/>
+  
+  <!-- Pause Symbol in Center Core -->
+  <rect x="112" y="92" width="5" height="16" rx="2" fill="#38BDF8"/>
+  <rect x="123" y="92" width="5" height="16" rx="2" fill="#38BDF8"/>
+  
+  <!-- Sleeping "Zzz" Indicators -->
+  <path d="M148,68 L156,68 L148,76 L156,76" stroke="#93C5FD" stroke-width="1.5"/>
+  <path d="M160,56 L166,56 L160,62 L166,62" stroke="#60A5FA" stroke-width="1.2"/>
+</svg>

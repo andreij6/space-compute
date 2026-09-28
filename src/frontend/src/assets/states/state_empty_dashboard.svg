@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="ed_glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Glow & Stars -->
+  <circle cx="120" cy="100" r="70" fill="url(#ed_glow)"/>
+  <circle cx="45" cy="40" r="1.5" fill="#94A3B8"/>
+  <circle cx="195" cy="50" r="2" fill="#94A3B8"/>
+  <circle cx="70" cy="150" r="1" fill="#94A3B8"/>
+  <circle cx="180" cy="140" r="1.5" fill="#94A3B8"/>
+  
+  <!-- Stylized Ground Observatory Radio Dish / Antenna -->
+  <path d="M70,170 L170,170" stroke="#334155" stroke-width="3"/>
+  <path d="M120,170 L120,130" stroke="#64748B" stroke-width="4"/>
+  <path d="M100,140 L140,140" stroke="#475569" stroke-width="2"/>
+  
+  <!-- Dish Parabolic Curve -->
+  <path d="M80,85 C95,120 145,120 160,85" stroke="#38BDF8" stroke-width="3" fill="#0B132B" fill-opacity="0.6"/>
+  <!-- Feed Horn -->
+  <line x1="120" y1="108" x2="120" y2="72" stroke="#38BDF8" stroke-width="2"/>
+  <circle cx="120" cy="70" r="4" fill="#38BDF8"/>
+  
+  <!-- Pulsing Signal Waves (Waiting for first contact) -->
+  <path d="M106,56 C115,50 125,50 134,56" stroke="#0284C7" stroke-width="2" stroke-dasharray="3 3"/>
+  <path d="M96,44 C110,36 130,36 144,44" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4 4" opacity="0.7"/>
+  <path d="M86,32 C105,22 135,22 154,32" stroke="#BAE6FD" stroke-width="2" stroke-dasharray="5 5" opacity="0.4"/>
+</svg>

@@ -11,6 +11,7 @@ Start here. These specs are written for the implementing agents (Claude Code). F
 | 04 | [`payments` canister](04-payments-canister.md) | ICP pass-through (spawn, top-up, auto top-up); card/BTC/ETH fuel packs deferred (D1-D12) |
 | 04b | [Stripe relay](04b-stripe-relay.md) | the only off-chain component |
 | 05 | [Frontend](05-frontend.md) | routes, data sources, behaviours, payment component |
+| 05a | [Design reconciliation](05a-design-reconciliation.md) | design sources, tokens, components, pending mockup comparison |
 | 06 | [Agent toolkit](06-agent-toolkit.md) | the operator skill for Claude Code |
 | 07 | [Data curation](07-data-curation.md) | subjects, gold labels, protocol v1, honeypots |
 | 08 | [Security & abuse](08-security.md) | threat model, input limits |

@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
     ...CANISTERS.map((c) => icpBindgen({ didFile: `../../crates/${c}/${c}.did`, outDir: './src/bindings' })),
   ],
   server: { port: 3000 },
-  build: { outDir: 'dist', sourcemap: true },
+  build: { outDir: 'dist', sourcemap: true, assetsInlineLimit: 0 },
   test: {
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
