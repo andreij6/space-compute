@@ -1,0 +1,140 @@
+{
+  "200x100": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "classifications_completed": 0,
+        "outcome": "panicked after 2050s: single update_call exceeded PocketIC's default 300s max_request_time_ms",
+        "registered_aaas": 200
+      },
+      {
+        "attempt": 2,
+        "classifications_completed": 0,
+        "outcome": "stopped deliberately (operator direction) shortly after subject seeding, well before 15 minutes from finishing, to avoid open-ended blocking; raised max_request_time_ms to 1_800_000ms first but did not get far enough to test whether that alone was sufficient",
+        "registered_aaas": 0
+      }
+    ],
+    "extrapolation_from_20x20": {
+      "assumptions": [
+        "per-call cycle cost (fee + AAA relay overhead, platform own execution) stays constant regardless of AAA/subject/record count",
+        "NOT independently verified at 200x100 scale \u2014 no measurement completed"
+      ],
+      "method": "linear scaling by 50x (20000 / 400 classifications), assuming per-call cycle cost is scale-invariant",
+      "total_aaa_cycles_debited_est": 5678975553800.0,
+      "total_fees_est": 5000000000000,
+      "total_platform_margin_est": 4357738334150.0,
+      "wall_seconds_naive_linear_est": 1038.4234603999998,
+      "wall_seconds_naive_linear_note": "empirically contradicted: the real attempt ran 2050s and did not finish; wall time does not appear to scale linearly with AAA count in this harness/environment"
+    },
+    "likely_cause": "resource contention on the dev machine from 20+ other concurrently-running icp-cli pocket-ic network-launcher processes (other lanes' local networks), not an identified algorithmic issue in platform/aaa",
+    "measured": false,
+    "status": "not_completed"
+  },
+  "20x20": {
+    "classification_pair_vs_fee": {
+      "aaa_overhead_over_fee": 33948777.69,
+      "avg_aaa_total_cost": 283948777.69,
+      "avg_platform_margin": 217886916.7075,
+      "configured_fee": 250000000,
+      "platform_margin_pct_of_fee": 87.154766683
+    },
+    "fee_get_review": 50000000,
+    "fee_get_task": 50000000,
+    "fee_submit_classification": 200000000,
+    "fee_submit_review": 200000000,
+    "get_review_assignment": {
+      "aaa_cycles_max": 63328781,
+      "aaa_cycles_min": 63263937,
+      "aaa_cycles_sum": 2531803896,
+      "calls": 40,
+      "errors": 0,
+      "platform_gain_max": 43665184,
+      "platform_gain_min": 43533072,
+      "platform_gain_sum": 1745146940,
+      "wall_ns_max": 35406500,
+      "wall_ns_sum": 580674086
+    },
+    "get_task": {
+      "aaa_cycles_max": 67398646,
+      "aaa_cycles_min": 67008958,
+      "aaa_cycles_sum": 26831101146,
+      "calls": 400,
+      "errors": 0,
+      "platform_gain_max": 41505304,
+      "platform_gain_min": 22864176,
+      "platform_gain_sum": 15347388713,
+      "wall_ns_max": 62405167,
+      "wall_ns_sum": 6293683425
+    },
+    "memory_growth": {
+      "note": "both deltas are exact multiples of 8 MiB, consistent with ic-stable-structures MemoryManager bucket allocation rather than smooth per-record growth; naive per-1k-classification linear reads (~220 MiB platform, ~2000 MiB AAA) are not a reliable growth rate from only 2 data points (before/after)",
+      "platform_delta_bytes": 92274688,
+      "platform_delta_mib": 88.0,
+      "sample_aaa_delta_bytes": 41943040,
+      "sample_aaa_delta_mib": 40.0
+    },
+    "n_aaas": 20,
+    "n_tasks_per_aaa": 20,
+    "per_call_compute_estimate": {
+      "get_review_assignment": {
+        "aaa_relay_own_execution_cycles_est": 13295097.399999999,
+        "avg_aaa_cycles_incl_fee": 63295097.4,
+        "avg_platform_gain": 43628673.5,
+        "compute_only_cycles_est": 19666423.9,
+        "estimated_instructions": 49166059.74999999,
+        "platform_own_execution_cycles_est": 6371326.5
+      },
+      "get_task": {
+        "aaa_relay_own_execution_cycles_est": 17077752.865000002,
+        "avg_aaa_cycles_incl_fee": 67077752.865,
+        "avg_platform_gain": 38368471.7825,
+        "compute_only_cycles_est": 28709281.082500003,
+        "estimated_instructions": 71773202.70625,
+        "platform_own_execution_cycles_est": 11631528.217500001
+      },
+      "submit_classification": {
+        "aaa_relay_own_execution_cycles_est": 16871024.824999988,
+        "avg_aaa_cycles_incl_fee": 216871024.825,
+        "avg_platform_gain": 179518444.925,
+        "compute_only_cycles_est": 37352579.899999976,
+        "estimated_instructions": 93381449.74999994,
+        "platform_own_execution_cycles_est": 20481555.074999988
+      },
+      "submit_review": null
+    },
+    "platform_memory_bytes_after": 250126934,
+    "platform_memory_bytes_before": 157852246,
+    "sample_aaa_memory_bytes_after": 61674003,
+    "sample_aaa_memory_bytes_before": 19730963,
+    "submit_classification": {
+      "aaa_cycles_max": 218137540,
+      "aaa_cycles_min": 215911916,
+      "aaa_cycles_sum": 86748409930,
+      "calls": 400,
+      "errors": 0,
+      "platform_gain_max": 180514525,
+      "platform_gain_min": 166874266,
+      "platform_gain_sum": 71807377970,
+      "wall_ns_max": 112840750,
+      "wall_ns_sum": 10849469457
+    },
+    "submit_review": {
+      "aaa_cycles_max": 0,
+      "aaa_cycles_min": 0,
+      "aaa_cycles_sum": 0,
+      "calls": 0,
+      "errors": 0,
+      "platform_gain_max": 0,
+      "platform_gain_min": 0,
+      "platform_gain_sum": 0,
+      "wall_ns_max": 0,
+      "wall_ns_sum": 0
+    },
+    "total_classifications": 400,
+    "total_discoveries_flagged": 8,
+    "total_reviews_attempted": 40,
+    "total_reviews_completed": 0,
+    "variant": "20x20",
+    "wall_seconds_total": 20.768469208
+  }
+}
