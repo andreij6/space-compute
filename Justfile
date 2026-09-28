@@ -16,6 +16,14 @@ seed-local:
 verify:
     @bash scripts/verify-local.sh
 
+# Build the AAA wasm reproducibly (pinned container, else hermetic local toolchain); prints module + gz sha256
+aaa-reproducible:
+    @bash scripts/build-aaa-reproducible.sh
+
+# Prove "hash reproducible on 2 machines" (T7.4): builds the AAA wasm in two independent directories and diffs the hashes
+aaa-reproducible-check:
+    @bash scripts/aaa-reproducible-check.sh
+
 # Run all unit and integration tests (PocketIC)
 test:
     @cargo test --workspace
