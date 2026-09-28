@@ -44,4 +44,31 @@ async fn probe_canister_info(target: Principal) -> Result<InfoProbe, String> {
     })
 }
 
+#[derive(CandidType, Deserialize)]
+pub struct SubnetCosts {
+    pub create_canister: u128,
+    pub call_empty: u128,
+    pub call_per_kib: u128,
+}
+
+#[ic_cdk::update]
+fn subnet_costs() -> SubnetCosts {
+    let call_empty = ic_cdk::api::cost_call(0, 0);
+    SubnetCosts {
+        create_canister: ic_cdk::api::cost_create_canister(),
+        call_empty,
+        call_per_kib: ic_cdk::api::cost_call(0, 1_024) - call_empty,
+    }
+}
+
+#[ic_cdk::update]
+fn burn(rounds: u64) -> u64 {
+    let mut acc = 0u64;
+    for i in 0..rounds {
+        acc = std::hint::black_box(acc.wrapping_mul(31).wrapping_add(i));
+    }
+    std::hint::black_box(acc);
+    ic_cdk::api::performance_counter(0)
+}
+
 ic_cdk::export_candid!();

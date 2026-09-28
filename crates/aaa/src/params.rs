@@ -19,10 +19,10 @@ pub struct CachedParams {
 impl Default for CachedParams {
     fn default() -> Self {
         Self {
-            fee_get_task: 50_000_000,
-            fee_submit_classification: 200_000_000,
-            fee_get_review: 50_000_000,
-            fee_submit_review: 200_000_000,
+            fee_get_task: 60_000_000,
+            fee_submit_classification: 50_000_000,
+            fee_get_review: 20_000_000,
+            fee_submit_review: 50_000_000,
             freezing_reserve: 10_000_000_000,
             last_refreshed_at: 0,
         }
@@ -118,10 +118,12 @@ mod tests {
     #[test]
     fn t3_2_params_defaults_and_threshold() {
         let p = CachedParams::default();
-        assert_eq!(p.fee_get_task, 50_000_000);
-        assert_eq!(p.fee_submit_classification, 200_000_000);
-        assert_eq!(p.max_fee(), 200_000_000);
-        assert_eq!(p.low_cycles_threshold(), 10_000_000_000 + 50 * 200_000_000);
+        assert_eq!(p.fee_get_task, 60_000_000);
+        assert_eq!(p.fee_submit_classification, 50_000_000);
+        assert_eq!(p.fee_get_review, 20_000_000);
+        assert_eq!(p.fee_submit_review, 50_000_000);
+        assert_eq!(p.max_fee(), 60_000_000);
+        assert_eq!(p.low_cycles_threshold(), 10_000_000_000 + 50 * 60_000_000);
     }
 
     #[test]

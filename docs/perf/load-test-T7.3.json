@@ -1,0 +1,670 @@
+{
+  "app13_10x20": {
+    "classifications_at_mid": 100,
+    "n_aaas": 10,
+    "n_tasks_per_aaa": 20,
+    "params": {
+      "calibration_tasks": 50,
+      "fee_get_review": 50000000,
+      "fee_get_task": 50000000,
+      "fee_submit_classification": 200000000,
+      "fee_submit_review": 200000000
+    },
+    "placement": "app13",
+    "platform_memory_bytes": [
+      157852246,
+      241738326,
+      241738326
+    ],
+    "sample_aaa_memory_bytes": [
+      19730963,
+      70062611,
+      70062611
+    ],
+    "stats": {
+      "get_review_assignment_not_eligible": {
+        "aaa_overhead_max": 13328915,
+        "aaa_overhead_sum": 265895427,
+        "calls": 20,
+        "errors": 0,
+        "platform_cost_max": 6333234,
+        "platform_cost_sum": 126563212,
+        "wall_ns_max": 70510292,
+        "wall_ns_sum": 480598042
+      },
+      "get_task": {
+        "aaa_overhead_max": 17398646,
+        "aaa_overhead_sum": 3415586264,
+        "calls": 200,
+        "errors": 0,
+        "platform_cost_max": 34712156,
+        "platform_cost_sum": 2586624152,
+        "wall_ns_max": 79538250,
+        "wall_ns_sum": 4065796827
+      },
+      "get_task_last10": {
+        "aaa_overhead_max": 17073382,
+        "aaa_overhead_sum": 1706048519,
+        "calls": 100,
+        "errors": 0,
+        "platform_cost_max": 34712156,
+        "platform_cost_sum": 1518880372,
+        "wall_ns_max": 79538250,
+        "wall_ns_sum": 2224716703
+      },
+      "submit_classification": {
+        "aaa_overhead_max": 18144628,
+        "aaa_overhead_sum": 3295708581,
+        "calls": 196,
+        "errors": 0,
+        "platform_cost_max": 20844253,
+        "platform_cost_sum": 3957070754,
+        "wall_ns_max": 130218125,
+        "wall_ns_sum": 6921480425
+      },
+      "submit_classification_flagged": {
+        "aaa_overhead_max": 17345448,
+        "aaa_overhead_sum": 68757138,
+        "calls": 4,
+        "errors": 0,
+        "platform_cost_max": 31784490,
+        "platform_cost_sum": 112405689,
+        "wall_ns_max": 78718125,
+        "wall_ns_sum": 177945499
+      }
+    },
+    "total_classifications": 200,
+    "total_discoveries_flagged": 4,
+    "total_reviews_completed": 0,
+    "wall_seconds_total": 13.727052125
+  },
+  "app13_40x70": {
+    "classifications_at_mid": 1400,
+    "n_aaas": 40,
+    "n_tasks_per_aaa": 70,
+    "params": {
+      "calibration_tasks": 50,
+      "fee_get_review": 50000000,
+      "fee_get_task": 50000000,
+      "fee_submit_classification": 200000000,
+      "fee_submit_review": 200000000
+    },
+    "placement": "app13",
+    "platform_memory_bytes": [
+      157852246,
+      258515542,
+      317235798
+    ],
+    "platform_stable_by_round": [
+      [
+        0,
+        142671872,
+        9306112
+      ],
+      [
+        40,
+        193003520,
+        9306112
+      ],
+      [
+        80,
+        226557952,
+        9306112
+      ],
+      [
+        120,
+        226557952,
+        9306112
+      ],
+      [
+        160,
+        226557952,
+        9306112
+      ],
+      [
+        200,
+        226557952,
+        9306112
+      ],
+      [
+        240,
+        226557952,
+        9306112
+      ],
+      [
+        280,
+        226557952,
+        9306112
+      ],
+      [
+        320,
+        226557952,
+        9306112
+      ],
+      [
+        360,
+        226557952,
+        9306112
+      ],
+      [
+        400,
+        226557952,
+        9306112
+      ],
+      [
+        440,
+        226557952,
+        9306112
+      ],
+      [
+        480,
+        226557952,
+        9306112
+      ],
+      [
+        520,
+        234946560,
+        9306112
+      ],
+      [
+        560,
+        234946560,
+        9306112
+      ],
+      [
+        600,
+        234946560,
+        9306112
+      ],
+      [
+        640,
+        234946560,
+        9306112
+      ],
+      [
+        680,
+        234946560,
+        9306112
+      ],
+      [
+        720,
+        234946560,
+        9306112
+      ],
+      [
+        760,
+        234946560,
+        9306112
+      ],
+      [
+        800,
+        234946560,
+        9306112
+      ],
+      [
+        840,
+        234946560,
+        9306112
+      ],
+      [
+        880,
+        234946560,
+        9306112
+      ],
+      [
+        920,
+        234946560,
+        9306112
+      ],
+      [
+        960,
+        234946560,
+        9306112
+      ],
+      [
+        1000,
+        234946560,
+        9306112
+      ],
+      [
+        1040,
+        234946560,
+        9306112
+      ],
+      [
+        1080,
+        234946560,
+        9306112
+      ],
+      [
+        1120,
+        234946560,
+        9306112
+      ],
+      [
+        1160,
+        234946560,
+        9306112
+      ],
+      [
+        1200,
+        234946560,
+        9306112
+      ],
+      [
+        1240,
+        243335168,
+        9306112
+      ],
+      [
+        1280,
+        243335168,
+        9306112
+      ],
+      [
+        1320,
+        243335168,
+        9306112
+      ],
+      [
+        1360,
+        243335168,
+        9306112
+      ],
+      [
+        1400,
+        243335168,
+        9306112
+      ],
+      [
+        1440,
+        243335168,
+        9306112
+      ],
+      [
+        1480,
+        243335168,
+        9306112
+      ],
+      [
+        1520,
+        243335168,
+        9306112
+      ],
+      [
+        1560,
+        243335168,
+        9306112
+      ],
+      [
+        1600,
+        302055424,
+        9306112
+      ],
+      [
+        1640,
+        302055424,
+        9306112
+      ],
+      [
+        1680,
+        302055424,
+        9306112
+      ],
+      [
+        1720,
+        302055424,
+        9306112
+      ],
+      [
+        1760,
+        302055424,
+        9306112
+      ],
+      [
+        1800,
+        302055424,
+        9306112
+      ],
+      [
+        1840,
+        302055424,
+        9306112
+      ],
+      [
+        1880,
+        302055424,
+        9306112
+      ],
+      [
+        1920,
+        302055424,
+        9306112
+      ],
+      [
+        1960,
+        302055424,
+        9306112
+      ],
+      [
+        2000,
+        302055424,
+        9306112
+      ],
+      [
+        2040,
+        302055424,
+        9306112
+      ],
+      [
+        2080,
+        302055424,
+        9306112
+      ],
+      [
+        2120,
+        302055424,
+        9306112
+      ],
+      [
+        2160,
+        302055424,
+        9306112
+      ],
+      [
+        2200,
+        302055424,
+        9306112
+      ],
+      [
+        2240,
+        302055424,
+        9306112
+      ],
+      [
+        2280,
+        302055424,
+        9306112
+      ],
+      [
+        2320,
+        302055424,
+        9306112
+      ],
+      [
+        2360,
+        302055424,
+        9306112
+      ],
+      [
+        2400,
+        302055424,
+        9306112
+      ],
+      [
+        2440,
+        302055424,
+        9306112
+      ],
+      [
+        2480,
+        302055424,
+        9306112
+      ],
+      [
+        2520,
+        302055424,
+        9306112
+      ],
+      [
+        2560,
+        302055424,
+        9306112
+      ],
+      [
+        2600,
+        302055424,
+        9306112
+      ],
+      [
+        2640,
+        302055424,
+        9306112
+      ],
+      [
+        2680,
+        302055424,
+        9306112
+      ],
+      [
+        2720,
+        302055424,
+        9306112
+      ],
+      [
+        2760,
+        302055424,
+        9306112
+      ],
+      [
+        2800,
+        302055424,
+        9306112
+      ]
+    ],
+    "sample_aaa_memory_bytes": [
+      19730963,
+      70062611,
+      70062611
+    ],
+    "stats": {
+      "get_review_assignment_assigned": {
+        "aaa_overhead_max": 14347059,
+        "aaa_overhead_sum": 1548126762,
+        "calls": 108,
+        "errors": 0,
+        "platform_cost_max": 9452680,
+        "platform_cost_p50": 8433759,
+        "platform_cost_p95": 8958581,
+        "platform_cost_p99": 9035726,
+        "platform_cost_sum": 912121079,
+        "wall_ns_max": 69524917,
+        "wall_ns_sum": 2525221833
+      },
+      "get_review_assignment_none": {
+        "aaa_overhead_max": 13779117,
+        "aaa_overhead_sum": 5454245947,
+        "calls": 396,
+        "errors": 0,
+        "platform_cost_max": 7213564,
+        "platform_cost_p50": 7050397,
+        "platform_cost_p95": 7180121,
+        "platform_cost_p99": 7186400,
+        "platform_cost_sum": 2766711757,
+        "wall_ns_max": 97368583,
+        "wall_ns_sum": 10028701153
+      },
+      "get_review_assignment_not_eligible": {
+        "aaa_overhead_max": 13329814,
+        "aaa_overhead_sum": 6606532378,
+        "calls": 496,
+        "errors": 0,
+        "platform_cost_max": 6367593,
+        "platform_cost_p50": 6320437,
+        "platform_cost_p95": 6358725,
+        "platform_cost_p99": 6363505,
+        "platform_cost_sum": 3137656956,
+        "wall_ns_max": 144329792,
+        "wall_ns_sum": 11910441801
+      },
+      "get_task": {
+        "aaa_overhead_max": 17398646,
+        "aaa_overhead_sum": 47753278347,
+        "calls": 2800,
+        "errors": 0,
+        "platform_cost_max": 70563683,
+        "platform_cost_p50": 8956982,
+        "platform_cost_p95": 48391415,
+        "platform_cost_p99": 57036668,
+        "platform_cost_sum": 42210944144,
+        "wall_ns_max": 190408875,
+        "wall_ns_sum": 73158536867
+      },
+      "get_task_last10": {
+        "aaa_overhead_max": 17023903,
+        "aaa_overhead_sum": 6805370333,
+        "calls": 400,
+        "errors": 0,
+        "platform_cost_max": 70563683,
+        "platform_cost_p50": 8925575,
+        "platform_cost_p95": 54897713,
+        "platform_cost_p99": 60597089,
+        "platform_cost_sum": 5662809944,
+        "wall_ns_max": 124877334,
+        "wall_ns_sum": 11721947259
+      },
+      "submit_classification": {
+        "aaa_overhead_max": 19171258,
+        "aaa_overhead_sum": 47305903871,
+        "calls": 2744,
+        "errors": 0,
+        "platform_cost_max": 21921269,
+        "platform_cost_p50": 20859319,
+        "platform_cost_p95": 21368549,
+        "platform_cost_p99": 21554078,
+        "platform_cost_sum": 56971506508,
+        "wall_ns_max": 262684542,
+        "wall_ns_sum": 129259244230
+      },
+      "submit_classification_flagged": {
+        "aaa_overhead_max": 19302911,
+        "aaa_overhead_sum": 984756026,
+        "calls": 56,
+        "errors": 0,
+        "platform_cost_max": 47290876,
+        "platform_cost_p50": 39311904,
+        "platform_cost_p95": 45902078,
+        "platform_cost_p99": 46967692,
+        "platform_cost_sum": 2116841612,
+        "wall_ns_max": 111727292,
+        "wall_ns_sum": 2753526836
+      },
+      "submit_review": {
+        "aaa_overhead_max": 18139837,
+        "aaa_overhead_sum": 1793796747,
+        "calls": 108,
+        "errors": 0,
+        "platform_cost_max": 36701472,
+        "platform_cost_p50": 19205882,
+        "platform_cost_p95": 36007374,
+        "platform_cost_p99": 36290734,
+        "platform_cost_sum": 2650842606,
+        "wall_ns_max": 230350500,
+        "wall_ns_sum": 5398642206
+      }
+    },
+    "total_classifications": 2800,
+    "total_discoveries_flagged": 36,
+    "total_reviews_completed": 108,
+    "wall_seconds_total": 267.170291417
+  },
+  "fiduciary34_10x20": {
+    "classifications_at_mid": 100,
+    "n_aaas": 10,
+    "n_tasks_per_aaa": 20,
+    "params": {
+      "calibration_tasks": 50,
+      "fee_get_review": 50000000,
+      "fee_get_task": 50000000,
+      "fee_submit_classification": 200000000,
+      "fee_submit_review": 200000000
+    },
+    "placement": "fiduciary34",
+    "platform_memory_bytes": [
+      157852246,
+      241738326,
+      241738326
+    ],
+    "sample_aaa_memory_bytes": [
+      19730963,
+      70062611,
+      70062611
+    ],
+    "stats": {
+      "get_review_assignment_not_eligible": {
+        "aaa_overhead_max": 34860976,
+        "aaa_overhead_sum": 695429483,
+        "calls": 20,
+        "errors": 0,
+        "platform_cost_max": 16561722,
+        "platform_cost_sum": 330383139,
+        "wall_ns_max": 65332375,
+        "wall_ns_sum": 465949041
+      },
+      "get_task": {
+        "aaa_overhead_max": 45504024,
+        "aaa_overhead_sum": 8932867146,
+        "calls": 200,
+        "errors": 0,
+        "platform_cost_max": 84704412,
+        "platform_cost_sum": 6263298490,
+        "wall_ns_max": 150840291,
+        "wall_ns_sum": 5920993158
+      },
+      "get_task_last10": {
+        "aaa_overhead_max": 44653229,
+        "aaa_overhead_sum": 4461857267,
+        "calls": 100,
+        "errors": 0,
+        "platform_cost_max": 84704412,
+        "platform_cost_sum": 3711259185,
+        "wall_ns_max": 72350000,
+        "wall_ns_sum": 2054064996
+      },
+      "submit_classification": {
+        "aaa_overhead_max": 47448763,
+        "aaa_overhead_sum": 8622968907,
+        "calls": 196,
+        "errors": 0,
+        "platform_cost_max": 54287846,
+        "platform_cost_sum": 10367880728,
+        "wall_ns_max": 297492333,
+        "wall_ns_sum": 10952333135
+      },
+      "submit_classification_flagged": {
+        "aaa_overhead_max": 45602645,
+        "aaa_overhead_sum": 179775208,
+        "calls": 4,
+        "errors": 0,
+        "platform_cost_max": 81089818,
+        "platform_cost_sum": 293816650,
+        "wall_ns_max": 61866708,
+        "wall_ns_sum": 182783416
+      }
+    },
+    "total_classifications": 200,
+    "total_discoveries_flagged": 4,
+    "total_reviews_completed": 0,
+    "wall_seconds_total": 20.909888375
+  },
+  "pricing_app13": {
+    "costs": {
+      "call_empty": 42102412000,
+      "call_per_kib": 1024000,
+      "create_canister": 500000000000
+    },
+    "cycles_per_instruction": 0.9999976157256082,
+    "ingress_update_base_cycles": 6550253.384273504,
+    "placement": "app13"
+  },
+  "pricing_fiduciary34": {
+    "costs": {
+      "call_empty": 110114000614,
+      "call_per_kib": 2678153,
+      "create_canister": 1307692307692
+    },
+    "cycles_per_instruction": 2.6153783802055077,
+    "ingress_update_base_cycles": 17131301.466462277,
+    "placement": "fiduciary34"
+  }
+}

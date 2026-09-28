@@ -191,7 +191,7 @@ fn t2_3_never_same_subject_twice_and_pool_dispatch() {
     assert_eq!(
         insufficient_fee,
         Err(ApiError::InsufficientFee {
-            required: 50_000_000u64.into()
+            required: Params::default().fee_get_task.into()
         })
     );
     step("get_task rejected with InsufficientFee when fee_get_task > 0 without cycles attached");

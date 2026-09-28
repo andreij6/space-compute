@@ -56,7 +56,16 @@ pub fn canister_wasm(name: &str) -> Vec<u8> {
                 "--release",
             ])
             .args([
-                "-p", "platform", "-p", "payments", "-p", "treasury", "-p", "aaa",
+                "-p",
+                "platform",
+                "-p",
+                "payments",
+                "-p",
+                "treasury",
+                "-p",
+                "aaa",
+                "-p",
+                "spike-probe",
             ])
             .current_dir(&root)
             .status()

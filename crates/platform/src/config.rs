@@ -39,10 +39,10 @@ pub struct Params {
 impl Default for Params {
     fn default() -> Self {
         Params {
-            fee_get_task: 50_000_000,
-            fee_submit_classification: 200_000_000,
-            fee_get_review: 50_000_000,
-            fee_submit_review: 200_000_000,
+            fee_get_task: 60_000_000,
+            fee_submit_classification: 50_000_000,
+            fee_get_review: 20_000_000,
+            fee_submit_review: 50_000_000,
             retire_after_k: 5,
             gold_rate_bp: 1_000,
             calibration_tasks: 50,
@@ -253,10 +253,63 @@ mod tests {
     #[test]
     fn t2_1_default_params_match_spec_01_and_validate() {
         let p = Params::default();
-        assert_eq!(p.fee_get_task, 50_000_000);
+        assert_eq!(p.fee_get_task, 60_000_000);
+        assert_eq!(p.fee_submit_classification, 50_000_000);
+        assert_eq!(p.fee_get_review, 20_000_000);
+        assert_eq!(p.fee_submit_review, 50_000_000);
+        assert_eq!(p.aaa_initial_cycles, 1_000_000_000_000);
         assert_eq!(p.retire_after_k, 5);
         assert_eq!(p.data_refresh_interval_days, 15);
         p.validate().unwrap();
+    }
+
+    struct MeasuredCost {
+        avg: u128,
+        p99: u128,
+    }
+
+    const SAFETY_FACTOR: u128 = 2;
+    const GET_TASK: MeasuredCost = MeasuredCost {
+        avg: 15_080_000,
+        p99: 57_040_000,
+    };
+    const SUBMIT_CLASSIFICATION: MeasuredCost = MeasuredCost {
+        avg: 21_110_000,
+        p99: 46_970_000,
+    };
+    const GET_REVIEW: MeasuredCost = MeasuredCost {
+        avg: 8_450_000,
+        p99: 9_040_000,
+    };
+    const SUBMIT_REVIEW: MeasuredCost = MeasuredCost {
+        avg: 24_540_000,
+        p99: 36_290_000,
+    };
+
+    fn required_fee(c: &MeasuredCost) -> u128 {
+        (c.avg * SAFETY_FACTOR).max(c.p99)
+    }
+
+    #[test]
+    fn t7_3_default_fees_cover_measured_platform_cost_times_safety_factor() {
+        let p = Params::default();
+        for (name, fee, cost) in [
+            ("fee_get_task", p.fee_get_task, GET_TASK),
+            (
+                "fee_submit_classification",
+                p.fee_submit_classification,
+                SUBMIT_CLASSIFICATION,
+            ),
+            ("fee_get_review", p.fee_get_review, GET_REVIEW),
+            ("fee_submit_review", p.fee_submit_review, SUBMIT_REVIEW),
+        ] {
+            let need = required_fee(&cost);
+            assert!(fee >= need, "{name} = {fee} < required {need}");
+            assert!(
+                fee <= need * 3 / 2,
+                "{name} = {fee} overcharges owners (> 1.5 × required {need})"
+            );
+        }
     }
 
     #[test]

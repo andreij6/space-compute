@@ -78,8 +78,10 @@ fn sp_4_canister_info_cost_and_latency_same_vs_cross_subnet() {
         ));
         assert!(
             p.cycles_spent < 50_000_000,
-            "canister_info should cost well under the 200M submission fee"
+            "canister_info should cost well under the 50M submission fee"
         );
     }
-    step("fee_submit_classification is 200_000_000 cycles, so a per-call check costs < 25% of the fee");
+    step(
+        "fee_submit_classification is 50_000_000 cycles (T7.3); the ~5.9M check is priced into it",
+    );
 }

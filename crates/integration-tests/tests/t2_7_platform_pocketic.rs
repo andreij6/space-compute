@@ -170,7 +170,7 @@ fn t2_7_registered_aaa_task_receipt_and_idempotent_duplicate() {
     assert_eq!(
         fee_task_res,
         Err(ApiError::InsufficientFee {
-            required: 50_000_000u64.into(),
+            required: Params::default().fee_get_task.into(),
         })
     );
 
@@ -224,7 +224,7 @@ fn t2_7_registered_aaa_task_receipt_and_idempotent_duplicate() {
     assert_eq!(
         fee_sub_res,
         Err(ApiError::InsufficientFee {
-            required: 200_000_000u64.into(),
+            required: Params::default().fee_submit_classification.into(),
         })
     );
     step("criterion 2 (part 2): InsufficientFee returned when cycles are missing on get_task and submit_classification");

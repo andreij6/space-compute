@@ -39,7 +39,7 @@ impl Default for Params {
             auto_topup_min_interval_secs: 21_600,
             intake_min_runway_days: 21,
             aaa_initial_cycles: 1_000_000_000_000,
-            spawn_creation_fee_cycles: 100_000_000_000,
+            spawn_creation_fee_cycles: 500_000_000_000,
             spawn_quote_buffer_bp: 200,
             icp_ledger_fee_e8s: 10_000,
             sponsor_daily_cap_e8s: 5 * 100_000_000,
@@ -237,6 +237,21 @@ mod tests {
         p.validate().unwrap();
         let f = Features::default();
         assert!(!f.card && !f.btc && !f.eth && f.sponsored_spawn);
+    }
+
+    #[test]
+    fn t7_3_spawn_quote_covers_measured_creation_fee_and_initial_cycles() {
+        const MEASURED_CREATE_CANISTER_13_NODE: u128 = 500_000_000_000;
+        let p = Params::default();
+        assert_eq!(
+            p.spawn_creation_fee_cycles,
+            MEASURED_CREATE_CANISTER_13_NODE
+        );
+        assert_eq!(p.aaa_initial_cycles, 1_000_000_000_000);
+        let quoted = (p.aaa_initial_cycles + p.spawn_creation_fee_cycles)
+            * (10_000 + p.spawn_quote_buffer_bp as u128)
+            / 10_000;
+        assert!(quoted - MEASURED_CREATE_CANISTER_13_NODE >= p.aaa_initial_cycles);
     }
 
     #[test]

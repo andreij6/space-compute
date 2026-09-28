@@ -40,17 +40,18 @@
 
 | KR | Target | Current | Status |
 |---|---|---|---|
-| KR4.1 Platform canister cycles covered by per-call fees + fuel-pack margin (beta month); the gap is the owner-funded float | ≥ 100% | — | ⚪ |
+| KR4.1 Platform canister cycles covered by per-call fees + fuel-pack margin (beta month); the gap is the owner-funded float | ≥ 100% | execution 304% (T7.3, PocketIC 13-node); storage ~44 KB/classification not fee-funded |  ⚪ |
 | KR4.2 Fuel treasury never breaches its reserve floor | 0 breaches | — | ⚪ |
 | KR4.3 App canisters topped up automatically by the treasury keeper, no manual top-ups | 100% of months | — | ⚪ |
 | KR4.5 Non-ICP intake auto-pauses before ops cycles run low (and nothing is stranded) | 0 ops-canister runway breaches while intake is open | — | ⚪ |
-| KR4.4 Median owner cost per 1,000 classifications, published | ≤ $2 | — | ⚪ |
+| KR4.4 Median owner cost per 1,000 classifications, published | ≤ $2 | $0.19 (T7.3 estimate, 13-node, 1 XDR = $1.35) | ⚪ |
 
 ---
 
 ## Change log
 | Date | Change |
 |---|---|
+| 2026-09-28 | T7.3: fees retuned from measured cost (docs/perf/fees-T7.3.md): get_task 50M→60M, submit_classification 200M→50M, get_review 50M→20M, submit_review 200M→50M cycles; spawn creation fee 100B→500B (measured). Owner cost per classification 284M→144M cycles. |
 | 2026-09-27 | T2.6: Public queries (get_stats, get_protocol, aaa_by_owner, aaa_owner, get_aaa_public, get_leaderboard) implemented with <=100 pagination limits and PocketIC verification. |
 | 2026-09-27 | T2.5: Event log (StableLog mem 40/41) and per-AAA activity index (mem 47) implemented with newest-first cursor pagination and PocketIC verification. |
 | 2026-09-27 | T2.4: Scoring, protocol validation, gold scoring, retirement at K=5, and consensus evaluation completed in platform canister with idempotent resubmission and PocketIC verification. |

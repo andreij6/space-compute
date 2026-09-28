@@ -44,7 +44,7 @@ test:
 test-integration:
     @cargo test -p integration-tests -- --nocapture
 
-# T7.2 load test (200x100 and a faster repeatable 20x20 variant); writes docs/perf/load-test-T7.2.{md,json}
+# T7.2/T7.3 load + pricing measurements (t7_3_* are the fee inputs); writes docs/perf/load-test-T7.3.json
 load-test:
     @cargo test -p integration-tests --test t7_2_load -- --ignored --nocapture --test-threads=1
 

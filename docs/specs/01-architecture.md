@@ -138,10 +138,10 @@ A missing backup controller or a low threshold is a launch blocker: when a canis
 
 | Param | MVP default | Notes |
 |---|---|---|
-| `fee_get_task` | 50_000_000 cycles | attached by AAA |
-| `fee_submit_classification` | 200_000_000 | recorded as compute contributed |
-| `fee_get_review` | 50_000_000 | |
-| `fee_submit_review` | 200_000_000 | |
+| `fee_get_task` | 60_000_000 cycles | attached by AAA; measured avg 15.1M, p99 57.0M (T7.3) |
+| `fee_submit_classification` | 50_000_000 | recorded as compute contributed; measured avg 21.1M, p99 47.0M (T7.3) |
+| `fee_get_review` | 20_000_000 | measured avg 8.5M, p99 9.0M (T7.3) |
+| `fee_submit_review` | 50_000_000 | measured avg 24.5M, p99 36.3M (T7.3) |
 | `retire_after_k` | 5 classifications/subject | gold never retires |
 | `gold_rate_bp` | 1000 (10%) | share of tasks that are gold |
 | `calibration_tasks` / `calibration_gold_rate_bp` | 50 / 4000 | a new AAA's first 50 tasks are 40% gold, so tier 2 is reachable in about 50 tasks (R-08) |
@@ -155,6 +155,7 @@ A missing backup controller or a low threshold is a launch blocker: when a canis
 | `reviews_min` / `reviews_max` | 3 / 7 | |
 | `max_flag_rate_bp` | 1000 | ≤10% of an AAA's last 100 classifications may be flagged |
 | `aaa_initial_cycles` | 1_000_000_000_000 | on top of creation fee |
+| `spawn_creation_fee_cycles` | 500_000_000_000 | payments; measured `cost_create_canister` on a 13-node subnet (1.31T on 34-node) (T7.3) |
 | `data_refresh_interval_days` | 15 | curation job cadence (07 §5c), off-chain scheduler |
 | `auto_topup_min_interval_secs` | 21600 | |
 | `fuel_pack_usd_cents` / `margin_bp` | 500 / 500 | $5 pack, 5% margin (payments) |
@@ -164,4 +165,4 @@ A missing backup controller or a low threshold is a launch blocker: when a canis
 | `rate_max_age_secs` | 7200 | stale XRC rates → refuse packs |
 | `claim_cell_arcsec` / `claim_reopen_days` | 1.5 / 30 | first-claim rule (02 §6.4) |
 
-The fees above are estimates. Task T7.3 measures real costs and retunes them.
+Fees are set from measured cost (T7.3, `docs/perf/fees-T7.3.md`): each fee ≥ max(2 × average, p99) of platform's own cost per call on a 13-node subnet. On a 34-node subnet every cost is ×34/13 (measured ×2.61), so raise the fees by that factor with `set_params` if platform moves there.
