@@ -8,7 +8,7 @@ import { SignerAgent } from '@icp-sdk/signer/agent';
 import { IcrcLedgerCanister, toCandidAccount, type IcrcAccount } from '@icp-sdk/canisters/ledger/icrc';
 import type { Account, Op, PayPath, Quote } from '../bindings/payments';
 import { canisterEnv, canisterId } from '../ic';
-import { formatIcp, humanApiError, nextPollDelayMs, opPhase, opStatusLabel, PaymentApiError } from '../lib/paymentOps';
+import { formatIcp, nextPollDelayMs, opPhase, opStatusLabel, walletErrorMessage } from '../lib/paymentOps';
 import { spenderSubaccount, type SubaccountPurpose } from '../lib/spenderSubaccount';
 
 const ICP_LEDGER_ID = Principal.fromText('ryjl3-tyaaa-aaaaa-aaaba-cai');
@@ -25,16 +25,10 @@ export interface PaymentPanelProps {
   fetchOp: (opId: bigint) => Promise<Op | null>;
   submitOp: (path: PayPath) => Promise<bigint>;
   onPaid: (opId: bigint) => void;
+  initialOpId?: bigint | null;
 }
 
 type Tab = 'wallet' | 'deposit' | 'invite';
-
-function errorMessage(e: unknown): string {
-  if (e instanceof PaymentApiError) return humanApiError(e.apiError);
-  if (e && typeof e === 'object' && 'code' in e) return 'The wallet could not complete that action.';
-  if (e instanceof Error) return e.message;
-  return 'Something went wrong.';
-}
 
 export function PaymentPanel({
   purpose,
@@ -45,10 +39,11 @@ export function PaymentPanel({
   fetchOp,
   submitOp,
   onPaid,
+  initialOpId = null,
 }: PaymentPanelProps) {
   const beneficiaryKey = beneficiary.toText();
   const [tab, setTab] = useState<Tab>('deposit');
-  const [opId, setOpId] = useState<bigint | null>(null);
+  const [opId, setOpId] = useState<bigint | null>(initialOpId);
   const [inviteCode, setInviteCode] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -88,7 +83,7 @@ export function PaymentPanel({
       const id = await submitOp(path);
       setOpId(id);
     } catch (e) {
-      setSubmitError(errorMessage(e));
+      setSubmitError(walletErrorMessage(e));
     } finally {
       setConfirming(false);
     }
@@ -117,7 +112,7 @@ export function PaymentPanel({
       const id = await submitOp({ __kind__: 'Wallet', Wallet: { payer: account } });
       setOpId(id);
     } catch (e) {
-      setSubmitError(errorMessage(e));
+      setSubmitError(walletErrorMessage(e));
     } finally {
       setConfirming(false);
     }

@@ -66,3 +66,40 @@ export function mandateState(mandate: { needs_attention: boolean } | null): Mand
   if (!mandate) return 'none';
   return mandate.needs_attention ? 'needs_attention' : 'ok';
 }
+
+export type MandateUiState = 'none' | 'enabled' | 'disabled' | 'needs_attention' | 'cap_reached';
+
+export interface MandateLike {
+  enabled: boolean;
+  needs_attention: boolean;
+  remaining_30d_e8s: bigint;
+}
+
+export function mandateUiState(mandate: MandateLike | null): MandateUiState {
+  if (!mandate) return 'none';
+  if (mandate.needs_attention) return 'needs_attention';
+  if (!mandate.enabled) return 'disabled';
+  if (mandate.remaining_30d_e8s <= 0n) return 'cap_reached';
+  return 'enabled';
+}
+
+export function mandateStatusMessage(state: MandateUiState): string {
+  switch (state) {
+    case 'none':
+      return 'No auto top-up configured.';
+    case 'enabled':
+      return 'Auto top-up is enabled.';
+    case 'disabled':
+      return 'Auto top-up is set up but disabled.';
+    case 'needs_attention':
+      return 'Auto top-up needs attention: allowance revoked or insufficient.';
+    case 'cap_reached':
+      return 'Auto top-up has reached its monthly limit for this 30-day cycle.';
+    default:
+      return 'Auto top-up status unknown.';
+  }
+}
+
+export function mandateApproveAmountE8s(topupE8s: bigint, capE8s: bigint): bigint {
+  return (topupE8s > capE8s ? topupE8s : capE8s) * 12n;
+}

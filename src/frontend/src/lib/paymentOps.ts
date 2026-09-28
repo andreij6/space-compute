@@ -99,3 +99,25 @@ export const OP_POLL_INTERVAL_MS = 3_000;
 export function nextPollDelayMs(op: Op | null | undefined): number | false {
   return opPhase(op) === 'pending' ? OP_POLL_INTERVAL_MS : false;
 }
+
+export const MIN_TOPUP_E8S = 10_000_000n;
+
+export function e8sToCycles(e8s: bigint, rateXdrPermyriadPerIcp: bigint): bigint {
+  return e8s * rateXdrPermyriadPerIcp;
+}
+
+export function parseIcpToE8s(input: string): bigint | null {
+  const trimmed = input.trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return null;
+  const [whole, frac = ''] = trimmed.split('.');
+  if (frac.length > 8) return null;
+  const paddedFrac = frac.padEnd(8, '0');
+  return BigInt(whole) * 100_000_000n + BigInt(paddedFrac || '0');
+}
+
+export function walletErrorMessage(e: unknown): string {
+  if (e instanceof PaymentApiError) return humanApiError(e.apiError);
+  if (e && typeof e === 'object' && 'code' in e) return 'The wallet could not complete that action.';
+  if (e instanceof Error) return e.message;
+  return 'Something went wrong.';
+}

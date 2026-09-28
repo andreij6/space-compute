@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { Op } from '../bindings/payments';
 import {
+  e8sToCycles,
   formatIcp,
   humanApiError,
+  MIN_TOPUP_E8S,
   nextPollDelayMs,
   OP_POLL_INTERVAL_MS,
   opPhase,
   opStatusLabel,
+  parseIcpToE8s,
   PaymentApiError,
   unwrapResult,
+  walletErrorMessage,
 } from './paymentOps';
 
 describe('formatIcp (quote e8s → ICP)', () => {
@@ -122,5 +126,53 @@ describe('op polling state machine (05 §3, poll get_op every 3s until Done/Fail
     expect(opPhase(refunded)).toBe('failed');
     expect(nextPollDelayMs(refunded)).toBe(false);
     expect(opStatusLabel(refunded.state)).toMatch(/block 7/);
+  });
+});
+
+describe('parseIcpToE8s (05 §3 /fuel: ICP amount input → e8s)', () => {
+  it('parses a whole number', () => {
+    expect(parseIcpToE8s('1')).toBe(100_000_000n);
+  });
+  it('parses a fractional amount', () => {
+    expect(parseIcpToE8s('0.1')).toBe(10_000_000n);
+  });
+  it('pads a short fraction', () => {
+    expect(parseIcpToE8s('0.5')).toBe(50_000_000n);
+  });
+  it('rejects garbage input', () => {
+    expect(parseIcpToE8s('abc')).toBeNull();
+    expect(parseIcpToE8s('')).toBeNull();
+    expect(parseIcpToE8s('-1')).toBeNull();
+  });
+  it('rejects more than 8 fractional digits', () => {
+    expect(parseIcpToE8s('0.123456789')).toBeNull();
+  });
+  it('MIN_TOPUP_E8S matches the payments canister minimum (0.1 ICP)', () => {
+    expect(MIN_TOPUP_E8S).toBe(parseIcpToE8s('0.1'));
+  });
+});
+
+describe('e8sToCycles (mirrors crates/payments/src/quote.rs e8s_to_cycles)', () => {
+  it('multiplies e8s by the cached XDR rate', () => {
+    expect(e8sToCycles(1_000_000n, 37_300n)).toBe(37_300_000_000n);
+  });
+  it('is zero for a zero rate', () => {
+    expect(e8sToCycles(1_000_000n, 0n)).toBe(0n);
+  });
+});
+
+describe('walletErrorMessage (shared by PaymentPanel and the /fuel mandate wallet-approve step)', () => {
+  it('maps a PaymentApiError to its human message', () => {
+    const err = new PaymentApiError({ __kind__: 'Unauthorized', Unauthorized: null });
+    expect(walletErrorMessage(err)).toMatch(/authorized/i);
+  });
+  it('gives a generic wallet message for a signer error code', () => {
+    expect(walletErrorMessage({ code: 4001 })).toMatch(/wallet/i);
+  });
+  it('falls back to the Error message', () => {
+    expect(walletErrorMessage(new Error('boom'))).toBe('boom');
+  });
+  it('falls back to a generic message for anything else', () => {
+    expect(walletErrorMessage('nope')).toBe('Something went wrong.');
   });
 });

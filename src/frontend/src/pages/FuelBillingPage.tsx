@@ -1,144 +1,331 @@
-import React, { useState } from 'react';
-import { 
-  
-  
-  
-  
-  
-  
-  Sliders 
-  
-} from 'lucide-react';
-import { mockOwnerAaa } from '../mockData';
-import { FuelCellGauge } from '../components/FuelCellGauge';
-import { MultiCurrencyPayment } from '../components/MultiCurrencyPayment';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Principal } from '@icp-sdk/core/principal';
+import { HttpAgent } from '@icp-sdk/core/agent';
+import { Signer } from '@icp-sdk/signer';
+import { PostMessageTransport } from '@icp-sdk/signer/web';
+import { SignerAgent } from '@icp-sdk/signer/agent';
+import { IcrcLedgerCanister, toCandidAccount, type IcrcAccount } from '@icp-sdk/canisters/ledger/icrc';
+import { useAuth, useMyAaa } from '../auth';
+import { aaaActor, canisterEnv, canisterId, platformActor, paymentsActor } from '../ic';
+import { Purpose } from '../bindings/payments';
+import { PaymentPanel } from '../components/PaymentPanel';
+import { EmptyState } from '../components/EmptyState';
+import {
+  e8sToCycles,
+  formatIcp,
+  MIN_TOPUP_E8S,
+  nextPollDelayMs,
+  opStatusLabel,
+  parseIcpToE8s,
+  unwrapResult,
+  walletErrorMessage,
+} from '../lib/paymentOps';
+import {
+  formatCycles,
+  loadDashboard,
+  mandateApproveAmountE8s,
+  mandateStatusMessage,
+  mandateUiState,
+} from '../lib/dashboard';
+import { spenderSubaccount } from '../lib/spenderSubaccount';
 
-export const FuelBillingPage: React.FC = () => {
-  const [autoRefuelActive, setAutoRefuelActive] = useState(true);
-  const [spendCap, setSpendCap] = useState(15);
-  const [thresholdDays, setThresholdDays] = useState(3);
+const ICP_LEDGER_ID = Principal.fromText('ryjl3-tyaaa-aaaaa-aaaba-cai');
+const OISY_SIGNER_URL = 'https://oisy.com/sign';
+const REFRESH_MS = 5_000;
+const NS_PER_YEAR = 365n * 24n * 60n * 60n * 1_000_000_000n;
 
-  const history = [
-    { id: 'tx-8812', date: '2026-09-01', method: 'ICP Direct', amount: '0.45 ICP', cycles: '20 TCycles', status: 'Completed' },
-    { id: 'tx-7740', date: '2026-08-01', method: 'Card (Stripe)', amount: '$5.00 USD', cycles: '20 TCycles', status: 'Completed' },
-    { id: 'tx-6602', date: '2026-07-01', method: 'Sponsored Beta', amount: 'Free Grant', cycles: '30 TCycles', status: 'Completed' },
-  ];
+type Payments = ReturnType<typeof paymentsActor>;
+
+function FuelOpRow({ payments, opId }: { payments: Payments; opId: bigint }) {
+  const opQuery = useQuery({
+    queryKey: ['fuel_op', opId.toString()],
+    queryFn: () => payments.get_op(opId),
+    refetchInterval: (query) => nextPollDelayMs(query.state.data ?? null),
+  });
+  const op = opQuery.data;
+  return (
+    <li>
+      #{opId.toString()} —{' '}
+      {op ? `${opStatusLabel(op.state)} (${formatIcp(op.pull_e8s ?? op.amount_e8s)} ICP)` : 'Loading…'}
+    </li>
+  );
+}
+
+export function FuelBillingPage() {
+  const { identity } = useAuth();
+  const aaaQuery = useMyAaa();
+  const aaaId = aaaQuery.data ?? null;
+  const queryClient = useQueryClient();
+
+  const aaa = useMemo(() => (aaaId ? aaaActor(aaaId.toText(), identity ?? undefined) : null), [aaaId, identity]);
+  const platform = useMemo(() => platformActor(identity ?? undefined), [identity]);
+  const payments = useMemo(() => paymentsActor(identity ?? undefined), [identity]);
+
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard', aaaId?.toText()],
+    queryFn: () => loadDashboard(aaa!, platform, aaaId!),
+    enabled: !!aaa && !!aaaId,
+    refetchInterval: REFRESH_MS,
+  });
+
+  const rateQuery = useQuery({ queryKey: ['payments_rate'], queryFn: () => payments.get_rate() });
+
+  const mandateQuery = useQuery({
+    queryKey: ['mandate', aaaId?.toText()],
+    queryFn: () => payments.get_mandate(aaaId!),
+    enabled: !!aaaId,
+    refetchInterval: REFRESH_MS,
+  });
+  const mandate = mandateQuery.data ?? null;
+  const uiState = mandateUiState(mandate);
+
+  const [topupIcp, setTopupIcp] = useState('');
+  const [capIcp, setCapIcp] = useState('');
+  const [mandateBusy, setMandateBusy] = useState(false);
+  const [mandateError, setMandateError] = useState<string | null>(null);
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (mandate && !prefilled.current) {
+      setTopupIcp(formatIcp(mandate.topup_e8s));
+      setCapIcp(formatIcp(mandate.cap_30d_e8s));
+      prefilled.current = true;
+    }
+  }, [mandate]);
+
+  const [topupAmountIcp, setTopupAmountIcp] = useState('0.1');
+  const topupAmountE8s = parseIcpToE8s(topupAmountIcp);
+  const topupAmountValid = topupAmountE8s !== null && topupAmountE8s >= MIN_TOPUP_E8S;
+  const cyclesWanted =
+    topupAmountValid && rateQuery.data ? e8sToCycles(topupAmountE8s!, rateQuery.data.xdr_permyriad_per_icp) : null;
+
+  const [sessionOpIds, setSessionOpIds] = useState<bigint[]>([]);
+
+  async function invalidateMandate() {
+    await queryClient.invalidateQueries({ queryKey: ['mandate', aaaId?.toText()] });
+  }
+
+  async function handleMandateApprove() {
+    if (!aaaId) return;
+    setMandateError(null);
+    setMandateBusy(true);
+    try {
+      const topupE8s = parseIcpToE8s(topupIcp);
+      const capE8s = parseIcpToE8s(capIcp);
+      if (topupE8s === null || topupE8s < MIN_TOPUP_E8S) {
+        throw new Error('Enter a per-top-up amount of at least 0.1 ICP.');
+      }
+      if (capE8s === null || capE8s < topupE8s) {
+        throw new Error('The monthly limit must be at least the per-top-up amount.');
+      }
+      const approveE8s = mandateApproveAmountE8s(topupE8s, capE8s);
+      const signer = new Signer({ transport: new PostMessageTransport({ url: OISY_SIGNER_URL }) });
+      const accounts = await signer.getAccounts();
+      if (accounts.length === 0) throw new Error('The wallet shared no account.');
+      const account: IcrcAccount = accounts[0];
+      const agent = HttpAgent.createSync({ rootKey: canisterEnv()?.IC_ROOT_KEY });
+      const signerAgent = await SignerAgent.create({ signer, account: account.owner, agent });
+      const spenderSub = await spenderSubaccount('auto', aaaId);
+      const ledger = IcrcLedgerCanister.create({ agent: signerAgent, canisterId: ICP_LEDGER_ID });
+      await ledger.approve({
+        spender: toCandidAccount({ owner: Principal.fromText(canisterId('payments')), subaccount: spenderSub }),
+        amount: approveE8s,
+        from_subaccount: account.subaccount,
+        expires_at: BigInt(Date.now()) * 1_000_000n + NS_PER_YEAR,
+      });
+      await payments
+        .set_mandate({
+          aaa: aaaId,
+          payer: { owner: account.owner, subaccount: account.subaccount },
+          topup_e8s: topupE8s,
+          cap_30d_e8s: capE8s,
+          enabled: true,
+        })
+        .then(unwrapResult);
+      await invalidateMandate();
+    } catch (e) {
+      setMandateError(walletErrorMessage(e));
+    } finally {
+      setMandateBusy(false);
+    }
+  }
+
+  async function setMandateEnabled(next: boolean) {
+    if (!aaaId || !mandate) return;
+    setMandateError(null);
+    setMandateBusy(true);
+    try {
+      await payments
+        .set_mandate({
+          aaa: aaaId,
+          payer: mandate.payer,
+          topup_e8s: mandate.topup_e8s,
+          cap_30d_e8s: mandate.cap_30d_e8s,
+          enabled: next,
+        })
+        .then(unwrapResult);
+      await invalidateMandate();
+    } catch (e) {
+      setMandateError(walletErrorMessage(e));
+    } finally {
+      setMandateBusy(false);
+    }
+  }
+
+  if (aaaQuery.isPending) return <p>Loading…</p>;
+  if (!aaaId) return <p role="alert">Could not load your AAA. Try again later.</p>;
+
+  const data = dashboardQuery.data;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <span className="badge badge-amber">Cycles & Ledger Management</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Fuel & Billing
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '750px', marginTop: '0.25rem' }}>
-          Manage your AAA canister's cycle fuel, configure automated top-up rules, and review on-chain payment history.
-        </p>
-      </div>
+    <div>
+      <h1>Fuel &amp; billing</h1>
+      <p>
+        Canister ID: <code>{aaaId.toText()}</code>
+      </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        <FuelCellGauge 
-          daysRemaining={mockOwnerAaa.fuelDaysRemaining} 
-          cyclesFormatted={mockOwnerAaa.fuelCycles}
-          showRefuelButton={false}
+      <section aria-label="Fuel">
+        <h2>Current fuel</h2>
+        {dashboardQuery.isPending && <p>Loading…</p>}
+        {dashboardQuery.isError && (
+          <p role="alert">Could not load fuel status: {(dashboardQuery.error as Error).message}</p>
+        )}
+        {data?.fuel.kind === 'frozen' && (
+          <EmptyState
+            type="canister_paused"
+            title="Your agent is out of fuel"
+            description="Its canister is frozen and cannot be reached directly. Top up below to resume autonomous observation."
+          />
+        )}
+        {data?.fuel.kind === 'error' && <p role="alert">{data.fuel.message}</p>}
+        {data?.fuel.kind === 'live' && (
+          <dl>
+            <div>
+              <dt>Days of fuel remaining</dt>
+              <dd>
+                {data.fuel.daysRemaining} ({data.fuel.level})
+              </dd>
+            </div>
+            <div>
+              <dt>Cycles</dt>
+              <dd>{formatCycles(data.fuel.cycles)}</dd>
+            </div>
+          </dl>
+        )}
+      </section>
+
+      <section aria-label="One-time top-up">
+        <h2>One-time top-up</h2>
+        <label htmlFor="topup-amount">Amount to send (ICP, min 0.1)</label>
+        <input
+          id="topup-amount"
+          type="text"
+          inputMode="decimal"
+          value={topupAmountIcp}
+          onChange={(e) => setTopupAmountIcp(e.target.value)}
         />
+        {!topupAmountValid && <p role="alert">Enter an amount of at least 0.1 ICP.</p>}
+        {topupAmountValid && rateQuery.isPending && <p>Loading rate…</p>}
+        {topupAmountValid && rateQuery.isError && <p role="alert">Could not load the current rate.</p>}
+        {topupAmountValid && cyclesWanted !== null && (
+          <PaymentPanel
+            key={cyclesWanted.toString()}
+            purpose="topup"
+            beneficiary={aaaId}
+            sponsoredSpawnEnabled={false}
+            fetchQuote={() => payments.get_quote_topup(cyclesWanted).then(unwrapResult)}
+            fetchDepositAccount={() => payments.get_deposit_account(Purpose.TopUp, aaaId)}
+            fetchOp={(opId) => payments.get_op(opId)}
+            submitOp={(path) => payments.top_up({ aaa: aaaId, path }).then(unwrapResult)}
+            onPaid={(opId) => {
+              setSessionOpIds((ids) => [opId, ...ids.filter((id) => id !== opId)]);
+              void queryClient.invalidateQueries({ queryKey: ['dashboard', aaaId.toText()] });
+            }}
+          />
+        )}
+      </section>
 
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <Sliders size={18} style={{ color: 'var(--amber-star)' }} />
-            <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-              Automated Refuel Safeguards
-            </h3>
-          </div>
+      <section aria-label="Auto top-up">
+        <h2>Auto top-up</h2>
+        <p>{mandateQuery.isPending ? 'Loading…' : mandateStatusMessage(uiState)}</p>
+        {mandateQuery.isError && <p role="alert">Could not load your auto top-up settings. Try again later.</p>}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Auto Top-Up Protection</div>
-                <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>Prevents canister freezing</div>
-              </div>
-              <button
-                type="button"
-                className={`badge ${autoRefuelActive ? 'badge-cyan' : 'badge-subtle'}`}
-                style={{ cursor: 'pointer' }}
-                onClick={() => setAutoRefuelActive(!autoRefuelActive)}
-              >
-                {autoRefuelActive ? 'Active' : 'Disabled'}
-              </button>
-            </div>
-
+        {mandate && (
+          <dl>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Trigger when runway drops below:</span>
-                <span style={{ fontWeight: 600 }}>{thresholdDays} Days</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="7"
-                value={thresholdDays}
-                onChange={(e) => setThresholdDays(Number(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--amber-star)' }}
-              />
+              <dt>Per top-up amount</dt>
+              <dd>{formatIcp(mandate.topup_e8s)} ICP</dd>
             </div>
-
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Monthly spending cap:</span>
-                <span style={{ fontWeight: 600 }}>${spendCap}.00 USD</span>
-              </div>
-              <input
-                type="range"
-                min="5"
-                max="50"
-                step="5"
-                value={spendCap}
-                onChange={(e) => setSpendCap(Number(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--amber-star)' }}
-              />
+              <dt>Monthly limit</dt>
+              <dd>{formatIcp(mandate.cap_30d_e8s)} ICP</dd>
             </div>
-          </div>
-        </div>
-      </div>
+            <div>
+              <dt>Spent (last 30 days)</dt>
+              <dd>{formatIcp(mandate.spent_30d_e8s)} ICP</dd>
+            </div>
+            <div>
+              <dt>Remaining allowance</dt>
+              <dd>{formatIcp(mandate.remaining_30d_e8s)} ICP</dd>
+            </div>
+          </dl>
+        )}
 
-      <MultiCurrencyPayment />
+        {uiState === 'enabled' && (
+          <button type="button" onClick={() => setMandateEnabled(false)} disabled={mandateBusy}>
+            Disable auto top-up
+          </button>
+        )}
+        {uiState === 'disabled' && (
+          <button type="button" onClick={() => setMandateEnabled(true)} disabled={mandateBusy}>
+            Enable auto top-up
+          </button>
+        )}
 
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
-          Payment & Top-Up History
-        </h3>
+        <h3>{mandate ? 'Update auto top-up' : 'Set up auto top-up'}</h3>
+        <label htmlFor="mandate-topup">Per top-up amount (ICP, min 0.1)</label>
+        <input
+          id="mandate-topup"
+          type="text"
+          inputMode="decimal"
+          value={topupIcp}
+          onChange={(e) => setTopupIcp(e.target.value)}
+        />
+        <label htmlFor="mandate-cap">Monthly limit (ICP)</label>
+        <input
+          id="mandate-cap"
+          type="text"
+          inputMode="decimal"
+          value={capIcp}
+          onChange={(e) => setCapIcp(e.target.value)}
+        />
+        <p>Approve the wallet allowance below to spender (payments) for this AAA, then save.</p>
+        <button type="button" onClick={handleMandateApprove} disabled={mandateBusy}>
+          Connect wallet, approve &amp; save
+        </button>
+        {mandateError && <p role="alert">{mandateError}</p>}
+      </section>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-surface-elevated)' }}>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tx ID</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Method</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Amount</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cycles Added</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((tx) => (
-                <tr key={tx.id} style={{ borderBottom: '1px solid var(--border-subtle)', fontSize: '0.85rem' }}>
-                  <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{tx.date}</td>
-                  <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)' }}>{tx.id}</td>
-                  <td style={{ padding: '0.85rem 1rem' }}>{tx.method}</td>
-                  <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>{tx.amount}</td>
-                  <td style={{ padding: '0.85rem 1rem', color: 'var(--amber-star)', fontWeight: 600 }}>{tx.cycles}</td>
-                  <td style={{ padding: '0.85rem 1rem' }}>
-                    <span className="badge badge-cyan">{tx.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <section aria-label="Fuel operation history">
+        <h2>Recent top-ups (this session)</h2>
+        <p>
+          Full paged history requires <code>payments.list_ops_for_aaa</code>, which is not yet available on this
+          canister.
+        </p>
+        {sessionOpIds.length === 0 && <p>No top-ups yet this session.</p>}
+        {sessionOpIds.length > 0 && (
+          <ul>
+            {sessionOpIds.map((id) => (
+              <FuelOpRow key={id.toString()} payments={payments} opId={id} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <p>
+        <Link to="/dashboard">Back to dashboard</Link>
+      </p>
     </div>
   );
-};
+}

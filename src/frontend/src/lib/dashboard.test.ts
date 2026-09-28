@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Principal } from '@icp-sdk/core/principal';
-import { fuelLevel, isFrozenReject, loadDashboard, mandateState } from './dashboard';
+import {
+  fuelLevel,
+  isFrozenReject,
+  loadDashboard,
+  mandateApproveAmountE8s,
+  mandateState,
+  mandateStatusMessage,
+  mandateUiState,
+} from './dashboard';
 
 const aaaId = Principal.fromText('rrkah-fqaaa-aaaaa-aaaaq-cai');
 
@@ -79,5 +87,51 @@ describe('mandateState (05 §3 auto top-up states)', () => {
   });
   it('is ok otherwise', () => {
     expect(mandateState({ needs_attention: false })).toBe('ok');
+  });
+});
+
+describe('mandateUiState (05 §3 /fuel: every auto top-up mandate state, from mocked payments.get_mandate)', () => {
+  it('is none when get_mandate resolves null', () => {
+    expect(mandateUiState(null)).toBe('none');
+  });
+  it('is needs_attention when the mandate flags it, even if also disabled or capped out', () => {
+    expect(
+      mandateUiState({ enabled: false, needs_attention: true, remaining_30d_e8s: 0n }),
+    ).toBe('needs_attention');
+  });
+  it('is disabled when enabled is false and it does not need attention', () => {
+    expect(
+      mandateUiState({ enabled: false, needs_attention: false, remaining_30d_e8s: 500_000_000n }),
+    ).toBe('disabled');
+  });
+  it('is cap_reached when enabled with no remaining 30-day allowance', () => {
+    expect(mandateUiState({ enabled: true, needs_attention: false, remaining_30d_e8s: 0n })).toBe('cap_reached');
+  });
+  it('is enabled when active with remaining allowance', () => {
+    expect(
+      mandateUiState({ enabled: true, needs_attention: false, remaining_30d_e8s: 500_000_000n }),
+    ).toBe('enabled');
+  });
+});
+
+describe('mandateStatusMessage (05 §3: the needs_attention copy names allowance revoked or insufficient)', () => {
+  it('has distinct, human copy for every state', () => {
+    expect(mandateStatusMessage('none')).toMatch(/no auto top-up/i);
+    expect(mandateStatusMessage('enabled')).toMatch(/enabled/i);
+    expect(mandateStatusMessage('disabled')).toMatch(/disabled/i);
+    expect(mandateStatusMessage('needs_attention')).toMatch(/allowance revoked or insufficient/i);
+    expect(mandateStatusMessage('cap_reached')).toMatch(/monthly limit/i);
+  });
+});
+
+describe('mandateApproveAmountE8s (04 §4 wallet approval helper: topup_e8s*12 or monthly cap*12)', () => {
+  it('approves the per-top-up amount times 12 when it exceeds the monthly cap', () => {
+    expect(mandateApproveAmountE8s(100_000_000n, 50_000_000n)).toBe(1_200_000_000n);
+  });
+  it('approves the monthly cap times 12 when it exceeds the per-top-up amount', () => {
+    expect(mandateApproveAmountE8s(10_000_000n, 300_000_000n)).toBe(3_600_000_000n);
+  });
+  it('approves 12x when both are equal', () => {
+    expect(mandateApproveAmountE8s(100_000_000n, 100_000_000n)).toBe(1_200_000_000n);
   });
 });
