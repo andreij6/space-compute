@@ -50,6 +50,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T6.1 | 75837e0 | Opus sub-agent (replaced external agent's mock scaffold) |
 | T4.6 | 3447982 | Sonnet sub-agent |
 | T4.8 | 81b0d0a | Sonnet sub-agent (3 proptests; §11 #4–9 mapped) |
+| T6.3 | 825baee | Sonnet sub-agent |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
