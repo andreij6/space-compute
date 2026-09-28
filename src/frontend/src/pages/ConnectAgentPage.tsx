@@ -17,12 +17,27 @@ import {
   removeOperator,
 } from '../lib/connect';
 import { EmptyState } from '../components/EmptyState';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import styles from './ConnectAgentPage.module.css';
 
 const REFRESH_MS = 10_000;
 const SKILL_INSTALL_CMD = 'cp -r agent-kit/skills/space-compute-astronomer ~/.claude/skills/';
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text);
+}
+
+function CopyCommand({ command }: { command: string }) {
+  return (
+    <span className={styles.cmdRow}>
+      <code className={styles.cmd}>{command}</code>
+      <Button type="button" variant="ghost" size="sm" onClick={() => copyToClipboard(command)}>
+        Copy
+      </Button>
+    </span>
+  );
 }
 
 export function ConnectAgentPage() {
@@ -88,16 +103,18 @@ export function ConnectAgentPage() {
   const firstContactCmd = firstContactCommand(aaaIdText, identityName, net);
 
   return (
-    <div>
+    <div className={styles.page}>
       <h1>Connect your agent</h1>
-      <p>
+      <p className={styles.meta}>
         AAA canister: <code>{aaaIdText}</code>
       </p>
 
-      <section aria-label="Connection status">
-        <h2>Status</h2>
-        <p>{connected ? 'Connected' : 'Not connected yet'}</p>
-      </section>
+      <Card title="Status">
+        <p className={`${styles.status} ${connected ? styles.connected : ''}`}>
+          <span className={styles.dot} aria-hidden="true" />
+          {connected ? 'Connected' : 'Not connected yet'}
+        </p>
+      </Card>
 
       {frozen && (
         <EmptyState
@@ -111,81 +128,86 @@ export function ConnectAgentPage() {
       )}
       {status?.__kind__ === 'Err' && <p role="alert">{humanApiError(status.Err)}</p>}
 
-      <section aria-label="Setup steps">
-        <h2>Setup steps</h2>
-        <ol>
+      <Card title="Setup steps">
+        <ol className={styles.steps}>
           <li>
-            Create an operator identity: <code>{newIdentityCmd}</code>{' '}
-            <button type="button" onClick={() => copyToClipboard(newIdentityCmd)}>
-              Copy
-            </button>
+            Create an operator identity:
+            <CopyCommand command={newIdentityCmd} />
           </li>
           <li>
-            Print its principal: <code>{principalCmd}</code>{' '}
-            <button type="button" onClick={() => copyToClipboard(principalCmd)}>
-              Copy
-            </button>
+            Print its principal:
+            <CopyCommand command={principalCmd} />
           </li>
           <li>Paste the principal below and add it as an operator.</li>
           <li>
-            Install the skill: <code>{SKILL_INSTALL_CMD}</code>{' '}
-            <button type="button" onClick={() => copyToClipboard(SKILL_INSTALL_CMD)}>
-              Copy
-            </button>
+            Install the skill:
+            <CopyCommand command={SKILL_INSTALL_CMD} />
           </li>
           <li>
-            Run the first-contact command: <code>{firstContactCmd}</code>{' '}
-            <button type="button" onClick={() => copyToClipboard(firstContactCmd)}>
-              Copy
-            </button>
+            Run the first-contact command:
+            <CopyCommand command={firstContactCmd} />
           </li>
         </ol>
-      </section>
+      </Card>
 
-      <section aria-label="Add operator">
-        <h2>Add an operator</h2>
+      <Card title="Add an operator">
         <form
+          className={styles.form}
           onSubmit={(e) => {
             e.preventDefault();
             setFormError(null);
             addMutation.mutate();
           }}
         >
-          <label htmlFor="operator-principal">Operator principal</label>
-          <input
-            id="operator-principal"
-            type="text"
-            value={principalText}
-            onChange={(e) => setPrincipalText(e.target.value)}
-            autoComplete="off"
-          />
-          <label htmlFor="operator-label">Label</label>
-          <input id="operator-label" type="text" value={label} onChange={(e) => setLabel(e.target.value)} autoComplete="off" />
-          <button type="submit" disabled={addMutation.isPending}>
+          <div>
+            <label htmlFor="operator-principal">Operator principal</label>
+            <input
+              id="operator-principal"
+              type="text"
+              value={principalText}
+              onChange={(e) => setPrincipalText(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label htmlFor="operator-label">Label</label>
+            <input id="operator-label" type="text" value={label} onChange={(e) => setLabel(e.target.value)} autoComplete="off" />
+          </div>
+          <Button type="submit" variant="primary" busy={addMutation.isPending}>
             {addMutation.isPending ? 'Adding…' : 'Add operator'}
-          </button>
+          </Button>
         </form>
         {formError && <p role="alert">{formError}</p>}
-      </section>
+      </Card>
 
-      <section aria-label="Operators">
-        <h2>Operators</h2>
+      <Card title="Operators" actions={<Badge tone="neutral">{operators.length}</Badge>}>
         {operators.length === 0 && <p>No operators yet.</p>}
         {operators.length > 0 && (
           <ul>
             {operators.map(([principal, operator]) => (
-              <li key={principal.toText()}>
-                <code>{principal.toText()}</code> — {operator.label}
-                {operator.last_used_at != null && <> · last used {formatNs(operator.last_used_at)}</>}{' '}
-                <button type="button" onClick={() => removeMutation.mutate(principal)} disabled={removeMutation.isPending}>
+              <li key={principal.toText()} className={styles.operatorRow}>
+                <span className={styles.operatorMeta}>
+                  <code>{principal.toText()}</code>
+                  <span className={styles.operatorLabel}>
+                    {operator.label}
+                    {operator.last_used_at != null && <> · last used {formatNs(operator.last_used_at)}</>}
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  busy={removeMutation.isPending && removeMutation.variables?.toText() === principal.toText()}
+                  onClick={() => removeMutation.mutate(principal)}
+                >
                   {removeMutation.isPending && removeMutation.variables?.toText() === principal.toText() ? 'Revoking…' : 'Revoke'}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         )}
         {revokeError && <p role="alert">Could not revoke the operator: {revokeError}</p>}
-      </section>
+      </Card>
     </div>
   );
 }

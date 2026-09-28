@@ -1,0 +1,29 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.loadMore {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4);
+}
+
+.rationale {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.answers {
+  list-style: disc;
+  padding-left: var(--space-5);
+  margin-top: var(--space-2);
+}

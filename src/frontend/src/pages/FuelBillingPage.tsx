@@ -12,6 +12,9 @@ import { aaaActor, canisterEnv, canisterId, platformActor, paymentsActor } from 
 import { Purpose } from '../bindings/payments';
 import { PaymentPanel } from '../components/PaymentPanel';
 import { EmptyState } from '../components/EmptyState';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { FuelGauge } from '../components/ui/FuelGauge';
 import {
   e8sToCycles,
   formatIcp,
@@ -30,6 +33,7 @@ import {
 } from '../lib/dashboard';
 import { spenderSubaccount } from '../lib/spenderSubaccount';
 import { dedupPages } from '../paging';
+import styles from './FuelBillingPage.module.css';
 
 const ICP_LEDGER_ID = Principal.fromText('ryjl3-tyaaa-aaaaa-aaaba-cai');
 const OISY_SIGNER_URL = 'https://oisy.com/sign';
@@ -56,18 +60,21 @@ function FuelHistory({ payments, aaaId }: { payments: Payments; aaaId: Principal
       {query.isError && <p role="alert">Could not load fuel history. Try again later.</p>}
       {query.isSuccess && ops.length === 0 && <p>No top-ups yet.</p>}
       {ops.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {ops.map((op) => (
-            <li key={op.id.toString()}>
-              #{op.id.toString()} — {opStatusLabel(op.state)} ({formatIcp(op.pull_e8s ?? op.amount_e8s)} ICP)
+            <li key={op.id.toString()} className={styles.item}>
+              <span>#{op.id.toString()} — {opStatusLabel(op.state)}</span>
+              <span>{formatIcp(op.pull_e8s ?? op.amount_e8s)} ICP</span>
             </li>
           ))}
         </ul>
       )}
       {query.hasNextPage && (
-        <button type="button" onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage}>
-          {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
-        </button>
+        <div className={styles.loadMore}>
+          <Button type="button" variant="secondary" size="sm" busy={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
+            Load more
+          </Button>
+        </div>
       )}
     </>
   );
@@ -199,14 +206,13 @@ export function FuelBillingPage() {
   const data = dashboardQuery.data;
 
   return (
-    <div>
+    <div className={styles.page}>
       <h1>Fuel &amp; billing</h1>
-      <p>
+      <p className={styles.meta}>
         Canister ID: <code>{aaaId.toText()}</code>
       </p>
 
-      <section aria-label="Fuel">
-        <h2>Current fuel</h2>
+      <Card title="Current fuel">
         {dashboardQuery.isPending && <p>Loading…</p>}
         {dashboardQuery.isError && (
           <p role="alert">Could not load fuel status: {(dashboardQuery.error as Error).message}</p>
@@ -220,36 +226,43 @@ export function FuelBillingPage() {
         )}
         {data?.fuel.kind === 'error' && <p role="alert">{data.fuel.message}</p>}
         {data?.fuel.kind === 'live' && (
-          <dl>
-            <div>
-              <dt>Days of fuel remaining</dt>
-              <dd>
-                {data.fuel.daysRemaining} ({data.fuel.level})
-              </dd>
-            </div>
-            <div>
-              <dt>Cycles</dt>
-              <dd>{formatCycles(data.fuel.cycles)}</dd>
-            </div>
-          </dl>
+          <>
+            <FuelGauge daysRemaining={data.fuel.daysRemaining} cycles={formatCycles(data.fuel.cycles)} />
+            <dl>
+              <div>
+                <dt>Days of fuel remaining</dt>
+                <dd>
+                  {data.fuel.daysRemaining} ({data.fuel.level})
+                </dd>
+              </div>
+              <div>
+                <dt>Cycles</dt>
+                <dd>{formatCycles(data.fuel.cycles)}</dd>
+              </div>
+            </dl>
+          </>
         )}
-      </section>
+      </Card>
 
-      <section aria-label="One-time top-up">
-        <h2>One-time top-up</h2>
-        <label htmlFor="topup-amount">Amount to send (ICP, min 0.1)</label>
-        <input
-          id="topup-amount"
-          type="text"
-          inputMode="decimal"
-          value={topupAmountIcp}
-          onChange={(e) => setTopupAmountIcp(e.target.value)}
-          disabled={topupLocked}
-        />
-        {topupLocked && <p>The amount is locked while this top-up is in progress.</p>}
+      <Card title="One-time top-up">
+        <div className={styles.field}>
+          <label htmlFor="topup-amount">Amount to send (ICP, min 0.1)</label>
+          <input
+            id="topup-amount"
+            type="text"
+            inputMode="decimal"
+            value={topupAmountIcp}
+            onChange={(e) => setTopupAmountIcp(e.target.value)}
+            disabled={topupLocked}
+          />
+        </div>
+        {topupLocked && <p className={styles.locked}>The amount is locked while this top-up is in progress.</p>}
         {!topupAmountValid && <p role="alert">Enter an amount of at least 0.1 ICP.</p>}
         {topupAmountValid && rateQuery.isPending && <p>Loading rate…</p>}
         {topupAmountValid && rateQuery.isError && <p role="alert">Could not load the current rate.</p>}
+        {topupAmountValid && cyclesWanted !== null && !topupLocked && (
+          <p className={styles.rate}>≈ {formatCycles(cyclesWanted)} of cycles at the current rate.</p>
+        )}
         {(topupLocked || (topupAmountValid && cyclesWanted !== null)) && (
           <PaymentPanel
             purpose="topup"
@@ -271,10 +284,9 @@ export function FuelBillingPage() {
             }}
           />
         )}
-      </section>
+      </Card>
 
-      <section aria-label="Auto top-up">
-        <h2>Auto top-up</h2>
+      <Card title="Auto top-up">
         <p>{mandateQuery.isPending ? 'Loading…' : mandateStatusMessage(uiState)}</p>
         {mandateQuery.isError && <p role="alert">Could not load your auto top-up settings. Try again later.</p>}
 
@@ -300,46 +312,45 @@ export function FuelBillingPage() {
         )}
 
         {uiState === 'enabled' && (
-          <button type="button" onClick={() => setMandateEnabled(false)} disabled={mandateBusy}>
-            Disable auto top-up
-          </button>
+          <div className={styles.mandateRow}>
+            <Button type="button" variant="secondary" busy={mandateBusy} onClick={() => setMandateEnabled(false)}>
+              Disable auto top-up
+            </Button>
+          </div>
         )}
         {uiState === 'disabled' && (
-          <button type="button" onClick={() => setMandateEnabled(true)} disabled={mandateBusy}>
-            Enable auto top-up
-          </button>
+          <div className={styles.mandateRow}>
+            <Button type="button" variant="secondary" busy={mandateBusy} onClick={() => setMandateEnabled(true)}>
+              Enable auto top-up
+            </Button>
+          </div>
         )}
 
         <h3>{mandate ? 'Update auto top-up' : 'Set up auto top-up'}</h3>
-        <label htmlFor="mandate-topup">Per top-up amount (ICP, min 0.1)</label>
-        <input
-          id="mandate-topup"
-          type="text"
-          inputMode="decimal"
-          value={topupIcp}
-          onChange={(e) => setTopupIcp(e.target.value)}
-        />
-        <label htmlFor="mandate-cap">Monthly limit (ICP)</label>
-        <input
-          id="mandate-cap"
-          type="text"
-          inputMode="decimal"
-          value={capIcp}
-          onChange={(e) => setCapIcp(e.target.value)}
-        />
-        <p>Approve the wallet allowance below to spender (payments) for this AAA, then save.</p>
-        <button type="button" onClick={handleMandateApprove} disabled={mandateBusy}>
-          Connect wallet, approve &amp; save
-        </button>
+        <div className={styles.fieldsRow}>
+          <div>
+            <label htmlFor="mandate-topup">Per top-up amount (ICP, min 0.1)</label>
+            <input id="mandate-topup" type="text" inputMode="decimal" value={topupIcp} onChange={(e) => setTopupIcp(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="mandate-cap">Monthly limit (ICP)</label>
+            <input id="mandate-cap" type="text" inputMode="decimal" value={capIcp} onChange={(e) => setCapIcp(e.target.value)} />
+          </div>
+        </div>
+        <p className={styles.hint}>Approve the wallet allowance below to spender (payments) for this AAA, then save.</p>
+        <div className={styles.actions}>
+          <Button type="button" variant="primary" busy={mandateBusy} onClick={handleMandateApprove}>
+            Connect wallet, approve &amp; save
+          </Button>
+        </div>
         {mandateError && <p role="alert">{mandateError}</p>}
-      </section>
+      </Card>
 
-      <section aria-label="Fuel operation history">
-        <h2>Fuel operation history</h2>
+      <Card title="Fuel operation history">
         <FuelHistory payments={payments} aaaId={aaaId} />
-      </section>
+      </Card>
 
-      <p>
+      <p className={styles.footer}>
         <Link to="/dashboard">Back to dashboard</Link>
       </p>
     </div>

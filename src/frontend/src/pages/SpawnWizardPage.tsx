@@ -5,12 +5,15 @@ import { useAuth, useMyAaa } from '../auth';
 import { paymentsActor, platformActor } from '../ic';
 import { Purpose } from '../bindings/payments';
 import { PaymentPanel } from '../components/PaymentPanel';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { unwrapResult } from '../lib/paymentOps';
 import {
   avatarGrid,
   checkNameResultMessage,
   browserStore,
   clearSpawnOp,
+  deriveAvatarSeeds,
   initialSpawnState,
   loadSpawnOp,
   randomAvatarSeed,
@@ -20,14 +23,15 @@ import {
   validateNameLocally,
 } from '../lib/spawnFlow';
 import { CheckNameResult } from '../bindings/platform';
+import styles from './SpawnWizardPage.module.css';
 
-function AvatarPreview({ seed }: { seed: bigint }) {
+const AVATAR_OPTIONS = 6;
+
+function AvatarPreview({ seed, size = 96 }: { seed: bigint; size?: number }) {
   const grid = avatarGrid(seed);
-  const cell = 16;
-  const size = grid.length * cell;
+  const cell = size / grid.length;
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={`Avatar preview for seed ${seed}`}>
-      <rect x={0} y={0} width={size} height={size} fill="none" />
       {grid.map((row, y) =>
         row.map(
           (on, x) =>
@@ -35,6 +39,35 @@ function AvatarPreview({ seed }: { seed: bigint }) {
         ),
       )}
     </svg>
+  );
+}
+
+function AvatarPicker({ seed, onChange }: { seed: bigint; onChange: (seed: bigint) => void }) {
+  const [batch, setBatch] = useState(seed);
+  const options = useMemo(() => deriveAvatarSeeds(batch, AVATAR_OPTIONS), [batch]);
+
+  return (
+    <fieldset>
+      <legend>Avatar</legend>
+      <AvatarPreview seed={seed} size={64} />
+      <div className={styles.picker} role="group" aria-label="Avatar options">
+        {options.map((option) => (
+          <button
+            key={option.toString()}
+            type="button"
+            className={styles.option}
+            aria-pressed={option === seed}
+            aria-label={`Use avatar ${option}`}
+            onClick={() => onChange(option)}
+          >
+            <AvatarPreview seed={option} size={48} />
+          </button>
+        ))}
+      </div>
+      <Button type="button" variant="ghost" size="sm" onClick={() => setBatch(randomAvatarSeed())}>
+        Shuffle avatars
+      </Button>
+    </fieldset>
   );
 }
 
@@ -107,60 +140,50 @@ export function SpawnWizardPage() {
   const checkingName = localValidation.ok && checkNameQuery.isFetching;
 
   return (
-    <div>
+    <div className={styles.page}>
       <h1>Spawn your agent amateur astronomer</h1>
-      <p>Your AAA is a canister on the Internet Computer that classifies JWST images on your behalf.</p>
+      <p className={styles.intro}>
+        Your AAA is a canister on the Internet Computer that classifies JWST images on your behalf.
+      </p>
 
       {state.step === 'name' && (
-        <div>
-          <p>Step 1 of 3: Name your agent</p>
-          <label htmlFor="aaa-name">Agent name</label>
-          <input
-            id="aaa-name"
-            type="text"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            autoComplete="off"
-          />
-          {checkingName && <p>Checking availability…</p>}
-          {!checkingName && nameTouched && nameError && <p role="alert">{nameError}</p>}
+        <Card>
+          <p className={styles.step}>Step 1 of 3: Name your agent</p>
 
-          <fieldset>
-            <legend>Avatar</legend>
-            <label htmlFor="avatar-seed">Avatar seed</label>
+          <div className={styles.field}>
+            <label htmlFor="aaa-name">Agent name</label>
             <input
-              id="avatar-seed"
-              type="number"
-              min={0}
-              value={avatarSeed.toString()}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                if (Number.isFinite(n) && n >= 0) setAvatarSeed(BigInt(Math.floor(n)));
-              }}
+              id="aaa-name"
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              autoComplete="off"
             />
-            <button type="button" onClick={() => setAvatarSeed(randomAvatarSeed())}>
-              Randomize
-            </button>
-            <AvatarPreview seed={avatarSeed} />
-          </fieldset>
+            {checkingName && <p>Checking availability…</p>}
+            {!checkingName && nameTouched && nameError && <p role="alert">{nameError}</p>}
+          </div>
 
-          <button
-            type="button"
-            disabled={!nameAvailable || checkingName}
-            onClick={() => {
-              setConfirmedName((localValidation.ok && localValidation.name) || '');
-              dispatch({ type: 'NAME_CONFIRMED' });
-            }}
-          >
-            Continue
-          </button>
-        </div>
+          <AvatarPicker seed={avatarSeed} onChange={setAvatarSeed} />
+
+          <div className={styles.actions}>
+            <Button
+              variant="primary"
+              disabled={!nameAvailable || checkingName}
+              onClick={() => {
+                setConfirmedName((localValidation.ok && localValidation.name) || '');
+                dispatch({ type: 'NAME_CONFIRMED' });
+              }}
+            >
+              Continue
+            </Button>
+          </div>
+        </Card>
       )}
 
       {state.step !== 'name' && (
-        <div>
-          <p>{state.step === 'done' ? 'Step 3 of 3: Done' : 'Step 2 of 3: Pay to spawn your agent'}</p>
-          <p>Agent name: {confirmedName || saved?.name}</p>
+        <Card>
+          <p className={styles.step}>{state.step === 'done' ? 'Step 3 of 3: Done' : 'Step 2 of 3: Pay to spawn your agent'}</p>
+          <p className={styles.name}>Agent name: {confirmedName || saved?.name}</p>
 
           {featuresQuery.isPending && <p>Loading…</p>}
           {featuresQuery.isError && <p role="alert">Could not load payment options. Try again later.</p>}
@@ -191,17 +214,17 @@ export function SpawnWizardPage() {
           )}
 
           {state.step === 'done' && (
-            <div>
+            <div className={styles.doneActions}>
               <p>Your agent amateur astronomer is ready.</p>
-              <button type="button" onClick={() => navigate('/connect')}>
+              <Button variant="primary" onClick={() => navigate('/connect')}>
                 Connect your agent
-              </button>
-              <button type="button" onClick={() => navigate('/dashboard')}>
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/dashboard')}>
                 Go to dashboard
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   );

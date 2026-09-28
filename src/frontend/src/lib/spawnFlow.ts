@@ -39,6 +39,17 @@ export function randomAvatarSeed(): bigint {
   return BigInt(Math.floor(Math.random() * AVATAR_SEED_MAX));
 }
 
+export function deriveAvatarSeeds(seed: bigint, count: number): bigint[] {
+  let s = (seed < 0n ? -seed : seed) & 0xffffffffffffffffn;
+  if (s === 0n) s = 0x9e3779b97f4a7c15n;
+  const seeds: bigint[] = [];
+  for (let i = 0; i < count; i++) {
+    s = (s * 6364136223846793005n + 1442695040888963407n) & 0xffffffffffffffffn;
+    seeds.push(s >> 32n);
+  }
+  return seeds;
+}
+
 export function avatarGrid(seed: bigint, size = 5): boolean[][] {
   let s = (seed < 0n ? -seed : seed) & 0xffffffffffffffffn;
   if (s === 0n) s = 0x9e3779b97f4a7c15n;

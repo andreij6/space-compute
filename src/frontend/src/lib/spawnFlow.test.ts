@@ -5,6 +5,7 @@ import {
   avatarGrid,
   checkNameResultMessage,
   clearSpawnOp,
+  deriveAvatarSeeds,
   initialSpawnState,
   loadSpawnOp,
   resumeSpawnState,
@@ -79,6 +80,23 @@ describe('avatarGrid (deterministic seed preview)', () => {
   });
   it('handles a zero seed without throwing', () => {
     expect(() => avatarGrid(0n)).not.toThrow();
+  });
+});
+
+describe('deriveAvatarSeeds (avatar picker options)', () => {
+  it('is deterministic for the same base seed', () => {
+    expect(deriveAvatarSeeds(42n, 6)).toEqual(deriveAvatarSeeds(42n, 6));
+  });
+  it('returns the requested count of distinct seeds', () => {
+    const seeds = deriveAvatarSeeds(1n, 6);
+    expect(seeds).toHaveLength(6);
+    expect(new Set(seeds).size).toBe(6);
+  });
+  it('differs across base seeds', () => {
+    expect(deriveAvatarSeeds(1n, 6)).not.toEqual(deriveAvatarSeeds(2n, 6));
+  });
+  it('handles a zero base seed without throwing', () => {
+    expect(() => deriveAvatarSeeds(0n, 6)).not.toThrow();
   });
 });
 

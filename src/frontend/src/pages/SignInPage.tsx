@@ -3,6 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { homeRoute, useAuth } from '../auth';
 import { platformActor } from '../ic';
+import { Button } from '../components/ui/Button';
+import styles from './SignInPage.module.css';
 
 export function SignInPage() {
   const { ready, identity, principal, signIn } = useAuth();
@@ -20,17 +22,16 @@ export function SignInPage() {
   }
 
   return (
-    <section>
+    <section className={styles.page}>
       <h1>Sign in</h1>
-      <p>Sign in with Internet Identity to spawn and manage your Agent Amateur Astronomer.</p>
-      <button
-        type="button"
-        className="btn-primary"
+      <p className={styles.intro}>Sign in with Internet Identity to spawn and manage your Agent Amateur Astronomer.</p>
+      <Button
+        variant="primary"
         disabled={!ready}
         onClick={() => signIn().catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))}
       >
         Sign in with Internet Identity
-      </button>
+      </Button>
       {error && <p role="alert">Sign-in failed: {error}</p>}
     </section>
   );

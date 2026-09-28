@@ -7,6 +7,11 @@ import { dedupPages } from '../paging';
 import { humanApiError } from '../lib/paymentOps';
 import { answerLabel, loadRecordsPage, PROTOCOL_V1, type RecordRow } from '../lib/records';
 import type { Protocol, Record_ } from '../bindings/aaa';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { DataTable } from '../components/ui/DataTable';
+import { Dialog } from '../components/ui/Dialog';
+import styles from './ScientificRecordsPage.module.css';
 
 function RecordDetail({ record, protocol }: { record: Record_; protocol: Protocol | null }) {
   return (
@@ -45,9 +50,9 @@ function RecordDetail({ record, protocol }: { record: Record_; protocol: Protoco
           </div>
         )}
       </dl>
-      {record.rationale != null && <p>{record.rationale}</p>}
+      {record.rationale != null && <p className={styles.rationale}>{record.rationale}</p>}
       {record.answers.length > 0 && (
-        <ul>
+        <ul className={styles.answers}>
           {record.answers.map((a) => (
             <li key={`${a.question_id}:${a.answer_id}`}>{answerLabel(protocol, a)}</li>
           ))}
@@ -94,72 +99,74 @@ export function ScientificRecordsPage() {
   );
 
   return (
-    <div>
-      <h1>Activity &amp; records</h1>
-      <button type="button" onClick={() => recordsQuery.refetch()}>
-        Refresh
-      </button>
+    <div className={styles.page}>
+      <div className={styles.toolbar}>
+        <h1>Activity &amp; records</h1>
+        <Button type="button" variant="secondary" size="sm" busy={recordsQuery.isFetching} onClick={() => recordsQuery.refetch()}>
+          Refresh
+        </Button>
+      </div>
 
       {recordsQuery.isPending && <p>Loading…</p>}
       {recordsQuery.isError && (
         <p role="alert">Could not load records: {(recordsQuery.error as Error).message}</p>
       )}
-      {recordsQuery.isSuccess && rows.length === 0 && <p>No activity yet.</p>}
 
-      {rows.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Kind</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={`${row.source}-${row.id}`}>
-                <td>{formatNs(row.at)}</td>
-                <td>{row.kindLabel}</td>
-                <td>
-                  <button type="button" onClick={() => setSelected(row)}>
+      {!recordsQuery.isPending && (
+        <Card>
+          <DataTable
+            caption="Activity and scientific records"
+            rows={rows}
+            rowKey={(row) => `${row.source}-${row.id}`}
+            empty="No activity yet."
+            columns={[
+              { header: 'When', cell: (row) => formatNs(row.at) },
+              { header: 'Kind', cell: (row) => row.kindLabel },
+              {
+                header: '',
+                cell: (row) => (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setSelected(row)}>
                     View
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </Button>
+                ),
+              },
+            ]}
+          />
+          {recordsQuery.hasNextPage && (
+            <div className={styles.loadMore}>
+              <Button
+                type="button"
+                variant="secondary"
+                busy={recordsQuery.isFetchingNextPage}
+                onClick={() => recordsQuery.fetchNextPage()}
+              >
+                Load more
+              </Button>
+            </div>
+          )}
+        </Card>
       )}
 
-      {recordsQuery.hasNextPage && (
-        <button type="button" onClick={() => recordsQuery.fetchNextPage()}>
-          Load more
-        </button>
-      )}
-
-      {selected && (
-        <section aria-label="Record detail">
-          <h2>Record detail</h2>
-          <button type="button" onClick={() => setSelected(null)}>
-            Close
-          </button>
-          {selected.source === 'platform' && (
-            <p>
-              {selected.kindLabel} — {formatNs(selected.at)}
-            </p>
-          )}
-          {selected.source === 'aaa' && recordDetailQuery.isPending && <p>Loading…</p>}
-          {selected.source === 'aaa' && recordDetailQuery.isError && (
-            <p role="alert">Could not load this record. Try again later.</p>
-          )}
-          {selected.source === 'aaa' && recordDetailQuery.data?.__kind__ === 'Err' && (
-            <p role="alert">{humanApiError(recordDetailQuery.data.Err)}</p>
-          )}
-          {selected.source === 'aaa' && recordDetailQuery.data?.__kind__ === 'Ok' && recordDetailQuery.data.Ok && (
-            <RecordDetail record={recordDetailQuery.data.Ok} protocol={protocolQuery.data ?? null} />
-          )}
-        </section>
-      )}
+      <Dialog open={!!selected} onClose={() => setSelected(null)} title="Record detail">
+        {selected?.source === 'platform' && (
+          <p>
+            {selected.kindLabel} — {formatNs(selected.at)}
+          </p>
+        )}
+        {selected?.source === 'aaa' && recordDetailQuery.isPending && <p>Loading…</p>}
+        {selected?.source === 'aaa' && recordDetailQuery.isError && (
+          <p role="alert">Could not load this record. Try again later.</p>
+        )}
+        {selected?.source === 'aaa' && recordDetailQuery.data?.__kind__ === 'Err' && (
+          <p role="alert">{humanApiError(recordDetailQuery.data.Err)}</p>
+        )}
+        {selected?.source === 'aaa' && recordDetailQuery.data?.__kind__ === 'Ok' && recordDetailQuery.data.Ok && (
+          <RecordDetail record={recordDetailQuery.data.Ok} protocol={protocolQuery.data ?? null} />
+        )}
+        <Button type="button" variant="secondary" onClick={() => setSelected(null)}>
+          Close
+        </Button>
+      </Dialog>
     </div>
   );
 }

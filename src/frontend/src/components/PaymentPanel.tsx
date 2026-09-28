@@ -10,6 +10,11 @@ import type { Account, Op, PayPath, Quote } from '../bindings/payments';
 import { canisterEnv, canisterId } from '../ic';
 import { formatIcp, nextPollDelayMs, opPhase, opStatusLabel, walletErrorMessage } from '../lib/paymentOps';
 import { spenderSubaccount, type SubaccountPurpose } from '../lib/spenderSubaccount';
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Tabs, type TabItem } from './ui/Tabs';
+import { svgAsset } from './ui/assets';
+import styles from './PaymentPanel.module.css';
 
 const ICP_LEDGER_ID = Principal.fromText('ryjl3-tyaaa-aaaaa-aaaba-cai');
 const OISY_SIGNER_URL = 'https://oisy.com/sign';
@@ -30,7 +35,9 @@ export interface PaymentPanelProps {
   onOpChange?: (opId: bigint | null) => void;
 }
 
-type Tab = 'wallet' | 'deposit' | 'invite';
+function PaymentIcon({ name }: { name: string }) {
+  return <img className={styles.icon} src={svgAsset('payments', name)} alt="" />;
+}
 
 export function PaymentPanel({
   purpose,
@@ -46,7 +53,6 @@ export function PaymentPanel({
   onOpChange,
 }: PaymentPanelProps) {
   const beneficiaryKey = beneficiary.toText();
-  const [tab, setTab] = useState<Tab>('deposit');
   const [opId, setOpId] = useState<bigint | null>(initialOpId);
   const [inviteCode, setInviteCode] = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -128,105 +134,148 @@ export function PaymentPanel({
 
   if (opId !== null) {
     return (
-      <div>
-        <p role="status">{op ? opStatusLabel(op.state) : 'Loading…'}</p>
-        {phase === 'failed' && (
-          <button type="button" onClick={() => setOpId(null)}>
-            Try again
-          </button>
-        )}
-        {phase === 'done' && purpose === 'topup' && (
-          <button
-            type="button"
-            onClick={() => {
-              paidNotified.current = false;
-              setOpId(null);
-            }}
-          >
-            Make another top-up
-          </button>
-        )}
-      </div>
+      <Card>
+        <div className={styles.status}>
+          <p role="status" className={styles.statusText}>
+            {op ? opStatusLabel(op.state) : 'Loading…'}
+          </p>
+          {phase === 'failed' && (
+            <Button variant="secondary" onClick={() => setOpId(null)}>
+              Try again
+            </Button>
+          )}
+          {phase === 'done' && purpose === 'topup' && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                paidNotified.current = false;
+                setOpId(null);
+              }}
+            >
+              Make another top-up
+            </Button>
+          )}
+        </div>
+      </Card>
     );
   }
 
-  return (
-    <div>
-      {quoteQuery.isPending && <p>Loading quote…</p>}
-      {quoteQuery.isError && <p role="alert">Could not load the quote. Try again later.</p>}
-      {quoteQuery.data && (
-        <p>
-          Amount due: {formatIcp(quoteQuery.data.total_e8s)} ICP
-          {purpose === 'spawn' ? ' (creation + starter fuel)' : ' (top-up)'}
-        </p>
-      )}
-
-      <div role="tablist" aria-label="Payment method">
-        <button type="button" role="tab" aria-selected={tab === 'wallet'} onClick={() => setTab('wallet')}>
+  const tabs: TabItem[] = [
+    {
+      id: 'wallet',
+      label: (
+        <span className={styles.tabLabel}>
+          <PaymentIcon name="payment_oisy" />
           Wallet
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'deposit'} onClick={() => setTab('deposit')}>
-          Deposit
-        </button>
-        {purpose === 'spawn' && sponsoredSpawnEnabled && (
-          <button type="button" role="tab" aria-selected={tab === 'invite'} onClick={() => setTab('invite')}>
-            Invite code
-          </button>
-        )}
-      </div>
-
-      {tab === 'wallet' && (
+        </span>
+      ),
+      content: (
         <div>
-          <p>Approve the amount above to spender (payments) from your OISY wallet, then it pays automatically.</p>
-          <button type="button" onClick={handleWalletApprove} disabled={confirming || !quoteQuery.data}>
+          <p className={styles.hint}>
+            Approve the amount above to spender (payments) from your OISY wallet, then it pays automatically.
+          </p>
+          <Button variant="primary" onClick={handleWalletApprove} disabled={!quoteQuery.data} busy={confirming}>
             Connect wallet &amp; approve
-          </button>
+          </Button>
         </div>
-      )}
-
-      {tab === 'deposit' && (
+      ),
+    },
+    {
+      id: 'deposit',
+      label: (
+        <span className={styles.tabLabel}>
+          <PaymentIcon name="payment_icp" />
+          Deposit
+        </span>
+      ),
+      content: (
         <div>
           {depositQuery.isPending && <p>Loading deposit address…</p>}
           {depositQuery.isError && <p role="alert">Could not load the deposit address. Try again later.</p>}
           {depositQuery.data && (
             <div>
-              <label htmlFor="deposit-account-id">Send ICP to this account</label>
-              <input id="deposit-account-id" type="text" readOnly value={depositQuery.data[0]} />
-              <button type="button" onClick={() => navigator.clipboard?.writeText(depositQuery.data![0])}>
-                Copy account id
-              </button>
-              <p>
+              <div className={styles.field}>
+                <label htmlFor="deposit-account-id">Send ICP to this account</label>
+                <div className={styles.depositRow}>
+                  <input id="deposit-account-id" type="text" readOnly value={depositQuery.data[0]} />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigator.clipboard?.writeText(depositQuery.data![0])}
+                  >
+                    Copy account id
+                  </Button>
+                </div>
+              </div>
+              <p className={styles.hint}>
                 Once your transfer confirms, click below. We&apos;ll sweep the balance and finish the payment.
               </p>
-              <button type="button" onClick={() => runSubmit({ __kind__: 'Deposit', Deposit: null })} disabled={confirming}>
+              <Button
+                variant="primary"
+                onClick={() => runSubmit({ __kind__: 'Deposit', Deposit: null })}
+                busy={confirming}
+              >
                 I&apos;ve sent it
-              </button>
+              </Button>
             </div>
           )}
         </div>
-      )}
+      ),
+    },
+  ];
 
-      {tab === 'invite' && purpose === 'spawn' && sponsoredSpawnEnabled && (
+  if (purpose === 'spawn' && sponsoredSpawnEnabled) {
+    tabs.push({
+      id: 'invite',
+      label: (
+        <span className={styles.tabLabel}>
+          <PaymentIcon name="payment_invite_code" />
+          Invite code
+        </span>
+      ),
+      content: (
         <div>
-          <label htmlFor="invite-code">Invite code</label>
-          <input
-            id="invite-code"
-            type="text"
-            value={inviteCode}
-            onChange={(e) => setInviteCode(e.target.value)}
-            autoComplete="off"
-          />
-          <button
-            type="button"
+          <div className={styles.field}>
+            <label htmlFor="invite-code">Invite code</label>
+            <input
+              id="invite-code"
+              type="text"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <Button
+            variant="primary"
             onClick={() => runSubmit({ __kind__: 'Invite', Invite: { code: inviteCode.trim() } })}
-            disabled={confirming || inviteCode.trim().length === 0}
+            disabled={inviteCode.trim().length === 0}
+            busy={confirming}
           >
             Redeem invite
-          </button>
+          </Button>
+        </div>
+      ),
+    });
+  }
+
+  return (
+    <Card>
+      {quoteQuery.isPending && <p>Loading quote…</p>}
+      {quoteQuery.isError && <p role="alert">Could not load the quote. Try again later.</p>}
+      {quoteQuery.data && (
+        <div className={styles.field}>
+          <p className={styles.amount}>
+            Amount due: <span className={styles.amountValue}>{formatIcp(quoteQuery.data.total_e8s)} ICP</span>
+            {purpose === 'spawn' ? ' (creation + starter fuel)' : ' (top-up)'}
+          </p>
+          <p className={styles.fee}>Includes {formatIcp(quoteQuery.data.fee_e8s)} ICP network fee. No hidden costs.</p>
         </div>
       )}
 
+      <Tabs label="Payment method" items={tabs} defaultId="deposit" />
+
       {submitError && <p role="alert">{submitError}</p>}
-    </div>
+    </Card>
   );
 }
