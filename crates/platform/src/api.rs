@@ -798,21 +798,13 @@ async fn submit_classification(
         return Err(ApiError::NotRegistered);
     }
     let fee = cfg.params.fee_submit_classification;
-    if fee > 0 {
-        let available = ic_cdk::api::msg_cycles_available();
-        if available < fee {
-            return Err(ApiError::InsufficientFee {
-                required: fee.into(),
-            });
-        }
-        ic_cdk::api::msg_cycles_accept(fee);
-    }
+    require_fee(fee)?;
     let now = ic_cdk::api::time();
     registry::check_submitter(&caller, &submission.submitted_by, now)?;
 
     verify(caller).await?;
 
-    scoring::process_submission(
+    let receipt = scoring::process_submission(
         caller,
         record.owner,
         submission,
@@ -820,7 +812,26 @@ async fn submit_classification(
         cfg.current_protocol_version,
         now,
         fee,
-    )
+    );
+    if !matches!(receipt, Ok(ref r) if r.duplicate) {
+        accept_fee(fee);
+    }
+    receipt
+}
+
+fn require_fee(fee: u128) -> Result<(), ApiError> {
+    if ic_cdk::api::msg_cycles_available() < fee {
+        return Err(ApiError::InsufficientFee {
+            required: fee.into(),
+        });
+    }
+    Ok(())
+}
+
+fn accept_fee(fee: u128) {
+    if fee > 0 {
+        ic_cdk::api::msg_cycles_accept(fee);
+    }
 }
 
 #[ic_cdk::query]
@@ -981,14 +992,7 @@ fn review_prelude(fee: u128) -> Result<(Principal, AaaRecord, config::Config), A
         registry::AaaStatus::Active | registry::AaaStatus::SelfManaged => {}
         _ => return Err(ApiError::NotRegistered),
     }
-    if fee > 0 {
-        if ic_cdk::api::msg_cycles_available() < fee {
-            return Err(ApiError::InsufficientFee {
-                required: fee.into(),
-            });
-        }
-        ic_cdk::api::msg_cycles_accept(fee);
-    }
+    require_fee(fee)?;
     Ok((caller, record, cfg))
 }
 
@@ -996,7 +1000,9 @@ fn review_prelude(fee: u128) -> Result<(Principal, AaaRecord, config::Config), A
 async fn get_review_assignment(
     submitted_by: Option<Principal>,
 ) -> Result<Option<sc_types::ReviewAssignment>, ApiError> {
-    let (caller, record, cfg) = review_prelude(config::get().params.fee_get_review)?;
+    let fee = config::get().params.fee_get_review;
+    let (caller, record, cfg) = review_prelude(fee)?;
+    accept_fee(fee);
     let now = ic_cdk::api::time();
     if let Some(submitter) = submitted_by {
         registry::check_submitter(&caller, &submitter, now)?;
@@ -1031,6 +1037,9 @@ async fn submit_review(
         ic_cdk::api::time(),
         fee,
     );
+    if !matches!(receipt, Ok(ref r) if r.duplicate) {
+        accept_fee(fee);
+    }
     #[cfg(feature = "fault-injection")]
     if FAULT_AFTER_REVIEW.get() {
         ic_cdk::trap("injected fault after review resolution");
