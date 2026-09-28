@@ -93,3 +93,8 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 
 ## How to tell from git
 `git log --format='%h %s | %(trailers:key=Co-Authored-By,valueonly)%(trailers:key=Agent,valueonly)'` — lead commits carry `Co-Authored-By: Claude Opus 5.5`; anything else goes in "Other agents" and gets reviewed.
+
+## Opus reviews of non-Opus work (owner rule 2026-09-28)
+| Batch | Tasks | Verdict | Fix lane |
+|---|---|---|---|
+| AAA + agent-kit | T3.1, T3.4, T3.6, T3.7, T3.9 | 14 defects (1 high: runner can't parse real status; retry double-fee; skill ran add_operator; set_profile missing) | Opus fix lane in progress |
