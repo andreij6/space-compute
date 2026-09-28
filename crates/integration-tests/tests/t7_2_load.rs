@@ -626,7 +626,7 @@ fn run_and_write(n_aaas: usize, n_tasks: usize, placement: Placement) {
 }
 
 #[test]
-#[ignore]
+
 fn t7_3_pricing_probe() {
     for placement in [Placement::App, Placement::Fiduciary] {
         let probe = pricing_probe(placement);
@@ -638,26 +638,26 @@ fn t7_3_pricing_probe() {
 }
 
 #[test]
-#[ignore]
+
 fn t7_3_load_app_40x70() {
     run_and_write(40, 70, Placement::App);
 }
 
 #[test]
-#[ignore]
+
 fn t7_3_load_multiplier_10x20() {
     run_and_write(10, 20, Placement::App);
     run_and_write(10, 20, Placement::Fiduciary);
 }
 
 #[test]
-#[ignore]
+
 fn t7_2_load_200x100() {
     run_and_write(200, 100, Placement::App);
 }
 
 #[test]
-#[ignore]
+
 fn t7_2_load_20x20() {
     run_and_write(20, 20, Placement::App);
 }

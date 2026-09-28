@@ -45,8 +45,16 @@ test-integration:
     @cargo test -p integration-tests -- --nocapture
 
 # T7.2/T7.3 load + pricing measurements (t7_3_* are the fee inputs); writes docs/perf/load-test-T7.3.json
+# Fast gate while building (owner 2026-09-28): fmt, clippy, candid, unit tests only — integration/PocketIC/e2e run at the end via `just verify`
+verify-unit:
+    @cargo fmt --all -- --check
+    @cargo clippy --workspace --all-targets -- -D warnings
+    @scripts/check-candid.sh
+    @cargo test --workspace --lib -q
+    @cd src/frontend && npm run -s typecheck && npm run -s lint && npm run -s test
+
 load-test:
-    @cargo test -p integration-tests --test t7_2_load -- --ignored --nocapture --test-threads=1
+    @cargo test -p integration-tests --features load --test t7_2_load -- --nocapture --test-threads=1
 
 # Run acceptance demo for a specific task (e.g. just demo T1.1)
 demo TASK_ID:
