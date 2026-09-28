@@ -7,13 +7,14 @@ export interface ParamsEditorProps<T extends object> {
   onSave: (params: T) => void;
   saving: boolean;
   error?: string;
+  floatKeys?: readonly string[];
 }
 
-export function ParamsEditor<T extends object>({ base, onSave, saving, error }: ParamsEditorProps<T>) {
+export function ParamsEditor<T extends object>({ base, onSave, saving, error, floatKeys }: ParamsEditorProps<T>) {
   const [edited, setEdited] = useState(() => textFromRecord(base));
   const baseText = textFromRecord(base);
   const diff = recordDiff(baseText, edited);
-  const parsed = parseRecordEdits(base, edited);
+  const parsed = parseRecordEdits(base, edited, floatKeys);
   return (
     <div>
       {Object.keys(edited).map((key) => (
@@ -34,11 +35,13 @@ export function ParamsEditor<T extends object>({ base, onSave, saving, error }: 
         </ul>
       )}
       {!parsed.ok && (
-        <ul role="alert" aria-label="Params errors">
-          {parsed.errors.map((e) => (
-            <li key={e}>{e}</li>
-          ))}
-        </ul>
+        <div role="alert">
+          <ul aria-label="Params errors">
+            {parsed.errors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </div>
       )}
       <ConfirmAction
         label="save params"

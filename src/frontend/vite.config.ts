@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
   server: { port: 3000 },
   build: { outDir: 'dist', sourcemap: true },
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       include: ['src/lib/**'],

@@ -46,7 +46,7 @@ describe('recordKindLabel / activityKindLabel', () => {
   });
 
   it('spaces out camelCase activity kinds', () => {
-    expect(activityKindLabel({ __kind__: 'DiscoveryResolved', DiscoveryResolved: { seq: 1n, outcome: 'Confirmed' } } as never)).toBe(
+    expect(activityKindLabel({ __kind__: 'DiscoveryResolved', DiscoveryResolved: { public_id: 'SC-2026-000001', outcome: 'Confirmed' } } as never)).toBe(
       'Discovery Resolved',
     );
   });

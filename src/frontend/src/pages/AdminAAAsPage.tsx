@@ -80,7 +80,7 @@ export const AdminAAAsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {list.data.map((aaa) => (
+            {list.data.items.map((aaa) => (
               <tr key={aaa.owner.toText()}>
                 <td>
                   <button type="button" onClick={() => setSelected(aaa.owner.toText())}>
@@ -92,7 +92,7 @@ export const AdminAAAsPage: React.FC = () => {
                 <td>{aaa.admin_suspended ? 'yes' : 'no'}</td>
               </tr>
             ))}
-            {list.data.length === 0 && (
+            {list.data.items.length === 0 && (
               <tr>
                 <td colSpan={4}>No AAAs match.</td>
               </tr>

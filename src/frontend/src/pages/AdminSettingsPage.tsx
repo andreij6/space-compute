@@ -128,6 +128,7 @@ export const AdminSettingsPage: React.FC = () => {
         {platformOverview.data && (
           <ParamsEditor
             base={platformOverview.data.params}
+            floatKeys={['claim_cell_arcsec']}
             onSave={(p) => setPlatformParams.mutate(p)}
             saving={setPlatformParams.isPending}
             error={setPlatformParams.error?.message}

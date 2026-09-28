@@ -116,11 +116,17 @@ const NAT32_MAX = 4_294_967_295n;
 export function parseRecordEdits<T extends object>(
   base: T,
   text: Record<string, string>,
+  floatKeys: readonly string[] = [],
 ): { ok: true; value: T } | { ok: false; errors: string[] } {
   const out = { ...base } as Record<string, unknown>;
   const errors: string[] = [];
   for (const [k, v] of Object.entries(base as Record<string, unknown>)) {
     const raw = (text[k] ?? '').trim();
+    if (floatKeys.includes(k)) {
+      if (/^\d+(\.\d+)?$/.test(raw)) out[k] = Number(raw);
+      else errors.push(`${k} must be a number ≥ 0.`);
+      continue;
+    }
     const n = /^\d+$/.test(raw) ? BigInt(raw) : null;
     if (n === null || (typeof v !== 'bigint' && n > NAT32_MAX)) {
       errors.push(`${k} must be a whole number ≥ 0.`);

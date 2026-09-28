@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { icp, signInAndSpawn, signInNewUser } from './helpers/spawn';
+import { grantAdmin, signInAndSpawn, signInNewUser } from './helpers/spawn';
 import { expectAccessible, trackConsoleErrors, visitAndCheck } from './helpers/a11y';
 
 const SIGNED_OUT_ROUTES = [
@@ -62,14 +62,17 @@ test('a11y smoke: admin console routes', async ({ page, context }) => {
   const principal = await page.getByRole('button', { name: /Sign out/ }).getAttribute('title');
   if (!principal) throw new Error('Could not read the signed-in principal from the navbar.');
 
-  icp(['canister', 'call', 'platform', 'admin_add_admin', `(principal "${principal}")`, '-e', 'local', '--identity', 'sc-deployer']);
-  icp(['canister', 'call', 'payments', 'admin_add_admin', `(principal "${principal}")`, '-e', 'local', '--identity', 'sc-deployer']);
+  const revokeAdmin = grantAdmin(principal);
+  try {
 
-  const errors = trackConsoleErrors(page);
-  for (const route of ADMIN_ROUTES) {
-    await page.goto(route);
-    await page.waitForLoadState('networkidle');
-    await expectAccessible(page, errors);
-    errors.length = 0;
+    const errors = trackConsoleErrors(page);
+    for (const route of ADMIN_ROUTES) {
+      await page.goto(route);
+      await page.waitForLoadState('networkidle');
+      await expectAccessible(page, errors);
+      errors.length = 0;
+    }
+  } finally {
+    revokeAdmin();
   }
 });

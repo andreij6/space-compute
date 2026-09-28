@@ -1,6 +1,6 @@
 import type { Principal } from '@icp-sdk/core/principal';
 import type { Answer, ListRecordsFilter, Protocol, Record_, RecordKind, Result_6 } from '../bindings/aaa';
-import type { ActivityItem, EventKind, Page_1 } from '../bindings/platform';
+import type { ActivityItem, ActivityKind, Page_2 } from '../bindings/platform';
 
 export const PROTOCOL_V1 = 1;
 export const RECORDS_PAGE_SIZE = 20;
@@ -13,7 +13,7 @@ export function recordKindLabel(kind: RecordKind): string {
   return spaceCamelCase(kind);
 }
 
-export function activityKindLabel(kind: EventKind): string {
+export function activityKindLabel(kind: ActivityKind): string {
   return spaceCamelCase(kind.__kind__);
 }
 
@@ -41,7 +41,7 @@ export interface RecordsListActor {
   list_records(filter: ListRecordsFilter): Promise<Result_6>;
 }
 export interface ActivityFallbackActor {
-  list_aaa_activity(aaa: Principal, cursor: bigint | null, limit: number): Promise<Page_1>;
+  list_aaa_activity(aaa: Principal, cursor: bigint | null, limit: number): Promise<Page_2>;
 }
 
 function fromAaaPage(items: Record_[]): RecordRow[] {

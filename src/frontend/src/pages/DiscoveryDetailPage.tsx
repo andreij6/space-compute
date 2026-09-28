@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Compass } from 'lucide-react';
 import { platformActor, canisterEnv, canisterId } from '../ic';
-import { verifyCitationFromEnv } from '../citation';
+import { displayedCitation, verifyCitationFromEnv } from '../citation';
 import { loadVerifiedImage } from '../imageHash';
 import { useAuth } from '../auth';
 import { safeHref } from '../lib/urls';
@@ -42,6 +43,10 @@ export const DiscoveryDetailPage = () => {
       })),
     enabled: !!citationQuery.data,
   });
+
+  const citation = useMemo(() => (citationQuery.data ? displayedCitation(citationQuery.data) : null), [citationQuery.data]);
+  const citationVerified =
+    verifiedQuery.data === undefined ? undefined : verifiedQuery.data && citation?.public_id === publicId;
 
   const imageQuery = useQuery({
     queryKey: ['verified_image', discovery?.subject.image_url],
@@ -155,9 +160,8 @@ export const DiscoveryDetailPage = () => {
       </div>
 
       {resolved && citationQuery.isPending && <p>Loading citation…</p>}
-      {resolved && citationQuery.data && (
-        <CertifiedCitationBlock citation={citationQuery.data.citation} verified={verifiedQuery.data} />
-      )}
+      {resolved && citationQuery.data && citation && <CertifiedCitationBlock citation={citation} verified={citationVerified} />}
+      {resolved && citationQuery.data && !citation && <p role="alert">Citation unavailable: the certified bytes could not be decoded.</p>}
       {resolved && citationQuery.isError && (
         <p role="alert">Citation unavailable: {citationQuery.error.message}</p>
       )}

@@ -52,3 +52,16 @@ export async function signInAndSpawn(
   await signInNewUser(page, context, label);
   await spawnViaDeposit(page, name);
 }
+
+const adminCall = (canister: string, method: string, principal: string) =>
+  icp(['canister', 'call', canister, method, `(principal "${principal}")`, '-e', 'local', '--identity', 'sc-deployer']);
+
+export function grantAdmin(principal: string): () => void {
+  for (const canister of ['platform', 'payments']) {
+    const out = adminCall(canister, 'admin_add_admin', principal);
+    if (out.includes('Err')) throw new Error(`${canister}.admin_add_admin failed: ${out}`);
+  }
+  return () => {
+    for (const canister of ['platform', 'payments']) adminCall(canister, 'admin_remove_admin', principal);
+  };
+}

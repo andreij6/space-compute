@@ -60,7 +60,7 @@ export const AdminCatalogPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {subjects.data.map((s) => (
+              {subjects.data.items.map((s) => (
                 <tr key={s.ref_.subject_id}>
                   <td>{s.ref_.subject_id}</td>
                   <td>{s.ref_.field}</td>

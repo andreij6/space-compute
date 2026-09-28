@@ -135,6 +135,16 @@ describe('parseRecordEdits (params editor validates before BigInt, errors shown 
       errors: ['fee_e8s must be a whole number ≥ 0.', 'quorum must be a whole number ≥ 0.'],
     });
   });
+  it('accepts decimals only for declared float64 fields (platform claim_cell_arcsec)', () => {
+    const withFloat = { claim_cell_arcsec: 1.5, quorum: 5 };
+    expect(parseRecordEdits(withFloat, { claim_cell_arcsec: '2.25', quorum: '5' }, ['claim_cell_arcsec'])).toEqual({
+      ok: true,
+      value: { claim_cell_arcsec: 2.25, quorum: 5 },
+    });
+    expect(parseRecordEdits(withFloat, textFromRecord(withFloat), ['claim_cell_arcsec']).ok).toBe(true);
+    expect(parseRecordEdits(withFloat, { claim_cell_arcsec: '1.5', quorum: '5.5' }, ['claim_cell_arcsec']).ok).toBe(false);
+    expect(parseRecordEdits(withFloat, { claim_cell_arcsec: '-1', quorum: '5' }, ['claim_cell_arcsec']).ok).toBe(false);
+  });
   it('rejects negatives, blanks and numbers beyond nat32', () => {
     const r = parseRecordEdits(params, { fee_e8s: '-1', quorum: '4294967296' });
     expect(r.ok).toBe(false);

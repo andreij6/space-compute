@@ -61,7 +61,7 @@ export const AdminModerationPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {aaas.data.map((a) => (
+            {aaas.data.items.map((a) => (
               <tr key={a.owner.toText()}>
                 <td>{a.name}</td>
                 <td>{a.owner.toText()}</td>
