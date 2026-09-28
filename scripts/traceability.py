@@ -23,7 +23,10 @@ defined = {line.split()[1] for line in sources.splitlines()}
 
 errors = []
 for item, task, proof in rows:
-    if "/" in proof:
+    if proof.startswith("check:"):
+        if proof.split(":", 1)[1] not in (root / "scripts/traceability_audit.py").read_text():
+            errors.append(f"{task}: audit check {proof} not defined in scripts/traceability_audit.py")
+    elif "/" in proof:
         if not (root / proof).exists():
             errors.append(f"{task}: proof script {proof} missing")
     elif proof not in defined:
