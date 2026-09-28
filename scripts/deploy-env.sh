@@ -16,6 +16,7 @@ esac
 
 DEPLOY_IDENTITY="${DEPLOY_IDENTITY:-}"
 [ -n "$DEPLOY_IDENTITY" ] || fail "set DEPLOY_IDENTITY explicitly (sc-deployer for local; a named release identity for staging/production) — never rely on the machine default (prod-deployer)"
+[ "$DEPLOY_IDENTITY" != "prod-deployer" ] || fail "refusing DEPLOY_IDENTITY=prod-deployer: it is the password-protected machine default, use a named release identity"
 ok "identity: $DEPLOY_IDENTITY"
 
 CANISTERS=(platform payments treasury frontend)
@@ -34,7 +35,12 @@ else
   note "local env: skipping clean-tree/branch/verify preflight (dev loop)"
 fi
 
-ENV_EXISTS() { icp canister status "$1" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1; }
+if [ "$ENV" = "local" ]; then
+  IDS_FILE=".icp/cache/mappings/${ENV}.ids.json"
+else
+  IDS_FILE=".icp/data/mappings/${ENV}.ids.json"
+fi
+mapped_id() { python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2],''))" "$IDS_FILE" "$1" 2>/dev/null || true; }
 
 release_record() {
   mkdir -p docs/ops
@@ -47,7 +53,13 @@ SNAP_FILE=$(mktemp)
 trap 'rm -f "$SNAP_FILE"' EXIT
 
 for c in "${CANISTERS[@]}"; do
-  if ENV_EXISTS "$c"; then
+  STATUS_OUT=$(icp canister status "$c" -e "$ENV" --identity "$DEPLOY_IDENTITY" 2>&1)
+  STATUS_RC=$?
+  if [ "$STATUS_RC" != "0" ] && [ -n "$(mapped_id "$c")" ]; then
+    release_record "ABORTED (status failed: $c)"
+    fail "canister status failed for existing $c ($(mapped_id "$c")), refusing to upgrade without a snapshot: $STATUS_OUT"
+  fi
+  if [ "$STATUS_RC" = "0" ]; then
     icp canister stop "$c" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1
     SNAP_JSON=$(icp canister snapshot create "$c" -e "$ENV" --identity "$DEPLOY_IDENTITY" --json 2>&1) \
       || { icp canister start "$c" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1; fail "snapshot create failed for $c: $SNAP_JSON"; }
@@ -62,20 +74,33 @@ done
 
 rollback() {
   note "rolling back: restoring pre-upgrade snapshots"
+  local failed=""
   while read -r c snap_id; do
     [ -n "$c" ] || continue
+    [ "$ENV" = "local" ] && [ "${SC_FORCE_RESTORE_FAIL:-0}" = "1" ] && snap_id="00"
     icp canister stop "$c" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1
-    icp canister snapshot restore "$c" "$snap_id" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1 \
-      && ok "restored $c from $snap_id" \
-      || note "restore FAILED for $c from $snap_id — manual intervention required"
+    if icp canister snapshot restore "$c" "$snap_id" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1; then
+      ok "restored $c from $snap_id"
+    else
+      failed="$failed $c"
+      echo -e "${RED}✘${NC} restore FAILED for $c from $snap_id" >&2
+    fi
     icp canister start "$c" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1
   done < "$SNAP_FILE"
+  if [ -n "$failed" ]; then
+    release_record "FAILED (rollback failed:$failed)"
+    fail "rollback FAILED for$failed: manual intervention required ($1)"
+  fi
   release_record "ROLLED BACK"
 }
 
 DEPLOY_LOG=$(mktemp)
 DEPLOY_STATUS=0
-icp deploy "${CANISTERS[@]}" -e "$ENV" --identity "$DEPLOY_IDENTITY" --yes >"$DEPLOY_LOG" 2>&1 || DEPLOY_STATUS=$?
+if [ "$ENV" = "local" ]; then
+  icp deploy "${CANISTERS[@]}" -e "$ENV" --identity "$DEPLOY_IDENTITY" --yes >"$DEPLOY_LOG" 2>&1 || DEPLOY_STATUS=$?
+else
+  icp deploy "${CANISTERS[@]}" -e "$ENV" --identity "$DEPLOY_IDENTITY" || DEPLOY_STATUS=$?
+fi
 
 for c in "${CANISTERS[@]}"; do
   icp canister start "$c" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1 || true
@@ -83,19 +108,19 @@ done
 
 if [ "$DEPLOY_STATUS" != "0" ]; then
   cat "$DEPLOY_LOG"
-  rollback
+  rollback "icp deploy failed"
   fail "icp deploy failed, rolled back"
 fi
 ok "deployed: ${CANISTERS[*]}"
 
-IDS_FILE=".icp/cache/mappings/${ENV}.ids.json"
-PLATFORM_ID=$(python3 -c "import json;print(json.load(open('$IDS_FILE')).get('platform',''))" 2>/dev/null || true)
-PAYMENTS_ID=$(python3 -c "import json;print(json.load(open('$IDS_FILE')).get('payments',''))" 2>/dev/null || true)
-if [ -n "$PLATFORM_ID" ] && [ -n "$PAYMENTS_ID" ]; then
-  icp canister call platform admin_set_payments_id "(principal \"$PAYMENTS_ID\")" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1 || true
-  icp canister call payments admin_set_platform_id "(principal \"$PLATFORM_ID\")" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1 || true
-  ok "platform<->payments wired"
-fi
+[ -f "$IDS_FILE" ] || fail "canister id mappings missing after deploy: $IDS_FILE"
+PLATFORM_ID=$(mapped_id platform)
+PAYMENTS_ID=$(mapped_id payments)
+FRONTEND_ID=$(mapped_id frontend)
+[ -n "$PLATFORM_ID" ] && [ -n "$PAYMENTS_ID" ] && [ -n "$FRONTEND_ID" ] || fail "platform/payments/frontend ids missing from $IDS_FILE"
+icp canister call platform admin_set_payments_id "(principal \"$PAYMENTS_ID\")" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1 || true
+icp canister call payments admin_set_platform_id "(principal \"$PLATFORM_ID\")" -e "$ENV" --identity "$DEPLOY_IDENTITY" >/dev/null 2>&1 || true
+ok "platform<->payments wired"
 
 if [ "${AAA_REGISTER:-0}" = "1" ]; then
   bash scripts/aaa-register.sh "$ENV" "$DEPLOY_IDENTITY" || note "AAA wasm register/approve skipped: $?"
@@ -110,7 +135,6 @@ done
 smoke_query platform get_stats && ok "smoke: platform.get_stats()" || { SMOKE_OK=0; note "smoke FAILED: platform.get_stats()"; }
 smoke_query treasury health && ok "smoke: treasury.health()" || { SMOKE_OK=0; note "smoke FAILED: treasury.health()"; }
 
-FRONTEND_ID=$(python3 -c "import json;print(json.load(open('$IDS_FILE')).get('frontend',''))" 2>/dev/null || true)
 if [ -n "$FRONTEND_ID" ]; then
   if [ "$ENV" = "local" ]; then
     PORT=$(icp network status -e local --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["gateway_url"])' | sed -E 's#.*:([0-9]+)/?#\1#')
@@ -128,7 +152,7 @@ if [ "${SMOKE_FORCE_FAIL:-0}" = "1" ]; then
 fi
 
 if [ "$SMOKE_OK" != "1" ]; then
-  rollback
+  rollback "smoke test failed"
   fail "smoke test failed, rolled back to pre-upgrade snapshots"
 fi
 

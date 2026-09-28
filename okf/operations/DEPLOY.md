@@ -89,4 +89,8 @@ icp canister snapshot restore <canister> <snapshot_id> -e production --identity 
 icp canister start <canister> -e production --identity <identity>
 ```
 
-Every release (success or rollback) is appended to `docs/ops/releases.md`.
+Every release (success, rollback, abort, or failed rollback) is appended to
+`docs/ops/releases.md`. A failed restore exits non-zero and is recorded as `FAILED`: treat it as
+an incident and restore by hand as above. Canister ids come from `.icp/cache/mappings/local.ids.json`
+on local and `.icp/data/mappings/<env>.ids.json` (committed) on staging/production; the script
+fails hard when they are missing.

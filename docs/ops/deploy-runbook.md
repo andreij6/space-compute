@@ -3,7 +3,9 @@
 Spec: `docs/specs/09-testing-ops.md` §2-3, `docs/specs/01-architecture.md` §4b/§5/§5b, `docs/specs/12-treasury-keeper.md`.
 
 Proven end to end on `local` only (`scripts/deploy-env.sh local` run twice, a forced smoke
-failure + rollback, `scripts/cycles-report.sh local`, `scripts/treasury-watch.sh local`).
+failure + rollback, a forced status failure (`DEPLOY_IDENTITY=sc-no-such-identity` → ABORTED), a
+forced restore failure (`SMOKE_FORCE_FAIL=1 SC_FORCE_RESTORE_FAIL=1`, local-only → exit 1 and
+`FAILED` in `docs/ops/releases.md`), `scripts/cycles-report.sh local`, `scripts/treasury-watch.sh local`).
 Nothing here has touched staging or mainnet — `.claude/harness/hooks/guard.sh` blocks any
 `icp` command targeting `ic`/`staging`/`production` unless `SC_ALLOW_MAINNET=1`, and
 `scripts/deploy-env.sh` itself refuses non-local environments unless `SC_ALLOW_MAINNET=1`
@@ -32,8 +34,11 @@ just release staging
 
 You will be prompted to type `staging` to confirm. The script then:
 1. Preflight: `just verify` green, clean git tree, on `main`, identity explicit.
-2. Snapshots every canister that already exists (skipped on first install).
-3. `icp deploy -e staging --identity sc-staging-deployer --yes`.
+2. Snapshots every canister that already exists (skipped on first install). A canister listed
+   in `.icp/data/mappings/staging.ids.json` whose `icp canister status` fails aborts the release
+   (never upgrade without a snapshot).
+3. `icp deploy -e staging --identity sc-staging-deployer` — interactive, no `--yes`, so the
+   Candid compatibility check can stop you. `DEPLOY_IDENTITY=prod-deployer` is refused.
 4. Wires `platform.payments_id` <-> `payments.platform_id`.
 5. Registers/approves the AAA template wasm if `AAA_REGISTER=1` is set (slow reproducible
    build — see `docs/ops/aaa-manual-upgrade.md`).
