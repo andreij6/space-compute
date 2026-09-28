@@ -2,8 +2,10 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Compass } from 'lucide-react';
 import { platformActor, canisterEnv, canisterId } from '../ic';
-import { verifyCitation } from '../citation';
-import { verifyImageHash } from '../imageHash';
+import { verifyCitationFromEnv } from '../citation';
+import { loadVerifiedImage } from '../imageHash';
+import { useAuth } from '../auth';
+import { safeHref } from '../lib/urls';
 import { DiscoveryStatus } from '../bindings/platform';
 import { categoryLabel, formatNs } from '../categories';
 import { CertifiedCitationBlock } from '../components/CertifiedCitationBlock';
@@ -13,11 +15,12 @@ const UNDER_REVIEW_REFRESH = 30_000;
 
 export const DiscoveryDetailPage = () => {
   const { publicId } = useParams<{ publicId: string }>();
+  const { ready, identity, principal } = useAuth();
 
   const discoveryQuery = useQuery({
-    queryKey: ['get_discovery', publicId],
-    queryFn: () => platformActor().get_discovery(publicId!),
-    enabled: !!publicId,
+    queryKey: ['get_discovery', publicId, principal?.toText() ?? null],
+    queryFn: () => platformActor(identity ?? undefined).get_discovery(publicId!),
+    enabled: !!publicId && ready,
     refetchInterval: (q) => (q.state.data?.status === DiscoveryStatus.UnderReview ? UNDER_REVIEW_REFRESH : false),
   });
 
@@ -32,19 +35,22 @@ export const DiscoveryDetailPage = () => {
 
   const verifiedQuery = useQuery({
     queryKey: ['verify_citation', publicId, citationQuery.dataUpdatedAt],
-    queryFn: () => {
-      const rootKey = canisterEnv()?.IC_ROOT_KEY;
-      if (!rootKey || !citationQuery.data) return false;
-      return verifyCitation(citationQuery.data, canisterId('platform'), rootKey);
-    },
+    queryFn: () =>
+      verifyCitationFromEnv(citationQuery.data!, () => ({
+        canisterId: canisterId('platform'),
+        rootKey: canisterEnv()?.IC_ROOT_KEY,
+      })),
     enabled: !!citationQuery.data,
   });
 
   const imageQuery = useQuery({
-    queryKey: ['verify_image', discovery?.subject.image_url],
-    queryFn: () => verifyImageHash(discovery!.subject.image_url, discovery!.subject.image_sha256),
+    queryKey: ['verified_image', discovery?.subject.image_url],
+    queryFn: () => loadVerifiedImage(discovery!.subject.image_url, discovery!.subject.image_sha256),
+    staleTime: Infinity,
     enabled: !!discovery,
   });
+
+  const dossierHref = discovery ? safeHref(discovery.subject.dossier_url, import.meta.env.VITE_LOCAL_DATA_ORIGIN) : null;
 
   if (discoveryQuery.isPending) return <p>Loading discovery…</p>;
   if (discoveryQuery.isError) return <p role="alert">Discovery unavailable: {discoveryQuery.error.message}</p>;
@@ -88,12 +94,15 @@ export const DiscoveryDetailPage = () => {
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           {imageQuery.isPending && <p style={{ padding: '1rem' }}>Verifying image integrity…</p>}
-          {imageQuery.data === false && (
+          {(imageQuery.isError || imageQuery.data?.kind === 'unavailable') && (
+            <EmptyState type="image_unavailable" title="Image unavailable from survey" description="The image could not be loaded from the data bucket." />
+          )}
+          {imageQuery.data?.kind === 'mismatch' && (
             <EmptyState type="image_unavailable" title="Image unavailable from survey" description="The fetched image does not match its recorded sha256; it is not shown." />
           )}
-          {imageQuery.data === true && (
+          {imageQuery.data?.kind === 'ok' && (
             <img
-              src={discovery.subject.image_url}
+              src={imageQuery.data.src}
               alt={`${categoryLabel(discovery.category)} candidate in ${discovery.subject.field}`}
               style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', backgroundColor: '#03040a' }}
             />
@@ -120,9 +129,13 @@ export const DiscoveryDetailPage = () => {
               <dd>{discovery.subject.field}</dd>
             </div>
           </dl>
-          <a href={discovery.subject.dossier_url} className="btn-secondary" style={{ marginTop: '1rem', width: '100%', justifyContent: 'center' }}>
-            View Data Dossier
-          </a>
+          {dossierHref ? (
+            <a href={dossierHref} className="btn-secondary" style={{ marginTop: '1rem', width: '100%', justifyContent: 'center' }}>
+              View Data Dossier
+            </a>
+          ) : (
+            <p>Data dossier link unavailable.</p>
+          )}
         </div>
 
         <div className="card">

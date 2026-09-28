@@ -115,6 +115,8 @@ export function FuelBillingPage() {
   }, [mandate]);
 
   const [topupAmountIcp, setTopupAmountIcp] = useState('0.1');
+  const [topupOpId, setTopupOpId] = useState<bigint | null>(null);
+  const topupLocked = topupOpId !== null;
   const topupAmountE8s = parseIcpToE8s(topupAmountIcp);
   const topupAmountValid = topupAmountE8s !== null && topupAmountE8s >= MIN_TOPUP_E8S;
   const cyclesWanted =
@@ -242,17 +244,24 @@ export function FuelBillingPage() {
           inputMode="decimal"
           value={topupAmountIcp}
           onChange={(e) => setTopupAmountIcp(e.target.value)}
+          disabled={topupLocked}
         />
+        {topupLocked && <p>The amount is locked while this top-up is in progress.</p>}
         {!topupAmountValid && <p role="alert">Enter an amount of at least 0.1 ICP.</p>}
         {topupAmountValid && rateQuery.isPending && <p>Loading rate…</p>}
         {topupAmountValid && rateQuery.isError && <p role="alert">Could not load the current rate.</p>}
-        {topupAmountValid && cyclesWanted !== null && (
+        {(topupLocked || (topupAmountValid && cyclesWanted !== null)) && (
           <PaymentPanel
-            key={cyclesWanted.toString()}
             purpose="topup"
             beneficiary={aaaId}
             sponsoredSpawnEnabled={false}
-            fetchQuote={() => payments.get_quote_topup(cyclesWanted).then(unwrapResult)}
+            quoteKey={cyclesWanted?.toString()}
+            onOpChange={setTopupOpId}
+            fetchQuote={() =>
+              cyclesWanted === null
+                ? Promise.reject(new Error('Enter an amount of at least 0.1 ICP.'))
+                : payments.get_quote_topup(cyclesWanted).then(unwrapResult)
+            }
             fetchDepositAccount={() => payments.get_deposit_account(Purpose.TopUp, aaaId)}
             fetchOp={(opId) => payments.get_op(opId)}
             submitOp={(path) => payments.top_up({ aaa: aaaId, path }).then(unwrapResult)}

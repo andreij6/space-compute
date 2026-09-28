@@ -5,18 +5,19 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import { platformActor } from '../ic';
 import { DiscoveryStatus, type DiscoveryCard } from '../bindings/platform';
 import { DISCOVERY_CATEGORIES, categoryLabel, formatNs } from '../categories';
-import { verifyImageHash } from '../imageHash';
+import { loadVerifiedImage } from '../imageHash';
 
 const REFRESH = 60_000;
 const PAGE_SIZE = 24;
 
 function CardThumbnail({ url, sha256, alt }: { url: string; sha256: Uint8Array; alt: string }) {
   const verifyQuery = useQuery({
-    queryKey: ['verify_image', url],
-    queryFn: () => verifyImageHash(url, sha256),
+    queryKey: ['verified_image', url],
+    queryFn: () => loadVerifiedImage(url, sha256),
+    staleTime: Infinity,
     enabled: !!url,
   });
-  if (!url || verifyQuery.data === false) {
+  if (!url || verifyQuery.isError || (verifyQuery.data && verifyQuery.data.kind !== 'ok')) {
     return (
       <div
         role="img"
@@ -25,7 +26,7 @@ function CardThumbnail({ url, sha256, alt }: { url: string; sha256: Uint8Array; 
       />
     );
   }
-  if (verifyQuery.data !== true) {
+  if (verifyQuery.data?.kind !== 'ok') {
     return (
       <div
         role="img"
@@ -36,7 +37,7 @@ function CardThumbnail({ url, sha256, alt }: { url: string; sha256: Uint8Array; 
   }
   return (
     <img
-      src={url}
+      src={verifyQuery.data.src}
       alt={alt}
       style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '6px', backgroundColor: '#03040a' }}
     />

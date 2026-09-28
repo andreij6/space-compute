@@ -35,6 +35,7 @@ for id in "$ADMIN" "$USER_ID"; do
 done
 ok "identities funded ($DEPLOYER ≥ 20T cycles; $ADMIN, $USER_ID ≥ 50 test ICP)"
 
+export VITE_LOCAL_DATA_ORIGIN="http://127.0.0.1:${SEED_PORT:-8765}"
 icp deploy -e "$ENV" --identity "$DEPLOYER" $([ "$ENV" = local ] && echo --yes) >/tmp/sc-deploy-local.log 2>&1 || { cat /tmp/sc-deploy-local.log; exit 1; }
 for c in $(icp canister list -e "$ENV" --json | python3 -c 'import json,sys; print(" ".join(json.load(sys.stdin)["canisters"]))'); do
   v=$(icp canister call "$c" version '()' -e "$ENV" --identity "$USER_ID" --query 2>/dev/null || echo "(no version)")

@@ -102,22 +102,44 @@ export interface KeyValueStore {
   removeItem(key: string): void;
 }
 
-const SPAWN_OP_STORAGE_KEY = 'sc.spawnOpId';
+export type SavedSpawnOp = { opId: bigint; name: string };
 
-export function saveSpawnOpId(store: KeyValueStore, opId: bigint): void {
-  store.setItem(SPAWN_OP_STORAGE_KEY, opId.toString());
-}
+const spawnOpKey = (principal: string) => `sc.spawnOp:${principal}`;
 
-export function loadSpawnOpId(store: KeyValueStore): bigint | null {
-  const raw = store.getItem(SPAWN_OP_STORAGE_KEY);
-  if (raw === null) return null;
+export function browserStore(): KeyValueStore | null {
   try {
-    return BigInt(raw);
+    return window.localStorage;
   } catch {
     return null;
   }
 }
 
-export function clearSpawnOpId(store: KeyValueStore): void {
-  store.removeItem(SPAWN_OP_STORAGE_KEY);
+export function saveSpawnOp(store: KeyValueStore | null, principal: string, op: SavedSpawnOp): void {
+  try {
+    store?.setItem(spawnOpKey(principal), JSON.stringify({ opId: op.opId.toString(), name: op.name }));
+  } catch {
+    return;
+  }
+}
+
+export function loadSpawnOp(store: KeyValueStore | null, principal: string): SavedSpawnOp | null {
+  try {
+    const raw = store?.getItem(spawnOpKey(principal));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const { opId, name } = parsed as Record<string, unknown>;
+    if (typeof opId !== 'string' || !/^\d+$/.test(opId) || typeof name !== 'string') return null;
+    return { opId: BigInt(opId), name };
+  } catch {
+    return null;
+  }
+}
+
+export function clearSpawnOp(store: KeyValueStore | null, principal: string): void {
+  try {
+    store?.removeItem(spawnOpKey(principal));
+  } catch {
+    return;
+  }
 }

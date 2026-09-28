@@ -15,6 +15,8 @@ test('connect: operator add/revoke and records renders (05 §2 rows 8-9)', async
   await expect(page.getByRole('heading', { level: 1, name: 'Connect your agent' })).toBeVisible();
   await expect(page.getByText('Not connected yet')).toBeVisible();
   await expect(page.getByText('No operators yet.')).toBeVisible();
+  await expect(page.getByText(/^icp identity new sc-operator-\d{8}$/)).toBeVisible();
+  await expect(page.getByText(/--storage plaintext/)).toHaveCount(0);
 
   const identityName = `sc-operator-e2e-${Date.now() % 1_000_000}`;
   execFileSync('icp', ['identity', 'new', identityName, '--storage', 'plaintext'], { cwd: repoRoot, stdio: 'pipe' });

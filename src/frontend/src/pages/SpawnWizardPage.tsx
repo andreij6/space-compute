@@ -9,12 +9,13 @@ import { unwrapResult } from '../lib/paymentOps';
 import {
   avatarGrid,
   checkNameResultMessage,
-  clearSpawnOpId,
+  browserStore,
+  clearSpawnOp,
   initialSpawnState,
-  loadSpawnOpId,
+  loadSpawnOp,
   randomAvatarSeed,
   resumeSpawnState,
-  saveSpawnOpId,
+  saveSpawnOp,
   spawnReducer,
   validateNameLocally,
 } from '../lib/spawnFlow';
@@ -53,7 +54,9 @@ export function SpawnWizardPage() {
   const platform = useMemo(() => platformActor(identity ?? undefined), [identity]);
   const featuresQuery = useQuery({ queryKey: ['payments_features'], queryFn: () => payments.get_features() });
 
-  const [resumeOpId] = useState(() => (typeof window === 'undefined' ? null : loadSpawnOpId(window.localStorage)));
+  const principalText = principal?.toText() ?? null;
+  const saved = useMemo(() => (principalText ? loadSpawnOp(browserStore(), principalText) : null), [principalText]);
+  const resumeOpId = saved?.opId ?? null;
   const resumeOpQuery = useQuery({
     queryKey: ['spawnResumeOp', resumeOpId?.toString()],
     queryFn: () => payments.get_op(resumeOpId as bigint),
@@ -64,8 +67,8 @@ export function SpawnWizardPage() {
     if (resumeOpId === null || resumeOpQuery.data === undefined) return;
     const resumed = resumeSpawnState(resumeOpQuery.data);
     if (resumed) dispatch({ type: 'RESUME', state: resumed });
-    else clearSpawnOpId(window.localStorage);
-  }, [resumeOpId, resumeOpQuery.data]);
+    else if (principalText) clearSpawnOp(browserStore(), principalText);
+  }, [resumeOpId, resumeOpQuery.data, principalText]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedName(nameInput), 400);
@@ -157,7 +160,7 @@ export function SpawnWizardPage() {
       {state.step !== 'name' && (
         <div>
           <p>{state.step === 'done' ? 'Step 3 of 3: Done' : 'Step 2 of 3: Pay to spawn your agent'}</p>
-          <p>Agent name: {confirmedName}</p>
+          <p>Agent name: {confirmedName || saved?.name}</p>
 
           {featuresQuery.isPending && <p>Loading…</p>}
           {featuresQuery.isError && <p role="alert">Could not load payment options. Try again later.</p>}
@@ -175,13 +178,13 @@ export function SpawnWizardPage() {
                 const id = await payments
                   .spawn_aaa({ name: confirmedName, avatar_seed: avatarSeed, path })
                   .then(unwrapResult);
-                saveSpawnOpId(window.localStorage, id);
+                saveSpawnOp(browserStore(), principal.toText(), { opId: id, name: confirmedName });
                 dispatch({ type: 'OP_STARTED', opId: id });
                 return id;
               }}
               onPaid={async () => {
                 dispatch({ type: 'OP_DONE' });
-                clearSpawnOpId(window.localStorage);
+                clearSpawnOp(browserStore(), principal.toText());
                 await queryClient.invalidateQueries({ queryKey: ['aaa_by_owner', principal.toText()] });
               }}
             />

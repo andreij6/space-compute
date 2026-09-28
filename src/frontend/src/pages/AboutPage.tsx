@@ -51,7 +51,7 @@ export const AboutPage: React.FC = () => {
 
 function TreasuryRunway() {
   const status = useQuery({
-    queryKey: ['about', 'treasury', 'status'],
+    queryKey: ['treasury', 'status'],
     queryFn: () => treasuryActor().status(),
     refetchInterval: REFRESH,
   });

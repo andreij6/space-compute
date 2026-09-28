@@ -11,6 +11,15 @@ describe('spenderSubaccount (04 §1, S(purpose, beneficiary))', () => {
     expect(toHex(sub)).toBe('372976014c96e69db22e65dafc07cbec131e54d45c46a85d23e99b6b2a27c140');
   });
 
+  it('matches the Rust derive_subaccount formula for Spawn and Auto (sha256("sc-spender" ‖ tag ‖ principal), deposit.rs)', async () => {
+    expect(toHex(await spenderSubaccount('spawn', p(1)))).toBe(
+      'f4c5f1767339c0877eb4063480eb82c14becc2e440a5a550dab3b5d347a07950',
+    );
+    expect(toHex(await spenderSubaccount('auto', p(5)))).toBe(
+      'eae4480517cda00f05f27a2e0be1edc8e644febc79d606c48cbd8dbeadee8c7d',
+    );
+  });
+
   it('differs by purpose and by beneficiary', async () => {
     const a = await spenderSubaccount('spawn', p(1));
     const b = await spenderSubaccount('topup', p(1));

@@ -28,9 +28,17 @@ test('fuel: live fuel gauge, no-mandate state and a Deposit one-time top-up reac
     stdio: 'pipe',
   });
 
+  const amount = page.getByLabel('Amount to send (ICP, min 0.1)');
   await page.getByRole('button', { name: "I've sent it" }).click();
+  await expect(amount).toBeDisabled();
   await expect(page.getByRole('status')).toHaveText('Done.', { timeout: 60_000 });
+  await expect(amount).toBeDisabled();
   await page.screenshot({ path: `${demo}02_topup_done.png`, fullPage: true });
+
+  await page.getByRole('button', { name: 'Make another top-up' }).click();
+  await expect(amount).toBeEnabled();
+  await amount.fill('0.2');
+  await expect(page.getByLabel('Send ICP to this account')).toHaveValue(accountId);
 });
 
 test('fuel: the auto top-up setup form renders; the wallet approve step is exercised with OISY in staging (05 §5 #3), not headless e2e', async ({

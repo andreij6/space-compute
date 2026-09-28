@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ConfirmAction } from './ConfirmAction';
-import { recordDiff, recordFromText, textFromRecord } from '../lib/admin';
+import { parseRecordEdits, recordDiff, textFromRecord } from '../lib/admin';
 
 export interface ParamsEditorProps<T extends object> {
   base: T;
@@ -13,6 +13,7 @@ export function ParamsEditor<T extends object>({ base, onSave, saving, error }: 
   const [edited, setEdited] = useState(() => textFromRecord(base));
   const baseText = textFromRecord(base);
   const diff = recordDiff(baseText, edited);
+  const parsed = parseRecordEdits(base, edited);
   return (
     <div>
       {Object.keys(edited).map((key) => (
@@ -32,11 +33,18 @@ export function ParamsEditor<T extends object>({ base, onSave, saving, error }: 
           ))}
         </ul>
       )}
+      {!parsed.ok && (
+        <ul role="alert" aria-label="Params errors">
+          {parsed.errors.map((e) => (
+            <li key={e}>{e}</li>
+          ))}
+        </ul>
+      )}
       <ConfirmAction
         label="save params"
         phrase="save params"
-        disabled={saving || diff.length === 0}
-        onConfirm={() => onSave(recordFromText(base, edited))}
+        disabled={saving || diff.length === 0 || !parsed.ok}
+        onConfirm={() => parsed.ok && onSave(parsed.value)}
       />
       {error && <p role="alert">{error}</p>}
     </div>

@@ -11,6 +11,7 @@ import {
   firstContactCommand,
   isConnected,
   netFlag,
+  newIdentityCommand,
   operatorIdentityName,
   parseOperatorPrincipal,
   removeOperator,
@@ -61,12 +62,15 @@ export function ConnectAgentPage() {
     onError: (e: unknown) => setFormError(e instanceof Error ? e.message : 'Something went wrong.'),
   });
 
+  const [revokeError, setRevokeError] = useState<string | null>(null);
   const removeMutation = useMutation({
     mutationFn: async (principal: Principal) => {
       const result = await removeOperator(aaa!, principal);
       if (!result.ok) throw new Error(result.error);
     },
+    onMutate: () => setRevokeError(null),
     onSuccess: invalidateStatus,
+    onError: (e: unknown) => setRevokeError(e instanceof Error ? e.message : 'Something went wrong.'),
   });
 
   if (aaaQuery.isPending) return <p>Loading…</p>;
@@ -79,7 +83,7 @@ export function ConnectAgentPage() {
   const connected = isConnected(operators, BigInt(statusQuery.dataUpdatedAt) * 1_000_000n);
   const identityName = operatorIdentityName();
   const net = netFlag(window.location.hostname);
-  const newIdentityCmd = `icp identity new ${identityName} --storage plaintext`;
+  const newIdentityCmd = newIdentityCommand(identityName);
   const principalCmd = `icp identity principal --identity ${identityName}`;
   const firstContactCmd = firstContactCommand(aaaIdText, identityName, net);
 
@@ -180,6 +184,7 @@ export function ConnectAgentPage() {
             ))}
           </ul>
         )}
+        {revokeError && <p role="alert">Could not revoke the operator: {revokeError}</p>}
       </section>
     </div>
   );

@@ -1,9 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, Shield, Cpu } from 'lucide-react';
-import { mockTreasury } from '../mockData';
+import { treasuryActor } from '../ic';
 
 export const Footer: React.FC = () => {
+  const status = useQuery({
+    queryKey: ['treasury', 'status'],
+    queryFn: () => treasuryActor().status(),
+    refetchInterval: 60_000,
+  });
   return (
     <footer className="footer">
       <div className="footer-inner">
@@ -23,7 +29,7 @@ export const Footer: React.FC = () => {
               <Shield size={12} /> IC Verifiable Canisters
             </span>
             <span className="badge badge-amber">
-              <Cpu size={12} /> {mockTreasury.runwayMonths} Mo. Runway
+              <Cpu size={12} /> {status.data ? `${status.data.projected_runway_months} Mo. Runway` : status.isPending ? 'Loading runway…' : 'Runway unavailable'}
             </span>
           </div>
         </div>

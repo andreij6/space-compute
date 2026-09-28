@@ -5,6 +5,7 @@ import {
   firstContactCommand,
   isConnected,
   netFlag,
+  newIdentityCommand,
   operatorIdentityName,
   parseOperatorPrincipal,
   removeOperator,
@@ -127,6 +128,10 @@ describe('connect command helpers (05 §3 connect steps)', () => {
     expect(netFlag('localhost')).toBe('-e local');
     expect(netFlag('app.localhost')).toBe('-e local');
     expect(netFlag('spacecompute.app')).toBe('-n ic');
+  });
+
+  it('creates the operator identity with the default (encrypted/keyring) storage, never plaintext (05 §3 step 1)', () => {
+    expect(newIdentityCommand('sc-operator-20260927')).toBe('icp identity new sc-operator-20260927');
   });
 
   it('builds the first-contact whoami command', () => {

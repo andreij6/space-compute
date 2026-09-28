@@ -26,6 +26,8 @@ export interface PaymentPanelProps {
   submitOp: (path: PayPath) => Promise<bigint>;
   onPaid: (opId: bigint) => void;
   initialOpId?: bigint | null;
+  quoteKey?: string;
+  onOpChange?: (opId: bigint | null) => void;
 }
 
 type Tab = 'wallet' | 'deposit' | 'invite';
@@ -40,6 +42,8 @@ export function PaymentPanel({
   submitOp,
   onPaid,
   initialOpId = null,
+  quoteKey = '',
+  onOpChange,
 }: PaymentPanelProps) {
   const beneficiaryKey = beneficiary.toText();
   const [tab, setTab] = useState<Tab>('deposit');
@@ -50,7 +54,7 @@ export function PaymentPanel({
   const paidNotified = useRef(false);
 
   const quoteQuery = useQuery({
-    queryKey: ['paymentPanelQuote', purpose, beneficiaryKey],
+    queryKey: ['paymentPanelQuote', purpose, beneficiaryKey, quoteKey],
     queryFn: fetchQuote,
     refetchInterval: 15_000,
   });
@@ -65,6 +69,10 @@ export function PaymentPanel({
     enabled: opId !== null,
     refetchInterval: (query) => nextPollDelayMs(query.state.data ?? null),
   });
+
+  useEffect(() => {
+    onOpChange?.(opId);
+  }, [opId, onOpChange]);
 
   const op = opQuery.data ?? null;
   const phase = opId === null ? null : opPhase(op);
@@ -125,6 +133,17 @@ export function PaymentPanel({
         {phase === 'failed' && (
           <button type="button" onClick={() => setOpId(null)}>
             Try again
+          </button>
+        )}
+        {phase === 'done' && purpose === 'topup' && (
+          <button
+            type="button"
+            onClick={() => {
+              paidNotified.current = false;
+              setOpId(null);
+            }}
+          >
+            Make another top-up
           </button>
         )}
       </div>

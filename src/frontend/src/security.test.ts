@@ -22,11 +22,7 @@ describe('security', () => {
     expect(files(root).filter((f) => readFileSync(f, 'utf8').includes(html))).toEqual([]);
   });
 
-  it('serves a strict CSP with frame-ancestors none and IC/II connect-src', () => {
-    const headers = readFileSync(join(root, '../public/_headers'), 'utf8');
-    const csp = headers.match(/Content-Security-Policy: (.*)/)?.[1] ?? '';
-    expect(csp).toContain("frame-ancestors 'none'");
-    expect(csp).toContain("script-src 'self';");
-    for (const host of ['https://icp-api.io', 'https://id.ai', 'http://localhost:*']) expect(csp).toContain(host);
+  it('ships the CSP from the build-time template only (no stale public/_headers)', () => {
+    expect(() => readFileSync(join(root, '../public/_headers'), 'utf8')).toThrow();
   });
 });

@@ -1,16 +1,11 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminNav } from '../components/AdminNav';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { useAuth } from '../auth';
 import { paymentsActor } from '../ic';
-import { belowMinSponsorCycles, inviteCodesToCsv, MIN_SPONSOR_CYCLES, unwrapAdmin } from '../lib/admin';
-
-function inviteStatus(invite: { used: boolean; expires_at: bigint }, nowNs: bigint): 'used' | 'expired' | 'active' {
-  if (invite.used) return 'used';
-  if (invite.expires_at <= nowNs) return 'expired';
-  return 'active';
-}
+import { belowMinSponsorCycles, inviteCodesToCsv, inviteStatus, MIN_SPONSOR_CYCLES, unwrapAdmin } from '../lib/admin';
+import { dedupPages } from '../paging';
 
 export const AdminInvitesPage: React.FC = () => {
   const { identity } = useAuth();
@@ -20,11 +15,16 @@ export const AdminInvitesPage: React.FC = () => {
   const [expiresAt, setExpiresAt] = useState('');
   const belowMinCycles = belowMinSponsorCycles(sponsorCycles);
 
-  const invites = useQuery({
+  const invites = useInfiniteQuery({
     queryKey: ['admin', 'invites', 'list'],
-    queryFn: async () => unwrapAdmin(await paymentsActor(identity!).admin_list_invites(null, 100)),
+    queryFn: async ({ pageParam }: { pageParam: Uint8Array | null }) =>
+      unwrapAdmin(await paymentsActor(identity!).admin_list_invites(pageParam, 100)),
+    initialPageParam: null as Uint8Array | null,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
   });
+  const inviteItems = dedupPages(invites.data?.pages.map((p) => p.items), (i) => i.code_hash);
   const nowNs = BigInt(invites.dataUpdatedAt) * 1_000_000n;
+  const expiresAtMs = expiresAt ? Date.parse(expiresAt) : NaN;
 
   const mint = useMutation({
     mutationFn: async () =>
@@ -32,7 +32,7 @@ export const AdminInvitesPage: React.FC = () => {
         await paymentsActor(identity!).admin_mint_invites({
           count: Number(count),
           sponsor_cycles: BigInt(sponsorCycles || '0'),
-          expires_at: BigInt(expiresAt ? Date.parse(expiresAt) * 1_000_000 : 0),
+          expires_at: BigInt(expiresAtMs) * 1_000_000n,
         }),
       ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'invites', 'list'] }),
@@ -73,7 +73,7 @@ export const AdminInvitesPage: React.FC = () => {
         <ConfirmAction
           label="mint batch"
           phrase="mint batch"
-          disabled={mint.isPending || !count || belowMinCycles}
+          disabled={mint.isPending || !/^[1-9]\d*$/.test(count) || belowMinCycles || !Number.isFinite(expiresAtMs)}
           onConfirm={() => mint.mutate()}
         />
         {mint.isError && <p role="alert">{mint.error.message}</p>}
@@ -97,8 +97,8 @@ export const AdminInvitesPage: React.FC = () => {
         <h2>Minted, used and expired invites</h2>
         {invites.isPending && <p>Loading invites…</p>}
         {invites.isError && <p role="alert">{invites.error.message}</p>}
-        {invites.data && invites.data.items.length === 0 && <p>No invites minted yet.</p>}
-        {invites.data && invites.data.items.length > 0 && (
+        {invites.isSuccess && inviteItems.length === 0 && <p>No invites minted yet.</p>}
+        {inviteItems.length > 0 && (
           <table>
             <caption className="sr-only">Minted invite codes by hash, sponsor cycles, and status</caption>
             <thead>
@@ -112,7 +112,7 @@ export const AdminInvitesPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {invites.data.items.map((invite) => (
+              {inviteItems.map((invite) => (
                 <tr key={invite.code_hash}>
                   <td>{invite.code_hash.slice(0, 12)}…</td>
                   <td>{invite.sponsor_cycles.toString()}</td>
@@ -125,6 +125,12 @@ export const AdminInvitesPage: React.FC = () => {
             </tbody>
           </table>
         )}
+        {invites.hasNextPage && (
+          <button type="button" onClick={() => void invites.fetchNextPage()} disabled={invites.isFetchingNextPage}>
+            {invites.isFetchingNextPage ? 'Loading…' : 'Load more'}
+          </button>
+        )}
+        <p>Revoking unused invites is not available yet: payments has no revoke method.</p>
       </section>
     </div>
   );

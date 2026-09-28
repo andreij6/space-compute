@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Cbor, NodeType, type HashTree, type VerifyFunc, reconstruct } from '@icp-sdk/core/agent';
 import { lebEncode } from '@icp-sdk/core/candid';
 import { Principal } from '@icp-sdk/core/principal';
-import { hashCitation, verifyCitation } from './citation';
+import { hashCitation, verifyCitation, verifyCitationFromEnv } from './citation';
 import { DiscoveryStatus, Vote, type Citation, type CertifiedCitation } from './bindings/platform';
 
 const DER_PREFIX_HEX =
@@ -123,5 +123,15 @@ describe('verifyCitation', () => {
     await expect(
       verifyCitation(tampered, CANISTER.toText(), hexToBytes(GOOD_ROOT_KEY_HEX), { blsVerify: mockBlsVerify }),
     ).resolves.toBe(false);
+  });
+
+  it('fails closed (false, never a thrown error) when the canister env cannot be resolved', async () => {
+    const cc = await buildFixture();
+    await expect(
+      verifyCitationFromEnv(cc, () => {
+        throw new Error('ic_env cookie has no canister id for platform');
+      }),
+    ).resolves.toBe(false);
+    await expect(verifyCitationFromEnv(cc, () => ({ canisterId: CANISTER.toText(), rootKey: undefined }))).resolves.toBe(false);
   });
 });

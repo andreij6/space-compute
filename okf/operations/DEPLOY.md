@@ -59,6 +59,7 @@ walkthrough.
 ```bash
 export SC_ALLOW_MAINNET=1        # only when the owner asked this session
 export DEPLOY_IDENTITY=<named identity>   # never the machine default (prod-deployer)
+export VITE_SC_DOMAIN=<domain>    # frontend CSP: img-src/connect-src allow https://data.<domain>; unset = data bucket blocked
 just release production          # or: bash scripts/deploy-env.sh production
 ```
 
@@ -68,7 +69,7 @@ non-default identity, and a typed confirmation of the environment name (all skip
 upgraded, deploys, wires `platform.payments_id` <-> `payments.platform_id`, optionally
 registers/approves the AAA template wasm (`AAA_REGISTER=1`), smoke-tests every canister
 (`version()`, a public query, an HTTP GET for `frontend`), and rolls back automatically on
-any smoke failure (§4). Add controllers and fund the treasury float right after the first
+any smoke failure (§4). The frontend `_headers` (CSP) is rendered at build time from `src/frontend/headers.template`; local builds get `VITE_LOCAL_DATA_ORIGIN=http://127.0.0.1:8765` from `scripts/deploy-local.sh` only. Add controllers and fund the treasury float right after the first
 successful deploy — see `docs/ops/deploy-runbook.md` §3.
 
 ---

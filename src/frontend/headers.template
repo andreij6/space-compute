@@ -2,7 +2,7 @@
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://icp-api.io https://*.icp-api.io https://*.icp0.io https://*.ic0.app https://*.icp.net https://id.ai https://fonts.googleapis.com https://fonts.gstatic.com http://localhost:* http://*.localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' {{DATA_ORIGINS}} data:; connect-src 'self' {{DATA_ORIGINS}} https://icp-api.io https://*.icp-api.io https://*.icp0.io https://*.ic0.app https://*.icp.net https://id.ai https://fonts.googleapis.com https://fonts.gstatic.com http://localhost:* http://*.localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 
 /.well-known/ii-app-metadata
   Content-Type: application/json

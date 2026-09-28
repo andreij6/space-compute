@@ -4,11 +4,11 @@ import { CheckNameResult } from '../bindings/platform';
 import {
   avatarGrid,
   checkNameResultMessage,
-  clearSpawnOpId,
+  clearSpawnOp,
   initialSpawnState,
-  loadSpawnOpId,
+  loadSpawnOp,
   resumeSpawnState,
-  saveSpawnOpId,
+  saveSpawnOp,
   spawnReducer,
   validateNameLocally,
   type KeyValueStore,
@@ -147,18 +147,45 @@ describe('resumeSpawnState (05 §2 row 6 resume after reload)', () => {
   });
 });
 
-describe('spawn op id storage (resume across reload, 05 §2 row 6)', () => {
-  it('round-trips an op id', () => {
+describe('spawn op storage (resume across reload, 05 §2 row 6)', () => {
+  const alice = 'aaaaa-aa';
+  const bob = '2vxsx-fae';
+  it('round-trips the op id together with the agent name', () => {
     const store = fakeStore();
-    expect(loadSpawnOpId(store)).toBeNull();
-    saveSpawnOpId(store, 12345n);
-    expect(loadSpawnOpId(store)).toBe(12345n);
-    clearSpawnOpId(store);
-    expect(loadSpawnOpId(store)).toBeNull();
+    expect(loadSpawnOp(store, alice)).toBeNull();
+    saveSpawnOp(store, alice, { opId: 12345n, name: 'Hubble Jr' });
+    expect(loadSpawnOp(store, alice)).toEqual({ opId: 12345n, name: 'Hubble Jr' });
+    clearSpawnOp(store, alice);
+    expect(loadSpawnOp(store, alice)).toBeNull();
+  });
+  it('keys storage by principal so another signed-in user never resumes it', () => {
+    const store = fakeStore();
+    saveSpawnOp(store, alice, { opId: 1n, name: 'Alpha' });
+    expect(loadSpawnOp(store, bob)).toBeNull();
   });
   it('ignores a corrupted stored value', () => {
     const store = fakeStore();
-    store.setItem('sc.spawnOpId', 'not-a-number');
-    expect(loadSpawnOpId(store)).toBeNull();
+    store.setItem(`sc.spawnOp:${alice}`, 'not-json');
+    expect(loadSpawnOp(store, alice)).toBeNull();
+    store.setItem(`sc.spawnOp:${alice}`, JSON.stringify({ opId: 'x', name: 'A' }));
+    expect(loadSpawnOp(store, alice)).toBeNull();
+  });
+  it('never throws when storage is unavailable or throws', () => {
+    const throwing: KeyValueStore = {
+      getItem: () => {
+        throw new Error('SecurityError');
+      },
+      setItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+      removeItem: () => {
+        throw new Error('SecurityError');
+      },
+    };
+    expect(() => saveSpawnOp(throwing, alice, { opId: 1n, name: 'A' })).not.toThrow();
+    expect(loadSpawnOp(throwing, alice)).toBeNull();
+    expect(() => clearSpawnOp(throwing, alice)).not.toThrow();
+    expect(loadSpawnOp(null, alice)).toBeNull();
+    expect(() => saveSpawnOp(null, alice, { opId: 1n, name: 'A' })).not.toThrow();
   });
 });

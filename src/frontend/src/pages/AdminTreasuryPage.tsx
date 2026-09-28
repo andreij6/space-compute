@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Principal } from '@icp-sdk/core/principal';
 import { AdminNav } from '../components/AdminNav';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { useAuth } from '../auth';
 import { paymentsActor, treasuryActor } from '../ic';
-import { unwrapAdmin } from '../lib/admin';
+import { parseNat, parsePrincipal, proposalDetails, unwrapAdmin } from '../lib/admin';
+
+const U8_MAX = 255n;
+const U32_MAX = 4_294_967_295n;
+const U64_MAX = 18_446_744_073_709_551_615n;
 
 export const AdminTreasuryPage: React.FC = () => {
   const { identity } = useAuth();
   const queryClient = useQueryClient();
   const [watchTarget, setWatchTarget] = useState('');
-  const [watchMinDays, setWatchMinDays] = useState('7');
+  const [watchPriority, setWatchPriority] = useState('1');
   const [watchTargetDays, setWatchTargetDays] = useState('30');
   const [withdrawTo, setWithdrawTo] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -32,6 +35,10 @@ export const AdminTreasuryPage: React.FC = () => {
     queryKey: ['admin', 'treasury', 'proposals'],
     queryFn: async () => unwrapAdmin(await treasuryActor(identity!).admin_proposals()),
   });
+  const config = useQuery({
+    queryKey: ['admin', 'treasury', 'config'],
+    queryFn: async () => unwrapAdmin(await treasuryActor(identity!).admin_get_config()),
+  });
   const paymentsOverview = useQuery({
     queryKey: ['admin', 'payments', 'overview'],
     queryFn: async () => unwrapAdmin(await paymentsActor(identity!).admin_overview()),
@@ -41,25 +48,43 @@ export const AdminTreasuryPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'treasury'] });
   };
 
+  const watchTargetParsed = parsePrincipal(watchTarget);
+  const watchPriorityParsed = parseNat(watchPriority, 'Priority', U8_MAX);
+  const watchTargetDaysParsed = parseNat(watchTargetDays, 'Target runway days', U32_MAX);
+  const watchErrors = [watchTargetParsed, watchPriorityParsed, watchTargetDaysParsed].flatMap((r) => (r.ok ? [] : [r.error]));
+  const withdrawToParsed = parsePrincipal(withdrawTo);
+  const withdrawAmountParsed = parseNat(withdrawAmount, 'Amount (e8s)', U64_MAX);
+  const withdrawErrors = [withdrawToParsed, withdrawAmountParsed].flatMap((r) => (r.ok ? [] : [r.error]));
+
   const topupNow = useMutation({
-    mutationFn: async (canister: string) =>
-      unwrapAdmin(await treasuryActor(identity!).admin_topup_now(canister ? Principal.fromText(canister) : null)),
+    mutationFn: async () => unwrapAdmin(await treasuryActor(identity!).admin_topup_now(null)),
     onSuccess: invalidateTreasury,
   });
   const watch = useMutation({
-    mutationFn: async () =>
-      unwrapAdmin(
-        await treasuryActor(identity!).admin_watch(Principal.fromText(watchTarget), Number(watchMinDays), Number(watchTargetDays)),
-      ),
+    mutationFn: async () => {
+      if (!watchTargetParsed.ok || !watchPriorityParsed.ok || !watchTargetDaysParsed.ok) throw new Error(watchErrors.join(' '));
+      return unwrapAdmin(
+        await treasuryActor(identity!).admin_watch(
+          watchTargetParsed.value,
+          Number(watchPriorityParsed.value),
+          Number(watchTargetDaysParsed.value),
+        ),
+      );
+    },
     onSuccess: invalidateTreasury,
   });
   const unwatch = useMutation({
-    mutationFn: async (canister: Principal) => unwrapAdmin(await treasuryActor(identity!).admin_unwatch(canister)),
+    mutationFn: async () => {
+      if (!watchTargetParsed.ok) throw new Error(watchTargetParsed.error);
+      return unwrapAdmin(await treasuryActor(identity!).admin_unwatch(watchTargetParsed.value));
+    },
     onSuccess: invalidateTreasury,
   });
   const withdraw = useMutation({
-    mutationFn: async () =>
-      unwrapAdmin(await treasuryActor(identity!).admin_withdraw(Principal.fromText(withdrawTo), BigInt(withdrawAmount))),
+    mutationFn: async () => {
+      if (!withdrawToParsed.ok || !withdrawAmountParsed.ok) throw new Error(withdrawErrors.join(' '));
+      return unwrapAdmin(await treasuryActor(identity!).admin_withdraw(withdrawToParsed.value, withdrawAmountParsed.value));
+    },
     onSuccess: invalidateTreasury,
   });
   const approve = useMutation({
@@ -141,7 +166,7 @@ export const AdminTreasuryPage: React.FC = () => {
 
       <section aria-label="Top up now">
         <h2>Top up now</h2>
-        <ConfirmAction label="top up all watched" phrase="top up" disabled={topupNow.isPending} onConfirm={() => topupNow.mutate('')} />
+        <ConfirmAction label="top up all watched" phrase="top up" disabled={topupNow.isPending} onConfirm={() => topupNow.mutate()} />
         {topupNow.isError && <p role="alert">{topupNow.error.message}</p>}
       </section>
 
@@ -152,21 +177,22 @@ export const AdminTreasuryPage: React.FC = () => {
           <input value={watchTarget} onChange={(e) => setWatchTarget(e.target.value)} />
         </label>
         <label>
-          Min runway days
-          <input value={watchMinDays} onChange={(e) => setWatchMinDays(e.target.value)} />
+          Priority (0-255)
+          <input value={watchPriority} onChange={(e) => setWatchPriority(e.target.value)} />
         </label>
         <label>
           Target runway days
           <input value={watchTargetDays} onChange={(e) => setWatchTargetDays(e.target.value)} />
         </label>
-        <button type="button" disabled={watch.isPending || !watchTarget} onClick={() => watch.mutate()}>
+        {watchTarget && watchErrors.length > 0 && <p role="alert">{watchErrors.join(' ')}</p>}
+        <button type="button" disabled={watch.isPending || watchErrors.length > 0} onClick={() => watch.mutate()}>
           Watch
         </button>
         <ConfirmAction
           label="unwatch"
-          phrase={watchTarget || 'canister'}
-          disabled={unwatch.isPending || !watchTarget}
-          onConfirm={() => unwatch.mutate(Principal.fromText(watchTarget))}
+          phrase={watchTarget.trim() || 'canister'}
+          disabled={unwatch.isPending || !watchTargetParsed.ok}
+          onConfirm={() => unwatch.mutate()}
         />
         {(watch.isError || unwatch.isError) && <p role="alert">{watch.error?.message ?? unwatch.error?.message}</p>}
       </section>
@@ -181,10 +207,11 @@ export const AdminTreasuryPage: React.FC = () => {
           Amount (e8s)
           <input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} />
         </label>
+        {(withdrawTo || withdrawAmount) && withdrawErrors.length > 0 && <p role="alert">{withdrawErrors.join(' ')}</p>}
         <ConfirmAction
           label="propose withdrawal"
           phrase="withdraw"
-          disabled={withdraw.isPending || !withdrawTo || !withdrawAmount}
+          disabled={withdraw.isPending || withdrawErrors.length > 0}
           onConfirm={() => withdraw.mutate()}
         />
         {withdraw.isError && <p role="alert">{withdraw.error.message}</p>}
@@ -205,12 +232,19 @@ export const AdminTreasuryPage: React.FC = () => {
                 <tr key={id.toString()}>
                   <td>{id.toString()}</td>
                   <td>{p.proposer.toText()}</td>
-                  <td>{p.action.__kind__}</td>
+                  <td>
+                    {p.action.__kind__}
+                    <ul aria-label={`Proposal ${id.toString()} details`}>
+                      {proposalDetails(p.action, config.data).map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </td>
                   <td>
                     <ConfirmAction
                       label="approve"
                       phrase={id.toString()}
-                      disabled={approve.isPending}
+                      disabled={approve.isPending || (p.action.__kind__ === 'SetConfig' && !config.data)}
                       onConfirm={() => approve.mutate(id)}
                     />
                   </td>

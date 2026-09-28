@@ -94,3 +94,19 @@ export async function verifyCitation(
     return false;
   }
 }
+
+export type CitationEnv = { canisterId: string; rootKey: Uint8Array | undefined };
+
+export async function verifyCitationFromEnv(
+  cc: CertifiedCitation,
+  resolve: () => CitationEnv,
+  opts: VerifyOptions = {},
+): Promise<boolean> {
+  try {
+    const { canisterId, rootKey } = resolve();
+    if (!rootKey) return false;
+    return await verifyCitation(cc, canisterId, rootKey, opts);
+  } catch {
+    return false;
+  }
+}

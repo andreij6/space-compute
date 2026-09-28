@@ -63,6 +63,10 @@ export function netFlag(hostname: string): string {
   return isLocalHost(hostname) ? '-e local' : '-n ic';
 }
 
+export function newIdentityCommand(identityName: string): string {
+  return `icp identity new ${identityName}`;
+}
+
 export function firstContactCommand(aaaIdText: string, identityName: string, net: string): string {
   return `icp canister call ${aaaIdText} whoami '()' ${net} --identity ${identityName} --query --candid agent-kit/skills/space-compute-astronomer/reference/aaa.did`;
 }
