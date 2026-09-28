@@ -201,3 +201,9 @@
 | 05 §3: quote e8s → ICP display formatting, ApiError → human message for every variant, and the op polling state machine (poll every 3s while Pending/Pulled/Notified/Registered, stop on Done, stop and surface Failed/Refunded as terminal) (vitest, mocked actors) | T6.5 | src/frontend/src/lib/paymentOps.test.ts |
 | T6.5 acceptance "Deposit path e2e local": sign in, open the /spawn payment panel, read the Deposit-tab account id from `get_deposit_account`, fund it from a local ledger transfer (`icp token transfer` as `sc-user`), confirm, and poll `get_op` to Done, landing on /dashboard (Playwright, `npm run e2e` after `just deploy-local`) | T6.5 | src/frontend/tests/e2e/deposit.spec.ts |
 | T6.5 demo screenshot: deposit path resolved to Done on /spawn | T6.5 | docs/demos/T6.5/deposit-done.png |
+| 02 §8.2: tier label decodes to every spec tier name, falling back to a generic label for an unknown tier (vitest) | T6.4 | src/frontend/src/progression.test.ts |
+| 02 §8.2: badge bitmask decodes every spec badge bit individually, in combination, empty, and fully set (vitest) | T6.4 | src/frontend/src/progression.test.ts |
+| 05 §2 route 5: `/leaderboard` cursor paging (inverted_xp, aaa, rank) accumulates rows across pages without duplicates (vitest) | T6.4 | src/frontend/src/paging.test.ts |
+| 05 §2 route 4: `/aaa/:id` credited-discoveries cursor paging accumulates without duplicates across pages (vitest) | T6.4 | src/frontend/src/paging.test.ts |
+| T6.4 acceptance "Tier/badges render": `/leaderboard` renders (empty state acceptable pre-Observer-tier) and an unknown AAA id on `/aaa/:id` renders the not-found empty state (Playwright, `npm run e2e` after `just deploy-local`) | T6.4 | src/frontend/tests/e2e/aaa-leaderboard.spec.ts |
+| T6.4 demo screenshots: leaderboard empty state, AAA profile not-found empty state | T6.4 | docs/demos/T6.4/02_profile_not_found.png |
