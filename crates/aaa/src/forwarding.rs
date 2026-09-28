@@ -1,11 +1,39 @@
+use std::cell::RefCell;
+use std::collections::BTreeSet;
+
 use candid::Principal;
 use sc_types::{ApiError, ClassificationSubmission, ReviewSubmission};
+
+use crate::repository::IdemKey;
+
+thread_local! {
+    static IN_FLIGHT: RefCell<BTreeSet<IdemKey>> = const { RefCell::new(BTreeSet::new()) };
+}
+
+pub struct InFlight(IdemKey);
+
+impl InFlight {
+    pub fn acquire(key: IdemKey) -> Result<Self, ApiError> {
+        IN_FLIGHT.with_borrow_mut(|s| {
+            if s.insert(key) {
+                Ok(InFlight(key))
+            } else {
+                Err(ApiError::Conflict("submission already in flight".into()))
+            }
+        })
+    }
+}
+
+impl Drop for InFlight {
+    fn drop(&mut self) {
+        IN_FLIGHT.with_borrow_mut(|s| s.remove(&self.0));
+    }
+}
 
 pub fn is_sys_unknown(err: &ic_cdk::call::CallFailed) -> bool {
     match err {
         ic_cdk::call::CallFailed::CallRejected(rejected) => {
             rejected.reject_code() == Ok(ic_cdk::call::RejectCode::SysUnknown)
-                || rejected.raw_reject_code() == 5
         }
         _ => false,
     }
@@ -83,6 +111,27 @@ mod tests {
     }
 
     #[test]
+    fn t3_2_in_flight_guard_blocks_the_same_key_until_dropped() {
+        let task = IdemKey {
+            review: false,
+            id: 9,
+        };
+        let review = IdemKey {
+            review: true,
+            id: 9,
+        };
+        let first = InFlight::acquire(task).unwrap();
+        assert!(matches!(
+            InFlight::acquire(task),
+            Err(ApiError::Conflict(_))
+        ));
+        let other = InFlight::acquire(review).unwrap();
+        drop(first);
+        assert!(InFlight::acquire(task).is_ok());
+        drop(other);
+    }
+
+    #[test]
     fn t3_2_check_low_cycles_refuses_when_under_threshold() {
         assert!(check_low_cycles(5_000, 10_000).is_err());
         assert!(check_low_cycles(10_000, 10_000).is_ok());
@@ -124,16 +173,16 @@ mod tests {
     }
 
     #[test]
-    fn t3_4_is_sys_unknown_matches_reject_code_6_and_raw_5() {
+    fn t3_4_is_sys_unknown_matches_only_reject_code_6() {
         use ic_cdk::call::{CallFailed, CallRejected};
 
         let sys_unknown =
             CallFailed::CallRejected(CallRejected::with_rejection(6, "uncertain outcome".into()));
         assert!(is_sys_unknown(&sys_unknown));
 
-        let raw_five =
+        let canister_error =
             CallFailed::CallRejected(CallRejected::with_rejection(5, "canister error".into()));
-        assert!(is_sys_unknown(&raw_five));
+        assert!(!is_sys_unknown(&canister_error));
 
         let canister_reject =
             CallFailed::CallRejected(CallRejected::with_rejection(4, "explicit reject".into()));

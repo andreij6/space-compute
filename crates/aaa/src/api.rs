@@ -1,16 +1,67 @@
-use candid::Principal;
+use candid::{CandidType, Principal};
 use ic_cdk::call::Call;
 use sc_types::ApiError;
+use serde::de::DeserializeOwned;
 
 use crate::config;
-use crate::forwarding::{self, is_sys_unknown};
+use crate::forwarding::{self, is_sys_unknown, InFlight};
 use crate::operators::{self, Operator};
 use crate::params;
 use crate::record::{
     ListRecordsFilter, PageCreditCopy, PageRecord, PublicStatus, Record, RecordKind, Status,
 };
-use crate::repository;
+use crate::repository::{self, IdemKey};
 use crate::roles::{self, Role};
+
+async fn ensure_fuel(cfg: &config::Config, cached: &params::CachedParams) -> Result<(), ApiError> {
+    let balance = ic_cdk::api::canister_cycle_balance();
+    let Err(e) = forwarding::check_low_cycles(balance, cached.low_cycles_threshold()) else {
+        return Ok(());
+    };
+    if cfg.auto_topup.is_some() {
+        let res = Call::bounded_wait(cfg.payments_id, "request_auto_topup")
+            .with_args(&())
+            .change_timeout(10)
+            .await;
+        if res.is_err() {
+            repository::update_stats(|s| {
+                s.auto_topup_failures = s.auto_topup_failures.saturating_add(1)
+            });
+        }
+    }
+    Err(e)
+}
+
+async fn forward_submit<A: CandidType, R: CandidType + DeserializeOwned>(
+    platform: Principal,
+    method: &str,
+    arg: &A,
+    fee: u128,
+) -> Result<R, ApiError> {
+    let call = || {
+        Call::bounded_wait(platform, method)
+            .with_arg(arg)
+            .with_cycles(fee)
+            .change_timeout(60)
+    };
+    let resp = match call().await {
+        Ok(r) => r,
+        Err(e) if is_sys_unknown(&e) => call()
+            .await
+            .map_err(|e| ApiError::Internal(format!("{method} retry failed: {e}")))?,
+        Err(e) => return Err(ApiError::Internal(format!("{method} failed: {e}"))),
+    };
+    resp.candid::<Result<R, ApiError>>()
+        .map_err(|e| ApiError::Internal(format!("decode {method}: {e}")))?
+}
+
+fn task_key(id: u64) -> IdemKey {
+    IdemKey { review: false, id }
+}
+
+fn review_key(id: u64) -> IdemKey {
+    IdemKey { review: true, id }
+}
 
 fn require_owner() -> Result<Principal, ApiError> {
     let caller = ic_cdk::api::msg_caller();
@@ -61,6 +112,42 @@ async fn remove_operator(p: Principal) -> Result<(), ApiError> {
     Ok(())
 }
 
+#[derive(candid::CandidType, serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq)]
+pub struct ProfileUpdate {
+    pub name: Option<String>,
+    pub avatar_seed: Option<u64>,
+}
+
+#[ic_cdk::update]
+async fn set_profile(args: ProfileUpdate) -> Result<(), ApiError> {
+    require_owner()?;
+    let update = ProfileUpdate {
+        name: args
+            .name
+            .as_deref()
+            .map(sc_types::limits::aaa_name)
+            .transpose()?,
+        avatar_seed: args.avatar_seed,
+    };
+    let reply = Call::bounded_wait(config::get().platform_id, "update_aaa_profile")
+        .with_arg(&update)
+        .change_timeout(60)
+        .await
+        .map_err(|e| ApiError::Internal(format!("update_aaa_profile failed: {e}")))?;
+    reply
+        .candid::<Result<(), ApiError>>()
+        .map_err(|e| ApiError::Internal(format!("decode update_aaa_profile: {e}")))??;
+    config::update(|c| {
+        if let Some(name) = update.name {
+            c.name = name;
+        }
+        if let Some(seed) = update.avatar_seed {
+            c.avatar_seed = seed;
+        }
+        Ok(())
+    })
+}
+
 #[ic_cdk::update]
 fn set_agent_label(label: Option<String>) -> Result<(), ApiError> {
     require_owner()?;
@@ -101,14 +188,7 @@ async fn get_task() -> Result<sc_types::Task, ApiError> {
     forwarding::verify_caller(caller, cfg.owner, op_active)?;
 
     let cached = params::get();
-    let balance = ic_cdk::api::canister_cycle_balance();
-    if let Err(e) = forwarding::check_low_cycles(balance, cached.low_cycles_threshold()) {
-        let _ = Call::bounded_wait(cfg.payments_id, "request_auto_topup")
-            .with_args(&())
-            .change_timeout(10)
-            .await;
-        return Err(e);
-    }
+    ensure_fuel(&cfg, &cached).await?;
 
     let mut fee = cached.fee_get_task;
     let reply = Call::bounded_wait(cfg.platform_id, "get_task")
@@ -127,7 +207,7 @@ async fn get_task() -> Result<sc_types::Task, ApiError> {
                         operators::touch(&caller, now);
                     }
                     repository::update_stats(|s| s.last_activity_at = now);
-                    repository::remember_subject(task.task_id, task.subject.clone());
+                    repository::remember_subject(task_key(task.task_id), task.subject.clone());
                     Ok(task)
                 }
                 Err(ApiError::InsufficientFee { required }) => {
@@ -146,7 +226,7 @@ async fn get_task() -> Result<sc_types::Task, ApiError> {
                             operators::touch(&caller, now);
                         }
                         repository::update_stats(|s| s.last_activity_at = now);
-                        repository::remember_subject(task.task_id, task.subject.clone());
+                        repository::remember_subject(task_key(task.task_id), task.subject.clone());
                     }
                     res
                 }
@@ -168,127 +248,49 @@ async fn submit_classification(
     forwarding::verify_caller(caller, cfg.owner, op_active)?;
 
     let cached = params::get();
-    let balance = ic_cdk::api::canister_cycle_balance();
-    if let Err(e) = forwarding::check_low_cycles(balance, cached.low_cycles_threshold()) {
-        let _ = Call::bounded_wait(cfg.payments_id, "request_auto_topup")
-            .with_args(&())
-            .change_timeout(10)
-            .await;
-        return Err(e);
-    }
+    ensure_fuel(&cfg, &cached).await?;
 
     let sub = forwarding::prepare_classification_submission(submission, caller, cfg.agent_label);
+    let key = task_key(sub.task_id);
+    let _in_flight = InFlight::acquire(key)?;
     let mut fee = cached.fee_submit_classification;
-    let subject = repository::take_subject(sub.task_id);
-
-    let call_res = Call::bounded_wait(cfg.platform_id, "submit_classification")
-        .with_arg(&sub)
-        .with_cycles(fee)
-        .change_timeout(60)
-        .await;
-
-    let resp = match call_res {
-        Ok(r) => r,
-        Err(e) => {
-            if is_sys_unknown(&e) {
-                Call::bounded_wait(cfg.platform_id, "submit_classification")
-                    .with_arg(&sub)
-                    .with_cycles(fee)
-                    .change_timeout(60)
-                    .await
-                    .map_err(|e| {
-                        ApiError::Internal(format!("submit_classification retry failed: {e}"))
-                    })?
-            } else {
-                return Err(ApiError::Internal(format!(
-                    "submit_classification failed: {e}"
-                )));
-            }
-        }
-    };
-
-    let res: Result<sc_types::ClassificationReceipt, ApiError> = resp
-        .candid()
-        .map_err(|e| ApiError::Internal(format!("decode submit_classification: {e}")))?;
-
-    match res {
-        Ok(receipt) => {
-            if repository::get_seq_by_task(sub.task_id).is_none() {
-                let record = Record {
-                    v: 1,
-                    seq: 0,
-                    at: now,
-                    kind: if sub.discovery.is_some() {
-                        RecordKind::Discovery
-                    } else {
-                        RecordKind::Classification
-                    },
-                    task_or_assignment_id: Some(sub.task_id),
-                    subject: subject.clone(),
-                    answers: sub.answers,
-                    discovery_public_id: receipt.discovery_id.clone(),
-                    category: sub.discovery.as_ref().map(|d| d.category.clone()),
-                    vote: None,
-                    rationale: sub.discovery.as_ref().map(|d| d.rationale.clone()),
-                    outcome: None,
-                    xp_awarded: receipt.xp_awarded,
-                    agent_label: sub.agent_label,
-                    fee,
-                    by: caller,
-                };
-                repository::insert_record(record);
-            }
-            if op_active {
-                operators::touch(&caller, now);
-            }
-            Ok(receipt)
-        }
-        Err(ApiError::InsufficientFee { required }) => {
-            fee = required.0.try_into().unwrap_or(fee);
-            params::update_fee_submit_classification(fee);
-            let retry_resp = Call::bounded_wait(cfg.platform_id, "submit_classification")
-                .with_arg(&sub)
-                .with_cycles(fee)
-                .change_timeout(60)
-                .await
-                .map_err(|e| ApiError::Internal(format!("retry submit_classification: {e}")))?;
-            let retry_res: Result<sc_types::ClassificationReceipt, ApiError> = retry_resp
-                .candid()
-                .map_err(|e| ApiError::Internal(format!("decode retry: {e}")))?;
-            if let Ok(ref receipt) = retry_res {
-                if repository::get_seq_by_task(sub.task_id).is_none() {
-                    let record = Record {
-                        v: 1,
-                        seq: 0,
-                        at: now,
-                        kind: if sub.discovery.is_some() {
-                            RecordKind::Discovery
-                        } else {
-                            RecordKind::Classification
-                        },
-                        task_or_assignment_id: Some(sub.task_id),
-                        subject,
-                        answers: sub.answers,
-                        discovery_public_id: receipt.discovery_id.clone(),
-                        category: sub.discovery.as_ref().map(|d| d.category.clone()),
-                        vote: None,
-                        rationale: sub.discovery.as_ref().map(|d| d.rationale.clone()),
-                        outcome: None,
-                        xp_awarded: receipt.xp_awarded,
-                        agent_label: sub.agent_label,
-                        fee,
-                        by: caller,
-                    };
-                    repository::insert_record(record);
-                }
-                if op_active {
-                    operators::touch(&caller, now);
-                }
-            }
-            retry_res
-        }
-        Err(e) => Err(e),
+    let mut res: Result<sc_types::ClassificationReceipt, ApiError> =
+        forward_submit(cfg.platform_id, "submit_classification", &sub, fee).await;
+    if let Err(ApiError::InsufficientFee { required }) = &res {
+        fee = required.0.clone().try_into().unwrap_or(fee);
+        params::update_fee_submit_classification(fee);
+        res = forward_submit(cfg.platform_id, "submit_classification", &sub, fee).await;
     }
+    let receipt = res?;
+    let subject = repository::take_subject(key);
+    if repository::get_seq_by_task(sub.task_id).is_none() {
+        repository::insert_record(Record {
+            v: 1,
+            seq: 0,
+            at: now,
+            kind: if sub.discovery.is_some() {
+                RecordKind::Discovery
+            } else {
+                RecordKind::Classification
+            },
+            task_or_assignment_id: Some(sub.task_id),
+            subject,
+            answers: sub.answers,
+            discovery_public_id: receipt.discovery_id.clone(),
+            category: sub.discovery.as_ref().map(|d| d.category.clone()),
+            vote: None,
+            rationale: sub.discovery.as_ref().map(|d| d.rationale.clone()),
+            outcome: None,
+            xp_awarded: receipt.xp_awarded,
+            agent_label: sub.agent_label,
+            fee,
+            by: caller,
+        });
+    }
+    if op_active {
+        operators::touch(&caller, now);
+    }
+    Ok(receipt)
 }
 
 #[ic_cdk::update]
@@ -300,14 +302,7 @@ async fn get_review_assignment() -> Result<Option<sc_types::ReviewAssignment>, A
     forwarding::verify_caller(caller, cfg.owner, op_active)?;
 
     let cached = params::get();
-    let balance = ic_cdk::api::canister_cycle_balance();
-    if let Err(e) = forwarding::check_low_cycles(balance, cached.low_cycles_threshold()) {
-        let _ = Call::bounded_wait(cfg.payments_id, "request_auto_topup")
-            .with_args(&())
-            .change_timeout(10)
-            .await;
-        return Err(e);
-    }
+    ensure_fuel(&cfg, &cached).await?;
 
     let mut fee = cached.fee_get_review;
     let reply = Call::bounded_wait(cfg.platform_id, "get_review_assignment")
@@ -327,7 +322,10 @@ async fn get_review_assignment() -> Result<Option<sc_types::ReviewAssignment>, A
                     }
                     repository::update_stats(|s| s.last_activity_at = now);
                     if let Some(ref a) = assignment {
-                        repository::remember_subject(a.assignment_id, a.subject.clone());
+                        repository::remember_subject(
+                            review_key(a.assignment_id),
+                            a.subject.clone(),
+                        );
                     }
                     Ok(assignment)
                 }
@@ -351,7 +349,10 @@ async fn get_review_assignment() -> Result<Option<sc_types::ReviewAssignment>, A
                         }
                         repository::update_stats(|s| s.last_activity_at = now);
                         if let Some(a) = assignment {
-                            repository::remember_subject(a.assignment_id, a.subject.clone());
+                            repository::remember_subject(
+                                review_key(a.assignment_id),
+                                a.subject.clone(),
+                            );
                         }
                     }
                     res
@@ -376,115 +377,45 @@ async fn submit_review(
     forwarding::verify_caller(caller, cfg.owner, op_active)?;
 
     let cached = params::get();
-    let balance = ic_cdk::api::canister_cycle_balance();
-    if let Err(e) = forwarding::check_low_cycles(balance, cached.low_cycles_threshold()) {
-        let _ = Call::bounded_wait(cfg.payments_id, "request_auto_topup")
-            .with_args(&())
-            .change_timeout(10)
-            .await;
-        return Err(e);
-    }
+    ensure_fuel(&cfg, &cached).await?;
 
     let sub = forwarding::prepare_review_submission(submission, caller, cfg.agent_label);
+    let key = review_key(sub.assignment_id);
+    let _in_flight = InFlight::acquire(key)?;
     let mut fee = cached.fee_submit_review;
-    let subject = repository::take_subject(sub.assignment_id);
-
-    let call_res = Call::bounded_wait(cfg.platform_id, "submit_review")
-        .with_arg(&sub)
-        .with_cycles(fee)
-        .change_timeout(60)
-        .await;
-
-    let resp = match call_res {
-        Ok(r) => r,
-        Err(e) => {
-            if is_sys_unknown(&e) {
-                Call::bounded_wait(cfg.platform_id, "submit_review")
-                    .with_arg(&sub)
-                    .with_cycles(fee)
-                    .change_timeout(60)
-                    .await
-                    .map_err(|e| ApiError::Internal(format!("submit_review retry failed: {e}")))?
-            } else {
-                return Err(ApiError::Internal(format!("submit_review failed: {e}")));
-            }
-        }
-    };
-
-    let res: Result<sc_types::ReviewReceipt, ApiError> = resp
-        .candid()
-        .map_err(|e| ApiError::Internal(format!("decode submit_review: {e}")))?;
-
-    match res {
-        Ok(receipt) => {
-            if repository::get_seq_by_review(sub.assignment_id).is_none() {
-                let record = Record {
-                    v: 1,
-                    seq: 0,
-                    at: now,
-                    kind: RecordKind::Review,
-                    task_or_assignment_id: Some(sub.assignment_id),
-                    subject: subject.clone(),
-                    answers: Vec::new(),
-                    discovery_public_id: None,
-                    category: None,
-                    vote: Some(sub.vote),
-                    rationale: Some(sub.rationale),
-                    outcome: None,
-                    xp_awarded: receipt.xp_awarded,
-                    agent_label: sub.agent_label,
-                    fee,
-                    by: caller,
-                };
-                repository::insert_record(record);
-            }
-            if op_active {
-                operators::touch(&caller, now);
-            }
-            Ok(receipt)
-        }
-        Err(ApiError::InsufficientFee { required }) => {
-            fee = required.0.try_into().unwrap_or(fee);
-            params::update_fee_submit_review(fee);
-            let retry_resp = Call::bounded_wait(cfg.platform_id, "submit_review")
-                .with_arg(&sub)
-                .with_cycles(fee)
-                .change_timeout(60)
-                .await
-                .map_err(|e| ApiError::Internal(format!("retry submit_review: {e}")))?;
-            let retry_res: Result<sc_types::ReviewReceipt, ApiError> = retry_resp
-                .candid()
-                .map_err(|e| ApiError::Internal(format!("decode retry: {e}")))?;
-            if let Ok(ref receipt) = retry_res {
-                if repository::get_seq_by_review(sub.assignment_id).is_none() {
-                    let record = Record {
-                        v: 1,
-                        seq: 0,
-                        at: now,
-                        kind: RecordKind::Review,
-                        task_or_assignment_id: Some(sub.assignment_id),
-                        subject,
-                        answers: Vec::new(),
-                        discovery_public_id: None,
-                        category: None,
-                        vote: Some(sub.vote),
-                        rationale: Some(sub.rationale),
-                        outcome: None,
-                        xp_awarded: receipt.xp_awarded,
-                        agent_label: sub.agent_label,
-                        fee,
-                        by: caller,
-                    };
-                    repository::insert_record(record);
-                }
-                if op_active {
-                    operators::touch(&caller, now);
-                }
-            }
-            retry_res
-        }
-        Err(e) => Err(e),
+    let mut res: Result<sc_types::ReviewReceipt, ApiError> =
+        forward_submit(cfg.platform_id, "submit_review", &sub, fee).await;
+    if let Err(ApiError::InsufficientFee { required }) = &res {
+        fee = required.0.clone().try_into().unwrap_or(fee);
+        params::update_fee_submit_review(fee);
+        res = forward_submit(cfg.platform_id, "submit_review", &sub, fee).await;
     }
+    let receipt = res?;
+    let subject = repository::take_subject(key);
+    if repository::get_seq_by_review(sub.assignment_id).is_none() {
+        repository::insert_record(Record {
+            v: 1,
+            seq: 0,
+            at: now,
+            kind: RecordKind::Review,
+            task_or_assignment_id: Some(sub.assignment_id),
+            subject,
+            answers: Vec::new(),
+            discovery_public_id: None,
+            category: None,
+            vote: Some(sub.vote),
+            rationale: Some(sub.rationale),
+            outcome: None,
+            xp_awarded: receipt.xp_awarded,
+            agent_label: sub.agent_label,
+            fee,
+            by: caller,
+        });
+    }
+    if op_active {
+        operators::touch(&caller, now);
+    }
+    Ok(receipt)
 }
 
 #[ic_cdk::query]

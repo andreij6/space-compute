@@ -12,6 +12,7 @@ pub mod repository;
 pub mod roles;
 mod timers;
 
+use api::ProfileUpdate;
 use candid::Principal;
 use config::AaaInit;
 use operators::Operator;
@@ -29,6 +30,7 @@ fn init(init_arg: AaaInit) {
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    config::stamp_wasm_version();
     timers::start();
 }
 

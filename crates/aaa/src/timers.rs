@@ -26,9 +26,17 @@ pub fn start() {
 
 async fn burn_tick() {
     let balance = ic_cdk::api::canister_cycle_balance();
+    let now = ic_cdk::api::time();
     repository::update_stats(|s| {
-        s.burn_ema_daily = burn::tick_burn_sample(s.last_balance_sample, balance, s.burn_ema_daily);
+        s.burn_ema_daily = burn::tick_burn_sample(
+            s.last_balance_sample,
+            s.last_sample_at,
+            balance,
+            now,
+            s.burn_ema_daily,
+        );
         s.last_balance_sample = Some(balance);
+        s.last_sample_at = Some(now);
     });
 
     let cfg = config::get();
@@ -73,18 +81,29 @@ async fn daily_tick() {
         }
     }
 
-    let cursor = repository::get_stats().credits_cursor;
-    if let Ok(reply) = Call::bounded_wait(cfg.platform_id, "list_aaa_credits")
-        .with_arg(&ListAaaCreditsArgs {
-            aaa: ic_cdk::api::canister_self(),
-            cursor,
-        })
-        .change_timeout(10)
-        .await
-    {
-        if let Ok(page) = reply.candid::<CreditPage>() {
-            let next_cursor = crate::credits::apply_credit_page(page, cursor);
-            repository::update_stats(|s| s.credits_cursor = next_cursor);
+    sync_credits(cfg.platform_id).await;
+}
+
+async fn sync_credits(platform_id: candid::Principal) {
+    for _ in 0..crate::credits::MAX_PAGES_PER_TICK {
+        let cursor = repository::get_stats().credits_cursor;
+        let Ok(reply) = Call::bounded_wait(platform_id, "list_aaa_credits")
+            .with_arg(&ListAaaCreditsArgs {
+                aaa: ic_cdk::api::canister_self(),
+                cursor,
+            })
+            .change_timeout(10)
+            .await
+        else {
+            return;
+        };
+        let Ok(page) = reply.candid::<CreditPage>() else {
+            return;
+        };
+        let (next_cursor, more) = crate::credits::apply_credit_page(page, cursor);
+        repository::update_stats(|s| s.credits_cursor = next_cursor);
+        if !more {
+            return;
         }
     }
 }

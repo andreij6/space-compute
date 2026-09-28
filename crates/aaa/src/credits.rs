@@ -16,11 +16,16 @@ pub struct ListAaaCreditsArgs {
     pub cursor: u64,
 }
 
-pub fn apply_credit_page(page: CreditPage, cursor_before: u64) -> u64 {
+pub const MAX_PAGES_PER_TICK: usize = 10;
+
+pub fn apply_credit_page(page: CreditPage, cursor_before: u64) -> (u64, bool) {
     for credit in page.items {
         repository::upsert_credit(credit);
     }
-    page.next_cursor.unwrap_or(cursor_before)
+    match page.next_cursor {
+        Some(next) => (next, next != cursor_before),
+        None => (cursor_before, false),
+    }
 }
 
 #[cfg(test)]
@@ -47,8 +52,7 @@ mod tests {
             items: vec![credit("SC-2026-000001")],
             next_cursor: Some(7),
         };
-        let next = apply_credit_page(page, 0);
-        assert_eq!(next, 7);
+        assert_eq!(apply_credit_page(page, 0), (7, true));
         assert_eq!(
             repository::get_credit("SC-2026-000001").map(|c| c.public_id),
             Some("SC-2026-000001".into())
@@ -61,7 +65,15 @@ mod tests {
             items: vec![],
             next_cursor: None,
         };
-        let next = apply_credit_page(page, 5);
-        assert_eq!(next, 5);
+        assert_eq!(apply_credit_page(page, 5), (5, false));
+    }
+
+    #[test]
+    fn t3_4_apply_credit_page_stops_when_the_cursor_does_not_advance() {
+        let page = CreditPage {
+            items: vec![],
+            next_cursor: Some(5),
+        };
+        assert_eq!(apply_credit_page(page, 5), (5, false));
     }
 }

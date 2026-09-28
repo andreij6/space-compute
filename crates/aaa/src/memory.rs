@@ -13,7 +13,7 @@ pub const STATS: u8 = 4;
 pub const CREDITS: u8 = 5;
 pub const PARAMS: u8 = 6;
 pub const DISCOVERY_INDEX: u8 = 7;
-pub const PENDING_SUBJECTS: u8 = 8;
+pub const PENDING_SUBJECTS: u8 = 9;
 
 thread_local! {
     static MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =

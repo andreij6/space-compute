@@ -12,6 +12,7 @@ use crate::record::{
 };
 
 pub const MAX_RECORDS_QUOTA: u64 = 1_000_000;
+pub const MAX_PENDING_SUBJECTS: u64 = 256;
 
 #[derive(
     CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord,
@@ -34,7 +35,7 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory::get(memory::CREDITS)));
     static DISCOVERY_INDEX: RefCell<StableBTreeMap<String, u64, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::DISCOVERY_INDEX)));
-    static PENDING_SUBJECTS: RefCell<StableBTreeMap<u64, StoredSubject, Memory>> =
+    static PENDING_SUBJECTS: RefCell<StableBTreeMap<IdemKey, StoredSubject, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::PENDING_SUBJECTS)));
 }
 
@@ -105,14 +106,25 @@ pub fn get_seq_by_review(assignment_id: u64) -> Option<u64> {
     get_seq(true, assignment_id)
 }
 
-pub fn remember_subject(task_or_assignment_id: u64, subject: sc_types::SubjectRef) {
+pub fn remember_subject(key: IdemKey, subject: sc_types::SubjectRef) {
     PENDING_SUBJECTS.with_borrow_mut(|m| {
-        m.insert(task_or_assignment_id, StoredSubject(subject));
+        while m.len() >= MAX_PENDING_SUBJECTS && !m.contains_key(&key) {
+            m.pop_first();
+        }
+        m.insert(key, StoredSubject(subject));
     });
 }
 
-pub fn take_subject(task_or_assignment_id: u64) -> Option<sc_types::SubjectRef> {
-    PENDING_SUBJECTS.with_borrow_mut(|m| m.remove(&task_or_assignment_id).map(|s| s.0))
+pub fn pending_subject(key: IdemKey) -> Option<sc_types::SubjectRef> {
+    PENDING_SUBJECTS.with_borrow(|m| m.get(&key).map(|s| s.0))
+}
+
+pub fn take_subject(key: IdemKey) -> Option<sc_types::SubjectRef> {
+    PENDING_SUBJECTS.with_borrow_mut(|m| m.remove(&key).map(|s| s.0))
+}
+
+pub fn count_pending_subjects() -> u64 {
+    PENDING_SUBJECTS.with_borrow(|m| m.len())
 }
 
 pub fn count_records() -> u64 {
@@ -432,10 +444,9 @@ mod tests {
         );
     }
 
-    #[test]
-    fn t3_4_remember_and_take_subject_round_trips_once() {
-        let subject = sc_types::SubjectRef {
-            subject_id: 1,
+    fn subject(id: u32) -> sc_types::SubjectRef {
+        sc_types::SubjectRef {
+            subject_id: id,
             field: "ceers".into(),
             ra_deg: 1.0,
             dec_deg: 2.0,
@@ -444,9 +455,44 @@ mod tests {
             dossier_url: "https://x/dossier.json".into(),
             dossier_sha256: vec![2; 32],
             data_version: 1,
+        }
+    }
+
+    #[test]
+    fn t3_4_remember_and_take_subject_round_trips_once() {
+        let key = IdemKey {
+            review: false,
+            id: 4242,
         };
-        remember_subject(4242, subject.clone());
-        assert_eq!(take_subject(4242), Some(subject));
-        assert_eq!(take_subject(4242), None);
+        remember_subject(key, subject(1));
+        assert_eq!(pending_subject(key), Some(subject(1)));
+        assert_eq!(take_subject(key), Some(subject(1)));
+        assert_eq!(take_subject(key), None);
+    }
+
+    #[test]
+    fn t3_4_pending_subjects_are_keyed_by_kind_and_bounded() {
+        let task = IdemKey {
+            review: false,
+            id: 7_000_000,
+        };
+        let review = IdemKey {
+            review: true,
+            id: 7_000_000,
+        };
+        remember_subject(task, subject(1));
+        remember_subject(review, subject(2));
+        assert_eq!(take_subject(task), Some(subject(1)));
+        assert_eq!(take_subject(review), Some(subject(2)));
+
+        for id in 0..MAX_PENDING_SUBJECTS + 10 {
+            remember_subject(IdemKey { review: false, id }, subject(3));
+        }
+        assert_eq!(count_pending_subjects(), MAX_PENDING_SUBJECTS);
+        let newest = IdemKey {
+            review: false,
+            id: MAX_PENDING_SUBJECTS + 9,
+        };
+        assert_eq!(pending_subject(newest), Some(subject(3)));
     }
 }

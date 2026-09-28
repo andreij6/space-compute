@@ -71,13 +71,22 @@
 | sync_credit_copy and simulate_sys_unknown_once removed from the production interface | T3.4 | t3_4_burn_ema_heartbeat_credits_and_auto_topup_timers |
 | 03 §8.1: non-operator ingress to get_task rejected; operator succeeds and the fee is deducted | T3.6 | t3_2_one_record_per_task_under_retry |
 | 03 §8.2: owner adds/removes operators; a removed operator is rejected immediately | T3.6 | t3_2_one_record_per_task_under_retry |
-| 03 §8.3: a submit retried after a real SYS_UNKNOWN reject (platform stopped, not a debug backdoor) produces exactly one platform classification and one local record | T3.6 | t3_6_submit_retried_after_sys_unknown_produces_one_classification_and_one_record |
+| 03 §8.3: a submit whose reply is lost (the 60 s bounded-wait deadline expires while the platform is mid-call: a real SYS_UNKNOWN, reject code 6) is retried once, gets the original receipt (duplicate) and yields exactly one platform classification and one local record | T3.6 review | t3_6_submit_retried_after_sys_unknown_produces_one_classification_and_one_record |
 | 03 §8.4: records survive an upgrade (credits half depends on platform.list_aaa_credits being wired to real consensus, tracked separately) | T3.6 | t3_3_records_and_credits_survive_canister_upgrade |
 | 03 §8.5: below threshold, the 6h timer calls payments.request_auto_topup exactly once per elapsed interval | T3.6 | t3_6_below_threshold_the_6h_timer_calls_request_auto_topup_exactly_once_per_interval |
 | 03 §8.6: aaa wasm is <= 1.5 MiB after a real ic-wasm shrink + gzip | T3.6 | t3_6_aaa_wasm_shrunk_and_gzipped_is_at_most_1_5_mib |
 | One command seeds local net (protocol v1, 500 subjects across 6 fields, AAA wasm); re-seeding is idempotent | T3.8 | t3_8_seed_args_load_into_platform_and_reseeding_is_idempotent |
 | Existing wasm version is immutable; identical re-upload is a no-op | T3.8 | t3_8_existing_wasm_version_is_immutable_and_identical_reupload_is_a_no_op |
 | A fresh machine completes 10 local classifications via the operator skill, then (now that T4.2 exists) a second tier-2 AAA under a different owner gets a review assignment and submits a review [doc-proof] | T3.7 | docs/demos/T3.7/session.md |
+| 03 §4.1: only reject code 6 (SYS_UNKNOWN) triggers the submit retry; code 5 (CanisterError) does not | T3.2 review | t3_4_is_sys_unknown_matches_only_reject_code_6 |
+| 03 §4.1 / 02: a retried submit answered as a duplicate is not charged again (platform accepts the fee only for non-duplicate submissions; the AAA gets the cycles back) | T3.2 review | t3_2_duplicate_submit_after_success_is_not_charged_again |
+| 03 §4.1: concurrent submits of one task_id/assignment_id forward once (per-idempotency-key in-flight guard; the other gets Conflict) | T3.2 review | t3_2_concurrent_submits_for_one_task_forward_once |
+| 03 §4.1: the low-cycles guard calls payments.request_auto_topup only when auto top-up is enabled | T3.2 review | t3_2_low_cycles_requests_auto_topup_only_when_enabled |
+| 03 §4.2: set_profile is owner-only, validates the name and forwards to platform.update_aaa_profile, then updates the local name/avatar | T3.1 review | t3_1_set_profile_is_owner_only_and_pushes_to_platform |
+| 03 §3: wasm_version is stamped from the build constant at init and post_upgrade | T3.1 review | t3_1_stamp_wasm_version_overwrites_the_stored_version |
+| 03 §4.3: the burn EMA scales by the real elapsed time between samples (`Stats.last_sample_at: Option<u64>`, L-032) | T3.4 review | t3_4_ema_scales_by_real_elapsed_time |
+| 03 §6: the daily credits sync pages while next_cursor advances, at most 10 pages per tick | T3.4 review | t3_4_apply_credit_page_stops_when_the_cursor_does_not_advance |
+| 03 §5: pending subjects are keyed by (kind, id), removed when the submit succeeds, and bounded to 256 | T3.4 review | t3_4_pending_subjects_are_keyed_by_kind_and_bounded |
 | Keeper tops up low canisters via ledger→CMC, skips healthy ones; reserve floor stops top-ups and flags health() | T5.17 | t5_17_keeper_tops_up_low_canisters_and_health_flags_the_reserve |
 | Reserve floor never crossed; transfer retry reuses created_at; burn EMA ignores top-ups | T5.17 | t5_17_reserve_floor_is_never_crossed |
 | Sensitive config changes (admins, lower reserve) need a second admin | T5.17 | t5_17_sensitive_config_changes_need_a_second_admin |
@@ -159,6 +168,10 @@
 | 06 §2c: headless runner stops without invoking claude when days_of_fuel_estimate is below the threshold | T3.9 | test_t3_9_run_sh_stops_at_fuel_guard |
 | 06 §2c: headless runner invokes claude -p when fuel is above the threshold | T3.9 | test_t3_9_run_sh_proceeds_above_threshold |
 | 06 §2b: practice.py scores an agent's answers against the practice key per question | T3.9 | test_t3_9_practice_per_question_accuracy |
+| 06 §2c: the runner parses the real `icp ... --json` status envelope (`response_candid`, `Ok` variant; `inf` fuel of a fresh AAA runs; `Err` stops) and passes `--query --candid --json --identity` | T3.9 review | test_t3_9_run_sh_passes_candid_json_query_identity_and_net |
+| 06 §2c: the runner only accepts `-n ic`/`-e local`, a principal-shaped aaa id and a `^[a-zA-Z0-9_-]+$` identity; the config path reaches Python via argv | T3.9 review | test_t3_9_run_sh_rejects_untrusted_config_values |
+| 06 §2c: the runner runs `claude -p` in the project dir with `--tools Bash Read`, an allowlist (`icp canister call`, `curl -sfo work/`, `shasum -a 256`, `mkdir -p work/`, Read), `--max-turns` and `--max-budget-usd` | T3.9 review | test_t3_9_run_sh_runs_claude_in_project_dir_with_restricted_tools |
+| 06 §2a: the skill has no runnable add_operator (the user adds operators on /connect), never exports/reads identity keys, and quotes https-only URLs | T3.7 review | test_t3_7_skill_has_no_runnable_add_operator_command |
 | 02 §7: list_discoveries newest-first with category/status filters and cursor pagination (limit ≤100) | T4.6 | t4_6_list_filters_by_category_and_status_newest_first_with_cursor |
 | 02 §7/§11 #6: UnderReview discovery hidden from non-owners, visible to its owner and honeypots hidden from everyone | T4.6 | t4_6_is_visible_hides_under_review_from_non_owners_and_honeypots_from_everyone |
 | 02 §7: DiscoveryCard (list_discoveries) carries the subject image (image_url/image_sha256) for visible cards | T6.19 | t6_19_discovery_card_carries_the_subject_image_when_given_one |

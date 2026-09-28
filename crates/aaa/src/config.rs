@@ -7,6 +7,8 @@ use serde::Deserialize;
 
 use crate::memory::{self, Memory};
 
+pub const WASM_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
 pub struct AaaInit {
     pub owner: Principal,
@@ -66,7 +68,7 @@ impl Config {
             avatar_seed: init.avatar_seed,
             agent_label: None,
             auto_topup: None,
-            wasm_version: String::new(),
+            wasm_version: WASM_VERSION.into(),
         })
     }
 
@@ -99,6 +101,14 @@ pub fn get() -> Config {
 pub fn set(cfg: Config) {
     CELL.with_borrow_mut(|c| {
         c.set(cfg);
+    });
+}
+
+pub fn stamp_wasm_version() {
+    CELL.with_borrow_mut(|c| {
+        let mut next = c.get().clone();
+        next.wasm_version = WASM_VERSION.into();
+        c.set(next);
     });
 }
 
@@ -159,6 +169,17 @@ mod tests {
         assert_eq!(cfg.avatar_seed, 7);
         assert_eq!(cfg.agent_label, None);
         assert_eq!(cfg.auto_topup, None);
+        assert_eq!(cfg.wasm_version, WASM_VERSION);
+    }
+
+    #[test]
+    fn t3_1_stamp_wasm_version_overwrites_the_stored_version() {
+        let mut cfg = Config::from_init(init(p(6))).unwrap();
+        cfg.wasm_version = "old".into();
+        set(cfg);
+        stamp_wasm_version();
+        assert_eq!(get().wasm_version, WASM_VERSION);
+        assert!(!WASM_VERSION.is_empty());
     }
 
     #[test]

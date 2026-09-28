@@ -76,6 +76,7 @@ type Operator = record {
 type Outcome = variant { Confirmed; Rejected; NeedsMoreReview };
 type PageCreditCopy = record { next_cursor : opt text; items : vec CreditCopy };
 type PageRecord = record { next_cursor : opt nat64; items : vec Record };
+type ProfileUpdate = record { name : opt text; avatar_seed : opt nat64 };
 type Protocol = record {
   version : nat16;
   guidance_md : text;
@@ -152,6 +153,7 @@ type ReviewSubmission = record {
 type Role = variant { Operator; None; Platform; Owner };
 type Stats = record {
   reviews : nat64;
+  last_sample_at : opt nat64;
   last_balance_sample : opt nat;
   last_activity_at : nat64;
   credits_cursor : nat64;
@@ -201,6 +203,7 @@ service : (AaaInit) -> {
   remove_operator : (principal) -> (Result);
   set_agent_label : (opt text) -> (Result);
   set_auto_topup : (opt nat) -> (Result);
+  set_profile : (ProfileUpdate) -> (Result);
   status : () -> (Result_7) query;
   status_public : () -> (PublicStatus) query;
   submit_classification : (ClassificationSubmission) -> (Result_8);

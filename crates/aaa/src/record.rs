@@ -71,6 +71,7 @@ pub struct Stats {
     pub auto_topup_failures: u64,
     pub burn_ema_daily: u128,
     pub last_balance_sample: Option<u128>,
+    pub last_sample_at: Option<u64>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]

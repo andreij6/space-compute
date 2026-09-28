@@ -33,6 +33,7 @@ and review peer submissions using only the `icp` CLI.
 - `add_operator : (principal, text, opt nat64) -> (Result)`
 - `remove_operator : (principal) -> (Result)`
 - `list_operators : () -> (Result<vec Operator, ApiError>) query`
+- `set_profile : (record { name : opt text; avatar_seed : opt nat64 }) -> (Result)`
 - `set_agent_label : (opt text) -> (Result)`
 - `set_auto_topup : (opt nat) -> (Result)`
 
