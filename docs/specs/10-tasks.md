@@ -119,34 +119,35 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | T7.10 | Practice set + open data release tooling | L | 3 | 2 | T1.7, T4.8 | 2027-01-05 | 2027-01-06 | 07 §5b | Release v0 reproducible | image: docs/demos/T7.10/contact-sheet.png |
 | T7.5 | External security review (payments + platform) | - | you | 5 | T5.7, T4.8 | 2026-12-08 | 2026-12-14 | 08 §4 | Report received | note: 3-line summary in chat |
 | T7.6 | Fix security findings | H | 2 | 3 | T7.5 | 2027-01-07 | 2027-01-11 | 08 | All high/critical closed | test: just demo T7.6  (narrated PocketIC/pytest run) |
-| T7.11 | Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects) | M | 3 | 2 | T1.7, T2.3, T8.14 | 2027-01-07 | 2027-01-08 | 07 §5c | Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects | test: just demo T7.11  (narrated PocketIC/pytest run) |
+| T7.11 | Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects) | M | 1 | 2 | T1.7, T2.3, T8.14 | 2027-01-08 | 2027-01-11 | 07 §5c | Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects | test: just demo T7.11  (narrated PocketIC/pytest run) |
+| T7.12 | Platform storage per classification (~44 KB → ≤10 KB) + indexed gold get_task (no linear scan) | H | 3 | 2 | T7.3 | 2027-01-07 | 2027-01-08 | 02 §3, §5.1; docs/perf/fees-T7.3.md | Storage/classification ≤10 KB measured; get_task p99 flat vs pool size | test: just demo T7.12  (narrated PocketIC/pytest run) |
 
 ## P8 — Beta & launch
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
 | T8.14 | Create Cloudflare R2 bucket + API token + custom domain; run `just publish-data` | - | you | 1 | T1.7 | 2026-10-21 | 2026-10-21 | 07 §2, §5.5 | manifest verifies on R2 (1% re-download) | note: 3-line summary in chat |
-| T8.16 | Scale dataset to 20,000 subjects (R-62) and publish v1 to R2 | L | 1 | 1 | T8.14 | 2027-01-08 | 2027-01-08 | 07 §5, REVIEW R-62 | 20k manifest verifies on R2; gold ≥ 2,000 | test: just demo T8.16  (narrated PocketIC/pytest run) |
-| T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 1 | 2 | T7.1 | 2027-01-11 | 2027-01-12 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
-| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.16, T8.1, T7.6 | 2027-01-13 | 2027-01-13 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
-| T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-01 | 2027-02-01 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
-| T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-14 | 2027-01-27 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
-| T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-14 | 2027-01-27 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
-| T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-01-28 | 2027-01-29 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
-| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.6 | 2027-02-02 | 2027-02-02 | OKR | Launch announced | note: 3-line summary in chat |
-| T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-13 | 2027-01-13 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
+| T8.16 | Scale dataset to 20,000 subjects (R-62) and publish v1 to R2 | L | 3 | 1 | T8.14 | 2027-01-11 | 2027-01-11 | 07 §5, REVIEW R-62 | 20k manifest verifies on R2; gold ≥ 2,000 | test: just demo T8.16  (narrated PocketIC/pytest run) |
+| T8.1 | Staging deploy, deploy workflow, snapshots, cycles monitoring | M | 1 | 2 | T7.1 | 2027-01-12 | 2027-01-13 | 09 §2-3 | Staging live | test: just demo T8.1  (narrated PocketIC/pytest run) |
+| T8.2 | Upload subjects/protocol/honeypots to staging | L | 1 | 1 | T8.16, T8.1, T7.6 | 2027-01-14 | 2027-01-14 | 07 | Counts verified | test: just demo T8.2  (narrated PocketIC/pytest run) |
+| T8.5 | Fund prod treasury with ICP float (10–20 ICP) + confirm runway | - | you | 1 | T8.6 | 2027-02-02 | 2027-02-02 | 12 §4 | status() shows ≥ 90 days runway | note: 3-line summary in chat |
+| T8.3 | Closed beta (10-20 owners) | - | you | 10 | T8.2, T6.10 | 2027-01-15 | 2027-01-28 | OKR KR | Beta KRs measured | note: 3-line summary in chat |
+| T8.4 | Beta fixes & tuning | M | 1 | 10 | T8.2, T6.10 | 2027-01-15 | 2027-01-28 | — | No open P0/P1 bugs | test: just demo T8.4  (narrated PocketIC/pytest run) |
+| T8.6 | Production deploy, II metadata, treasury watch list | M | 1 | 2 | T8.3, T8.4, T8.13 | 2027-01-29 | 2027-02-01 | 09 §2 | Prod live | test: just demo T8.6  (narrated PocketIC/pytest run) |
+| T8.7 | Public launch | - | you | 1 | T8.6, T8.5, T9.6 | 2027-02-03 | 2027-02-03 | OKR | Launch announced | note: 3-line summary in chat |
+| T8.13 | Custom domain + II alternative origins | - | you | 1 | T8.1 | 2027-01-14 | 2027-01-14 | 05 §1 | Domain serves frontend; II principal stable | note: 3-line summary in chat |
 | T8.15 | Owner review: discovery + peer-review agent process end to end (task claim, classify, discovery flags, review assignment, votes, credits) | - | you | 1 | T0.4 | 2026-10-01 | 2026-10-01 | 02 §5, 03, 06, 07 §4 | Agree/changes recorded in OKR.md; spec edits filed as tasks | note: 3-line summary in chat |
 
 ## P9 — Design & polish (after function)
 
 | ID | Task | Model | Lane | Days | Depends on | Start | End | Spec | Acceptance | Demo |
 |---|---|---|---|---|---|---|---|---|---|---|
-| T9.1 | Import mockups (Claude Design), reconcile, design tokens + shared components | M | 3 | 4 | T6.10 | 2027-01-11 | 2027-01-14 | 05 intro | 05a-design-reconciliation.md + component page | shots: docs/demos/T9.1/*.png (Playwright) |
-| T9.2 | Style public pages: landing, museum, discovery, profile, leaderboard | M | 2 | 4 | T9.1 | 2027-01-15 | 2027-01-20 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.2/*.png (Playwright) |
-| T9.3 | Style owner flows: spawn, dashboard, connect agent, fuel, payments | M | 3 | 4 | T9.1 | 2027-01-15 | 2027-01-20 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.3/*.png (Playwright) |
-| T9.4 | Style admin console + about/legal/practice pages | L | 2 | 2 | T9.1 | 2027-01-21 | 2027-01-22 | 05 §2b | Visual snapshots | shots: docs/demos/T9.4/*.png (Playwright) |
-| T9.5 | Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run | L | 2 | 2 | T9.2, T9.3, T9.4 | 2027-01-25 | 2027-01-26 | 05 §4-5 | Lighthouse a11y ≥90, perf ≥80; baseline committed | shots: docs/demos/T9.5/*.png (Playwright) |
-| T9.6 | Full-app screenshot grid: labeled Playwright contact sheet of every screen (desktop+mobile) | L | 2 | 1 | T9.5 | 2027-01-27 | 2027-01-27 | 05, 09 | One image, every screen labeled, owner can review at a glance | shots: docs/demos/T9.6/*.png (Playwright) |
+| T9.1 | Import mockups (Claude Design), reconcile, design tokens + shared components | M | 2 | 4 | T6.10 | 2027-01-12 | 2027-01-15 | 05 intro | 05a-design-reconciliation.md + component page | shots: docs/demos/T9.1/*.png (Playwright) |
+| T9.2 | Style public pages: landing, museum, discovery, profile, leaderboard | M | 2 | 4 | T9.1 | 2027-01-18 | 2027-01-21 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.2/*.png (Playwright) |
+| T9.3 | Style owner flows: spawn, dashboard, connect agent, fuel, payments | M | 3 | 4 | T9.1 | 2027-01-18 | 2027-01-21 | 05 §2-3, mockups | Visual snapshots approved by owner | shots: docs/demos/T9.3/*.png (Playwright) |
+| T9.4 | Style admin console + about/legal/practice pages | L | 2 | 2 | T9.1 | 2027-01-22 | 2027-01-25 | 05 §2b | Visual snapshots | shots: docs/demos/T9.4/*.png (Playwright) |
+| T9.5 | Responsive/mobile pass, visual-regression baseline, a11y + Lighthouse re-run | L | 2 | 2 | T9.2, T9.3, T9.4 | 2027-01-26 | 2027-01-27 | 05 §4-5 | Lighthouse a11y ≥90, perf ≥80; baseline committed | shots: docs/demos/T9.5/*.png (Playwright) |
+| T9.6 | Full-app screenshot grid: labeled Playwright contact sheet of every screen (desktop+mobile) | L | 2 | 1 | T9.5 | 2027-01-28 | 2027-01-28 | 05, 09 | One image, every screen labeled, owner can review at a glance | shots: docs/demos/T9.6/*.png (Playwright) |
 
 ## Deferred (not scheduled — owner decision 2026-09-27: no Stripe code until the whole app is ready; owner decision 2026-09-27: ICP-only payments for now, no ckBTC/ckETH)
 
@@ -174,6 +175,6 @@ Each task's detailed specification is the linked spec section. A task is done wh
 | M3 Review & credits complete | T4.8 | 2026-12-01 |
 | M4 Payments complete | T5.7 | 2026-12-07 |
 | M5 Frontend feature-complete (unstyled) | T6.10 | 2027-01-07 |
-| M5b Design applied | T9.6 | 2027-01-27 |
-| M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-13 |
-| M7 Public launch | T8.7 | 2027-02-02 |
+| M5b Design applied | T9.6 | 2027-01-28 |
+| M6 Staging loaded & beta-ready backend | T8.2 | 2027-01-14 |
+| M7 Public launch | T8.7 | 2027-02-03 |

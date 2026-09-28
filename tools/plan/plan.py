@@ -101,6 +101,7 @@ T = [
  ("T7.5","P7","External security review (payments + platform)","Vendor",5,["T5.7","T4.8"],"08 §4","Report received",0),
  ("T7.6","P7","Fix security findings","BE-B",3,["T7.5"],"08","All high/critical closed",0),
  ("T7.11","P7","Continuous data refresh: 15-day scheduled job (new DJA/MAST data → new subjects)","BE-B",2,["T1.7","T2.3","T8.14"],"07 §5c","Dry run finds nothing new → no-op; new catalogue → new data_version + admin_add_subjects",0),
+ ("T7.12","P7","Platform storage per classification (~44 KB → ≤10 KB) + indexed gold get_task (no linear scan)","BE-A",2,["T7.3"],"02 §3, §5.1; docs/perf/fees-T7.3.md","Storage/classification ≤10 KB measured; get_task p99 flat vs pool size",0),
  ("T8.14","P8","Create Cloudflare R2 bucket + API token + custom domain; run `just publish-data`","Owner",1,["T1.7"],"07 §2, §5.5","manifest verifies on R2 (1% re-download)",0),
  ("T8.16","P8","Scale dataset to 20,000 subjects (R-62) and publish v1 to R2","BE-B",1,["T8.14"],"07 §5, REVIEW R-62","20k manifest verifies on R2; gold ≥ 2,000",0),
  ("T8.1","P8","Staging deploy, deploy workflow, snapshots, cycles monitoring","BE-A",2,["T7.1"],"09 §2-3","Staging live",0),
@@ -137,7 +138,7 @@ T3.1:M T3.2:H T3.3:L T3.4:M T3.5:L T3.6:M T3.7:H T3.8:L T3.9:L
 T4.1:M T4.2:H T4.3:M T4.4:H T4.5:H T4.6:M T4.7:L T4.8:M T4.9:H T4.10:L T4.11:L
 T5.1:M T5.2:M T5.3:H T5.4:M T5.5:M T5.6:M T5.7:H T5.15:L T5.16:M T5.17:H T5.18:M
 T6.1:M T6.3:M T6.4:L T6.5:M T6.6:L T6.7:M T6.8:L T6.9:L T6.10:M T6.12:M T6.14:L
-T7.1:M T7.2:M T7.3:M T7.4:M T7.5:- T7.6:H T7.7:H T7.9:L T7.10:L T7.11:M
+T7.1:M T7.2:M T7.3:M T7.4:M T7.5:- T7.6:H T7.7:H T7.9:L T7.10:L T7.11:M T7.12:H
 T8.1:M T8.2:L T8.3:- T8.4:M T8.5:- T8.6:M T8.7:- T8.13:- T8.14:- T8.15:- T8.16:L
 T9.1:M T9.2:M T9.3:M T9.4:L T9.5:L T9.6:L""".split())
 MODEL = {"H": "opus-5.5 (high)", "M": "sonnet-5", "L": "haiku-4.5", "-": "human"}
