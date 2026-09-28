@@ -234,6 +234,8 @@ fn t4_10_every_admin_mutation_writes_an_audit_entry() {
 
     let ok: Result<(), ApiError> = call(&env, platform, alice, "admin_add_admin", (bob,));
     assert_eq!(ok, Ok(()));
+    let ok: Result<(), ApiError> = call(&env, platform, alice, "admin_set_house", (aaa_1, true));
+    assert_eq!(ok, Ok(()));
     let ok: Result<(), ApiError> = call(
         &env,
         platform,
@@ -312,7 +314,7 @@ fn t4_10_every_admin_mutation_writes_an_audit_entry() {
 
     let ok: Result<(), ApiError> = call(&env, platform, alice, "admin_remove_admin", (bob,));
     assert_eq!(ok, Ok(()));
-    step("exercised admin_add_admin, admin_rename_aaa, admin_suspend/unsuspend_aaa, admin_set_subject_active, admin_add_honeypots, admin_set_params, admin_pause, admin_replay_progression, admin_remove_admin");
+    step("exercised admin_add_admin, admin_set_house, admin_rename_aaa, admin_suspend/unsuspend_aaa, admin_set_subject_active, admin_add_honeypots, admin_set_params, admin_pause, admin_replay_progression, admin_remove_admin");
 
     let owner_3 = user(103);
     let aaa_3 = env.pic.create_canister_on_subnet(Some(alice), None, subnet);

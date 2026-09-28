@@ -1,5 +1,6 @@
 pub mod api;
 pub mod audit;
+mod blocklist;
 pub mod catalog;
 pub mod citations;
 pub mod claims;

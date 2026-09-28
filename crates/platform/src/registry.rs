@@ -8,6 +8,7 @@ use sc_types::ApiError;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::blocklist;
 use crate::memory::{self, Memory};
 
 pub const MAX_WASM_BYTES: usize = 1_887_436;
@@ -260,6 +261,7 @@ pub fn is_approved_module_hash(target_hash: &[u8]) -> bool {
 pub fn check_name(name: &str) -> CheckNameResult {
     match sc_types::limits::aaa_name(name) {
         Err(_) => CheckNameResult::Invalid,
+        Ok(valid) if blocklist::check(&valid).is_err() => CheckNameResult::Invalid,
         Ok(valid) => {
             let key = sc_types::limits::name_key(&valid);
             let exists = AAA_NAMES.with_borrow(|m| m.contains_key(&key));
@@ -274,6 +276,7 @@ pub fn check_name(name: &str) -> CheckNameResult {
 
 pub fn resolve_name_for_spawn(raw_name: &str, canister_id: &Principal) -> Result<String, ApiError> {
     let base_name = sc_types::limits::aaa_name(raw_name)?;
+    blocklist::check(&base_name)?;
     let base_key = sc_types::limits::name_key(&base_name);
     let owner_of_base = AAA_NAMES.with_borrow(|m| m.get(&base_key));
     if owner_of_base.is_none() || owner_of_base.as_ref() == Some(canister_id) {
@@ -675,7 +678,11 @@ pub fn record_update_profile(
     }
     let new_name = args
         .name
-        .map(|n| sc_types::limits::aaa_name(&n))
+        .map(|n| {
+            let valid = sc_types::limits::aaa_name(&n)?;
+            blocklist::check(&valid)?;
+            Ok::<String, ApiError>(valid)
+        })
         .transpose()?;
     if let Some(valid_name) = &new_name {
         let taken_by = AAA_NAMES.with_borrow(|m| m.get(&sc_types::limits::name_key(valid_name)));
@@ -1584,6 +1591,54 @@ mod tests {
     }
 
     #[test]
+    fn t4_11_registration_and_profile_update_reject_blocklisted_names() {
+        let blob = vec![1, 1, 1];
+        let hash = Sha256::digest(&blob).to_vec();
+        upload_wasm(200, blob, hash.clone()).unwrap();
+        approve_wasm(200, 1).unwrap();
+
+        let owner = p(150);
+        let canister = p(151);
+        assert!(matches!(
+            pre_register_aaa(
+                &RegisterArgs {
+                    canister_id: canister,
+                    owner,
+                    name: "Admin-Bot".into(),
+                    avatar_seed: 1,
+                },
+                1_000,
+            ),
+            Err(ApiError::InvalidInput(_))
+        ));
+        assert_eq!(check_name("4dm1n"), CheckNameResult::Invalid);
+
+        pre_register_aaa(
+            &RegisterArgs {
+                canister_id: canister,
+                owner,
+                name: "CleanName".into(),
+                avatar_seed: 1,
+            },
+            1_000,
+        )
+        .unwrap();
+        complete_register_aaa(canister, hash, 1, &[owner, p(199)], p(199), 1_000).unwrap();
+        assert!(matches!(
+            record_update_profile(
+                canister,
+                UpdateAaaProfileArgs {
+                    name: Some("Official-Support".into()),
+                    avatar_seed: None,
+                },
+                2_000,
+            ),
+            Err(ApiError::InvalidInput(_))
+        ));
+        assert_eq!(get_aaa(&canister).unwrap().name, "CleanName");
+    }
+
+    #[test]
     fn t4_10_count_by_status_and_total_aaas() {
         let owner = p(160);
         let canister = p(161);
@@ -1591,6 +1646,19 @@ mod tests {
         assert!(count_by_status(AaaStatus::Active) >= 1);
         assert!(total_aaas() >= 1);
         assert!(is_approved_module_hash(&hash));
+    }
+
+    #[test]
+    fn t4_11_set_house_toggles_flag() {
+        let owner = p(162);
+        let canister = p(163);
+        registered(owner, canister, "HouseAaa", 1);
+        assert!(!get_aaa(&canister).unwrap().is_house);
+        set_house(canister, true).unwrap();
+        assert!(get_aaa(&canister).unwrap().is_house);
+        set_house(canister, false).unwrap();
+        assert!(!get_aaa(&canister).unwrap().is_house);
+        assert_eq!(set_house(p(200), true), Err(ApiError::NotFound));
     }
 
     #[test]

@@ -401,6 +401,20 @@ fn admin_honeypot_stats() -> Result<Vec<HoneypotStat>, ApiError> {
     Ok(reviews::honeypot_stats())
 }
 
+#[ic_cdk::update]
+fn admin_set_house(aaa: Principal, is_house: bool) -> Result<(), ApiError> {
+    let caller = require_admin()?;
+    registry::set_house(aaa, is_house)?;
+    progression::sync_leaderboard_house(aaa, is_house);
+    audit(
+        caller,
+        "admin_set_house",
+        &(aaa, is_house),
+        format!("set_house {aaa} = {is_house}"),
+    );
+    Ok(())
+}
+
 #[ic_cdk::query]
 fn get_params() -> Params {
     config::get().params

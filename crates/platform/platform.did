@@ -496,6 +496,7 @@ service : () -> {
   admin_replay_progression : (nat64, nat32) -> (Result_12);
   admin_retry_install : (principal) -> (Result);
   admin_set_current_protocol : (nat16) -> (Result);
+  admin_set_house : (principal, bool) -> (Result);
   admin_set_params : (Params) -> (Result);
   admin_set_payments_id : (principal) -> (Result);
   admin_set_subject_active : (nat32, bool) -> (Result);
