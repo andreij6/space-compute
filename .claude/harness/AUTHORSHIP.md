@@ -55,6 +55,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T6.4 | 26652d0 | Sonnet sub-agent |
 | T7.10 | 794e000 | Sonnet sub-agent |
 | T6.7 | 45548c5 | Sonnet sub-agent |
+| T7.4 | 4612992 | Sonnet sub-agent |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
