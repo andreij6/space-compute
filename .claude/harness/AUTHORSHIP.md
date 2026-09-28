@@ -101,5 +101,5 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 |---|---|---|---|
 | AAA + agent-kit | T3.1, T3.4, T3.6, T3.7, T3.9 | 14 defects (1 high: runner can't parse real status; retry double-fee; skill ran add_operator; set_profile missing) | **fixed** 3be1f38, cb43d62, d46a832 |
 | Platform | T4.1, T4.3, T4.6, T4.8, T4.10, T4.11, gap-fill | 8 defects (2 high: event queries leak hidden discoverers/honeypots/gold; replay double-counts) | Opus fix lane in progress |
-| Tooling | T4.7, T7.1, T7.4, T7.9, T7.10, T8.1 prep | 6 defects (2 critical: release ships gold; honeypot text predicts vote) + T7.1 vN→vN for 3 canisters | Opus fix lane in progress |
+| Tooling | T4.7, T7.1, T7.4, T7.9, T7.10, T8.1 prep | 6 defects (2 critical: release ships gold; honeypot text predicts vote) + T7.1 vN→vN for 3 canisters | **fixed** b9fdf38, e6bca0a, a5fbda4, 79e574f, 15e2b9e, 2bdc0b1, dd4afe6, c3fef8c, b6befcb, 8803613 |
 | Frontend | T6.3–T6.9, T6.12, T6.14, gap-fill | T6.3 FAILS (citation verify never succeeds: JS vs Rust candid bytes; CSP blocks images) + 13 more (fuel panel remount → double pay risk, blind treasury approve, mock footer) | platform part in platform fix lane; frontend Opus fix lane queued after T6.10 lands |
