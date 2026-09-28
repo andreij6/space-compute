@@ -1,88 +1,83 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { AdminNav } from '../components/AdminNav';
-import { Download, Plus, CheckCircle2 } from 'lucide-react';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { useAuth } from '../auth';
+import { paymentsActor } from '../ic';
+import { belowMinSponsorCycles, inviteCodesToCsv, MIN_SPONSOR_CYCLES, unwrapAdmin } from '../lib/admin';
 
 export const AdminInvitesPage: React.FC = () => {
-  const [batches] = useState([
-    { id: 'batch-01', codePrefix: 'BETA-STAR', total: 100, redeemed: 64, sponsorBudget: '2,000 TCycles', created: '2026-09-01' },
-    { id: 'batch-02', codePrefix: 'ASTRONOMY-CONF', total: 50, redeemed: 12, sponsorBudget: '1,000 TCycles', created: '2026-09-15' },
-  ]);
+  const { identity } = useAuth();
+  const [count, setCount] = useState('50');
+  const [sponsorCycles, setSponsorCycles] = useState(MIN_SPONSOR_CYCLES.toString());
+  const [expiresAt, setExpiresAt] = useState('');
+  const belowMinCycles = belowMinSponsorCycles(sponsorCycles);
 
-  const [createdNotice, setCreatedNotice] = useState(false);
+  const mint = useMutation({
+    mutationFn: async () =>
+      unwrapAdmin(
+        await paymentsActor(identity!).admin_mint_invites({
+          count: Number(count),
+          sponsor_cycles: BigInt(sponsorCycles || '0'),
+          expires_at: BigInt(expiresAt ? Date.parse(expiresAt) * 1_000_000 : 0),
+        }),
+      ),
+  });
 
-  const handleMintBatch = () => {
-    setCreatedNotice(true);
-    setTimeout(() => setCreatedNotice(false), 2500);
-  };
+  function downloadCsv(codes: string[]) {
+    const blob = new Blob([inviteCodesToCsv(codes)], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'invite-codes.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Beta Access</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Sponsored Invites Generator
-        </h1>
-      </div>
-
+    <div>
+      <h1>Sponsored invites</h1>
       <AdminNav />
 
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-              Mint New Sponsored Code Batch
-            </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Subsidize AAA canister provisioning for educational, academic, or research partners.
-            </p>
-          </div>
-
-          <button type="button" className="btn-primary" onClick={handleMintBatch}>
-            <Plus size={16} />
-            <span>Mint Batch of 50 Codes</span>
-          </button>
-        </div>
-
-        {createdNotice && (
-          <div style={{ color: 'var(--cyan-nebula)', fontSize: '0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <CheckCircle2 size={16} /> Generated 50 new single-use invite codes subsidized by Treasury!
-          </div>
+      <section aria-label="Mint invite batch">
+        <h2>Mint a new batch</h2>
+        <label>
+          Count
+          <input type="number" value={count} onChange={(e) => setCount(e.target.value)} />
+        </label>
+        <label>
+          Sponsor cycles (minimum {MIN_SPONSOR_CYCLES.toString()}; below that an AAA can&apos;t install)
+          <input value={sponsorCycles} onChange={(e) => setSponsorCycles(e.target.value)} />
+        </label>
+        {belowMinCycles && (
+          <p role="alert">Sponsor cycles must be at least {MIN_SPONSOR_CYCLES.toString()}; payments rejects less with InvalidInput.</p>
         )}
+        <label>
+          Expires at
+          <input type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+        </label>
+        <ConfirmAction
+          label="mint batch"
+          phrase="mint batch"
+          disabled={mint.isPending || !count || belowMinCycles}
+          onConfirm={() => mint.mutate()}
+        />
+        {mint.isError && <p role="alert">{mint.error.message}</p>}
+      </section>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.85rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-surface-elevated)' }}>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Batch ID</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Prefix</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Redeemed / Total</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Sponsor Budget</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', textAlign: 'right' }}>Export</th>
-              </tr>
-            </thead>
-            <tbody>
-              {batches.map((b) => (
-                <tr key={b.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)' }}>{b.id}</td>
-                  <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>{b.codePrefix}-****</td>
-                  <td style={{ padding: '0.85rem 1rem' }}>
-                    <span style={{ color: 'var(--amber-star)', fontWeight: 600 }}>{b.redeemed}</span> / {b.total}
-                  </td>
-                  <td style={{ padding: '0.85rem 1rem', color: 'var(--cyan-nebula)' }}>{b.sponsorBudget}</td>
-                  <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                    <button type="button" className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
-                      <Download size={12} />
-                      <span>CSV</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {mint.isSuccess && (
+        <section aria-label="Minted codes">
+          <h2>Codes (shown once)</h2>
+          <ul>
+            {mint.data.map((code) => (
+              <li key={code}>{code}</li>
+            ))}
+          </ul>
+          <button type="button" onClick={() => downloadCsv(mint.data)}>
+            Download CSV
+          </button>
+        </section>
+      )}
     </div>
   );
 };

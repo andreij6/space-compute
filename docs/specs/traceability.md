@@ -241,3 +241,47 @@
 | 09 §1 Upgrade: payments installed at the pinned vN-1 baseline, populated (config, 3 settled journal ops via Deposit/Invite/mandate paths, a real stalled spawn saga), upgraded to vN — config/mandate/ops are byte-for-byte intact, a spent invite and an armed mandate guard both still refuse, and the resume-sweep timer resumes and finishes the stalled saga without a manual `resume()` | T7.1 | t7_1_payments_v_n_minus_1_state_survives_upgrade_to_v_n |
 | 09 §1 Upgrade: treasury installed at the pinned vN-1 baseline, populated (watch list, funded history, an executed withdraw, a pending config-change proposal), upgraded to vN — history/watch-list/admins are byte-for-byte intact, the executed withdraw cannot replay, the pending proposal still approves, and the 6h keeper timer resumes | T7.1 | t7_1_treasury_v_n_minus_1_state_survives_upgrade_to_v_n |
 | 09 §1 Upgrade: aaa installed at the pinned vN-1 baseline (installed by platform's own registration flow, the real spawn path), populated (2 operators, 2 records incl. one flagged discovery, an auto-topup config), upgraded to vN — records/operators/roles are byte-for-byte intact, and both the 6h burn timer and the 24h heartbeat timer resume | T7.1 | t7_1_aaa_v_n_minus_1_state_survives_upgrade_to_v_n |
+| 02 §11 #1: a registered AAA with the fee gets a task, submits it, receives a receipt; resubmitting returns duplicate = true, state unchanged | T2.7 | t2_7_registered_aaa_task_receipt_and_idempotent_duplicate |
+| 02 §11 #2: a non-AAA caller gets NotRegistered; an insufficient fee gets InsufficientFee | T2.3 | t2_3_never_same_subject_twice_and_pool_dispatch |
+| 02 §11 #3: the 5th classification retires a subject, never reissued; an AAA never sees the same subject twice | T2.7 | t2_7_fifth_classification_retires_and_seen_set_never_reissues |
+| 05 §5 #1: all 10 routes render against a local deployment seeded by tools/seed-local, with loading, empty and error states | T6.3 | src/frontend/tests/e2e/discovery.spec.ts |
+| 05 §5 #1: all 10 routes render against a local deployment seeded by tools/seed-local, with loading, empty and error states | T6.7 | src/frontend/tests/e2e/dashboard.spec.ts |
+| 05 §5 #1: all 10 routes render against a local deployment seeded by tools/seed-local, with loading, empty and error states | T6.8 | src/frontend/tests/e2e/connect-records.spec.ts |
+| 05 §5 #1: all 10 routes render against a local deployment seeded by tools/seed-local, with loading, empty and error states | T6.9 | src/frontend/tests/e2e/fuel.spec.ts |
+| 05 §5 #2: signed-out visitors can browse routes 1-5; owner routes redirect to sign-in | T6.1 | src/frontend/src/auth.test.ts |
+| 05 §5 #0 / §2b: `/admin/*` gate — a non-admin (or signed-out) principal gets the 404 component and an admin reaches the console; `admin_list_admins` across platform+payments decides it (vitest, mocked actors) | T6.12 | src/frontend/src/lib/admin.test.ts |
+| 05 §5 #0: a fresh II identity gets 404 on `/admin`; after `admin_add_admin`, the console renders, a pause/unpause mutation requires typed confirmation, and the mutation appears in the merged audit view (Playwright, local deploy) | T6.12 | src/frontend/tests/e2e/admin.spec.ts |
+| 05 §2b: the 11 `/admin/*` screens (overview, aaas, discoveries, data, payments, releases, settings, invites, treasury, moderation, audit) read live canister data via mocked-actor unit tests covering params diff/round-trip, Unauthorized→human-message rendering, audit-log merge, the last-admin protection, and the sponsor_cycles >=1T guard (vitest) | T6.12 | src/frontend/src/lib/admin.test.ts |
+| 07 §7 #1: 5,000 subjects rendered, hashed and uploaded; the manifest verifies (random 1% re-download hashes match) | T1.7 | test_t1_7_committed_manifest_and_qa_meet_acceptance |
+| 07 §7 #2: >= 2,000 gold subjects (or the documented fallback); 120 honeypots | T1.5 | test_t1_5_committed_v1_selection_meets_acceptance |
+| 07 §7 #3: a human spot-check of 40 random dossiers finds no wrong target, wrong WCS or missing band | T1.7 | test_t1_7_committed_manifest_and_qa_meet_acceptance |
+| 07 §7 #4: the report is committed to docs/data/curation-report-v1.md | T1.7 | docs/data/curation-report-v1.md |
+| 08 §2 S2: Sybil farms (many AAAs to self-confirm) — same-owner AAA never assigned its sibling's discovery | T4.2 | t4_2_same_owner_sibling_aaa_is_never_assigned |
+| 08 §2 S3: random or lazy classifications — hidden gold scored immediately | T4.2 | t4_2_honeypots_are_assigned_by_rate_and_scored_immediately |
+| 08 §2 S4: rubber-stamp or always-disagree reviewers — honeypots carry both truths | T4.7 | tools/curation/tests/test_t4_7_honeypots.py |
+| 08 §2 S5: prompt injection via rationales — red-team honeypot trials | T7.7 | tools/redteam/prompt_injection.py |
+| 08 §2 S6: allowance hijack — a third party's top_up can only pull allowances the victim granted to that AAA's spender subaccount | T5.6 | t5_6_topup_wallet_allowance_is_scoped_to_the_correct_aaa |
+| 08 §2 S8: modified AAA wasm — provenance re-verification suspends on a num_changes mismatch | T2.9 | t2_9_verify_never_lifts_admin_suspension_and_checks_num_changes |
+| 08 §2 S9: XSS via names or rationales — no raw HTML rendering, strict CSP | T6.1 | src/frontend/src/security.test.ts |
+| 08 §2 S10: unbounded storage growth — input limits enforced at the boundary | T1.2 | t1_2_input_limits_match_the_security_spec |
+| 08 §2 S11: admin key compromise — every admin mutation writes an audit entry | T4.10 | t4_10_every_admin_mutation_writes_an_audit_entry |
+| 08 §2 S13: frozen AAA losing data — frozen AAA rejects queries until topped up | SP-3 | sp_3_frozen_aaa_rejects_queries_until_topped_up_via_the_cmc |
+| 08 §2 S15: platform is a co-controller of every AAA — controllers restricted to {owner, platform}, real total_num_changes recorded | T2.9 | t2_9_register_requires_owner_and_platform_and_records_real_changes |
+| 08 §2 S16: XP farming onto the leaderboard — the leaderboard admits tier >= 2 only | T7.9 | t7_9_s16_leaderboard_excludes_aaa_below_tier2_then_admits_it_at_tier2 |
+| 08 §2 S21: someone other than the owner or the owner's agent submitting through an AAA — foreign/expired/unsynced submitter rejected | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |
+| 08 §2 S22: tampered AAA code vouching for arbitrary callers — num_changes mismatch triggers re-verification | T2.9 | t2_9_verify_never_lifts_admin_suspension_and_checks_num_changes |
+| 08 §2 S23: stolen operator key — expired/unsynced operator rejected immediately | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |
+| 08 §2 S24: claim sniping — concurrent same-cell flags resolve to one discovery, corroborators never become discoverers | T4.9 | t4_9_concurrent_same_cell_flags_resolve_to_one_discovery |
+
+## Waivers
+
+| Item | Reason |
+|---|---|
+| 05§5#5 | deferred: T6.10 (Lighthouse a11y gate; not yet scheduled) |
+| 06§5#1 | deferred: staging-only acceptance run (no staging environment in local-first `just verify`; the local analog is proven by T3.7's 10 local classifications) |
+| 08§2#S12 | deferred: architectural property (bounded-wait calls only, per 01 §6 and the canister-security skill checklist), not independently runtime-testable in PocketIC |
+| 08§2#S14 | deferred: architectural fact — no secrets are stored in canister state, nothing to assert against |
+| 08§2#S17 | deferred: D6-D12 (non-ICP fuel packs / Stripe relay not implemented) |
+| 08§2#S18 | deferred: D6-D12 (XRC-based non-ICP pricing not implemented) |
+| 08§2#S19 | deferred: D6-D12 (card/Stripe not implemented) |
+| 08§2#S20 | deferred: T7.5 / T8.8 (regulatory compliance review, recommended before production) |

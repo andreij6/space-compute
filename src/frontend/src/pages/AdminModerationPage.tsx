@@ -1,102 +1,107 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Principal } from '@icp-sdk/core/principal';
 import { AdminNav } from '../components/AdminNav';
-import { Edit3 } from 'lucide-react';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { useAuth } from '../auth';
+import { platformActor } from '../ic';
+import { unwrapAdmin } from '../lib/admin';
 
 export const AdminModerationPage: React.FC = () => {
-  const [blocklist, setBlocklist] = useState('nsfw_term, offensive_word, scam_bot, test_abuse');
-  const [reports] = useState([
-    { id: 'rep-01', targetName: 'FakeNasaOfficial-01', reporter: 'user_9912', reason: 'Impersonation of institutional entity', status: 'Pending Review' }
-  ]);
-  const [saved, setSaved] = useState(false);
+  const { identity } = useAuth();
+  const queryClient = useQueryClient();
+  const [namePrefix, setNamePrefix] = useState('');
+  const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
+  const [reason, setReason] = useState('');
 
-  const handleSaveBlocklist = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+  const aaas = useQuery({
+    queryKey: ['admin', 'moderation', 'aaas', namePrefix],
+    queryFn: async () =>
+      unwrapAdmin(await platformActor(identity!).admin_list_aaas(namePrefix ? { name_prefix: namePrefix } : {}, null, 50)),
+    enabled: namePrefix.length > 0,
+  });
+
+  const rename = useMutation({
+    mutationFn: async () =>
+      unwrapAdmin(await platformActor(identity!).admin_rename_aaa(Principal.fromText(renameTarget!), newName, reason)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'moderation', 'aaas'] });
+      setRenameTarget(null);
+      setNewName('');
+      setReason('');
+    },
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Trust & Safety</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Content & Handle Moderation
-        </h1>
-      </div>
-
+    <div>
+      <h1>Moderation</h1>
       <AdminNav />
+      <p>
+        There is no automated flag feed yet; search by name prefix to find names that violate the blocklist or were
+        reported out of band, then force-rename. The action is audit-logged and confirmed citations keep the name used
+        at the time.
+      </p>
 
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.5rem' }}>
-          Offensive Term Blocklist
-        </h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          Comma-separated keywords prohibited from being chosen during AAA canister spawning.
-        </p>
+      <label>
+        Search AAA names
+        <input value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
+      </label>
 
-        <textarea
-          value={blocklist}
-          onChange={(e) => setBlocklist(e.target.value)}
-          rows={3}
-          style={{
-            width: '100%',
-            backgroundColor: 'var(--bg-surface-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '0.75rem',
-            color: 'var(--text-main)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.85rem',
-            marginBottom: '1rem'
-          }}
-        />
+      {aaas.isPending && namePrefix && <p>Searching…</p>}
+      {aaas.isError && <p role="alert">{aaas.error.message}</p>}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button type="button" className="btn-primary" onClick={handleSaveBlocklist}>
-            <span>Update Keyword Blocklist</span>
-          </button>
-          {saved && <span style={{ color: 'var(--cyan-nebula)', fontSize: '0.85rem' }}>Blocklist updated on platform canister!</span>}
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
-          Reported AAA Handles Queue
-        </h3>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.85rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-surface-elevated)' }}>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Report ID</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Flagged Name</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Reason</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Status</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', textAlign: 'right' }}>Actions</th>
+      {aaas.data && (
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Owner</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {aaas.data.map((a) => (
+              <tr key={a.owner.toText()}>
+                <td>{a.name}</td>
+                <td>{a.owner.toText()}</td>
+                <td>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenameTarget(a.owner.toText());
+                      setNewName(a.name);
+                    }}
+                  >
+                    Rename
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {reports.map((r) => (
-                <tr key={r.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)' }}>{r.id}</td>
-                  <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: 'var(--amber-star)' }}>{r.targetName}</td>
-                  <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>{r.reason}</td>
-                  <td style={{ padding: '0.85rem 1rem' }}>
-                    <span className="badge badge-amber">{r.status}</span>
-                  </td>
-                  <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                    <button type="button" className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
-                      <Edit3 size={12} />
-                      <span>Admin Rename</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {renameTarget && (
+        <section aria-label="Force rename">
+          <h2>Force-rename {renameTarget}</h2>
+          <label>
+            New name
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} />
+          </label>
+          <label>
+            Reason
+            <input value={reason} onChange={(e) => setReason(e.target.value)} />
+          </label>
+          <ConfirmAction
+            label="rename"
+            phrase={newName}
+            disabled={rename.isPending || !newName.trim() || !reason.trim()}
+            onConfirm={() => rename.mutate()}
+          />
+          {rename.isError && <p role="alert">{rename.error.message}</p>}
+        </section>
+      )}
     </div>
   );
 };

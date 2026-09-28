@@ -1,82 +1,252 @@
-import React from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Principal } from '@icp-sdk/core/principal';
 import { AdminNav } from '../components/AdminNav';
-import { mockTreasury } from '../mockData';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { useAuth } from '../auth';
+import { paymentsActor, treasuryActor } from '../ic';
+import { unwrapAdmin } from '../lib/admin';
 
 export const AdminTreasuryPage: React.FC = () => {
-  const canisters = [
-    { name: 'platform', id: 'qhbym-qaaaa-aaaaa-aaafq-cai', balance: '48.5 TCycles', dailyBurn: '420 GCycles', status: 'Healthy' },
-    { name: 'payments', id: 'qda4v-eyaaa-aaaaa-aaaha-cai', balance: '32.1 TCycles', dailyBurn: '180 GCycles', status: 'Healthy' },
-    { name: 'treasury', id: 'qjdve-lqaaa-aaaaa-aaaeq-cai', balance: '85.0 TCycles', dailyBurn: '50 GCycles', status: 'Healthy' },
-    { name: 'frontend', id: 'q42bv-ciaaa-aaaaa-aaajq-cai', balance: '18.2 TCycles', dailyBurn: '95 GCycles', status: 'Healthy' },
-  ];
+  const { identity } = useAuth();
+  const queryClient = useQueryClient();
+  const [watchTarget, setWatchTarget] = useState('');
+  const [watchMinDays, setWatchMinDays] = useState('7');
+  const [watchTargetDays, setWatchTargetDays] = useState('30');
+  const [withdrawTo, setWithdrawTo] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+
+  const status = useQuery({
+    queryKey: ['admin', 'treasury', 'status'],
+    queryFn: () => treasuryActor(identity!).status(),
+  });
+  const health = useQuery({
+    queryKey: ['admin', 'treasury', 'health'],
+    queryFn: () => treasuryActor(identity!).health(),
+  });
+  const history = useQuery({
+    queryKey: ['admin', 'treasury', 'history'],
+    queryFn: () => treasuryActor(identity!).history(null, 20),
+  });
+  const proposals = useQuery({
+    queryKey: ['admin', 'treasury', 'proposals'],
+    queryFn: async () => unwrapAdmin(await treasuryActor(identity!).admin_proposals()),
+  });
+  const paymentsOverview = useQuery({
+    queryKey: ['admin', 'payments', 'overview'],
+    queryFn: async () => unwrapAdmin(await paymentsActor(identity!).admin_overview()),
+  });
+
+  const invalidateTreasury = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'treasury'] });
+  };
+
+  const topupNow = useMutation({
+    mutationFn: async (canister: string) =>
+      unwrapAdmin(await treasuryActor(identity!).admin_topup_now(canister ? Principal.fromText(canister) : null)),
+    onSuccess: invalidateTreasury,
+  });
+  const watch = useMutation({
+    mutationFn: async () =>
+      unwrapAdmin(
+        await treasuryActor(identity!).admin_watch(Principal.fromText(watchTarget), Number(watchMinDays), Number(watchTargetDays)),
+      ),
+    onSuccess: invalidateTreasury,
+  });
+  const unwatch = useMutation({
+    mutationFn: async (canister: Principal) => unwrapAdmin(await treasuryActor(identity!).admin_unwatch(canister)),
+    onSuccess: invalidateTreasury,
+  });
+  const withdraw = useMutation({
+    mutationFn: async () =>
+      unwrapAdmin(await treasuryActor(identity!).admin_withdraw(Principal.fromText(withdrawTo), BigInt(withdrawAmount))),
+    onSuccess: invalidateTreasury,
+  });
+  const approve = useMutation({
+    mutationFn: async (proposalId: bigint) => unwrapAdmin(await treasuryActor(identity!).admin_approve(proposalId)),
+    onSuccess: invalidateTreasury,
+  });
+  const toggleNonIcpIntake = useMutation({
+    mutationFn: async () =>
+      unwrapAdmin(
+        await paymentsActor(identity!).admin_pause({
+          ...paymentsOverview.data!.paused,
+          non_icp: !paymentsOverview.data!.paused.non_icp,
+        }),
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'payments', 'overview'] }),
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Treasury Operations</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Treasury & Cycles Float
-        </h1>
-      </div>
-
+    <div>
+      <h1>Treasury</h1>
       <AdminNav />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Treasury ICP Balance</div>
-          <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--amber-star)' }}>
-            {mockTreasury.icpBalance} ICP
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--cyan-nebula)', marginTop: '0.25rem' }}>
-            ~{mockTreasury.runwayMonths} Months Runway
-          </div>
-        </div>
+      {status.isPending && <p>Loading treasury status…</p>}
+      {status.data && (
+        <dl>
+          <dt>ICP balance (e8s)</dt>
+          <dd>{status.data.icp_balance_e8s.toString()}</dd>
+          <dt>Reserve floor (e8s)</dt>
+          <dd>{status.data.reserve_e8s.toString()}</dd>
+          <dt>Daily burn (cycles)</dt>
+          <dd>{status.data.daily_burn_cycles.toString()}</dd>
+          <dt>Projected runway (months)</dt>
+          <dd>{status.data.projected_runway_months}</dd>
+        </dl>
+      )}
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Platform Daily Burn</div>
-          <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--cyan-nebula)' }}>
-            {mockTreasury.dailyBurnCycles}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Across all 4 core canisters
-          </div>
-        </div>
-      </div>
+      {health.data && (
+        <p role={health.data.reserve_breached ? 'alert' : 'status'}>
+          Health: {health.data.reserve_breached ? 'reserve breached' : 'ok'}, min runway {health.data.min_runway_days} days
+          {health.data.worst_canister ? ` (worst: ${health.data.worst_canister.toText()})` : ''}
+        </p>
+      )}
 
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
-          Core Infrastructure Canister Balances
-        </h3>
+      {paymentsOverview.data && (
+        <p>
+          Non-ICP intake: {paymentsOverview.data.paused.non_icp ? 'paused' : 'open'}{' '}
+          <ConfirmAction
+            label={paymentsOverview.data.paused.non_icp ? 'open intake' : 'pause intake'}
+            phrase="non_icp"
+            disabled={toggleNonIcpIntake.isPending}
+            onConfirm={() => toggleNonIcpIntake.mutate()}
+          />
+        </p>
+      )}
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.85rem' }}>
+      {status.data && (
+        <table>
+          <caption>Per-canister cycles runway</caption>
+          <thead>
+            <tr>
+              <th>Canister</th>
+              <th>Cycles</th>
+              <th>Burn/day</th>
+              <th>Runway (days)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {status.data.canisters.map((c) => (
+              <tr key={c.canister.toText()}>
+                <td>{c.canister.toText()}</td>
+                <td>{c.cycles.toString()}</td>
+                <td>{c.burn_per_day.toString()}</td>
+                <td>{c.runway_days}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <section aria-label="Top up now">
+        <h2>Top up now</h2>
+        <ConfirmAction label="top up all watched" phrase="top up" disabled={topupNow.isPending} onConfirm={() => topupNow.mutate('')} />
+        {topupNow.isError && <p role="alert">{topupNow.error.message}</p>}
+      </section>
+
+      <section aria-label="Watch list">
+        <h2>Watch a canister</h2>
+        <label>
+          Canister principal
+          <input value={watchTarget} onChange={(e) => setWatchTarget(e.target.value)} />
+        </label>
+        <label>
+          Min runway days
+          <input value={watchMinDays} onChange={(e) => setWatchMinDays(e.target.value)} />
+        </label>
+        <label>
+          Target runway days
+          <input value={watchTargetDays} onChange={(e) => setWatchTargetDays(e.target.value)} />
+        </label>
+        <button type="button" disabled={watch.isPending || !watchTarget} onClick={() => watch.mutate()}>
+          Watch
+        </button>
+        <ConfirmAction
+          label="unwatch"
+          phrase={watchTarget || 'canister'}
+          disabled={unwatch.isPending || !watchTarget}
+          onConfirm={() => unwatch.mutate(Principal.fromText(watchTarget))}
+        />
+        {(watch.isError || unwatch.isError) && <p role="alert">{watch.error?.message ?? unwatch.error?.message}</p>}
+      </section>
+
+      <section aria-label="Withdraw (two-admin approval)">
+        <h2>Withdraw (proposal + second-admin approval)</h2>
+        <label>
+          To principal
+          <input value={withdrawTo} onChange={(e) => setWithdrawTo(e.target.value)} />
+        </label>
+        <label>
+          Amount (e8s)
+          <input value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} />
+        </label>
+        <ConfirmAction
+          label="propose withdrawal"
+          phrase="withdraw"
+          disabled={withdraw.isPending || !withdrawTo || !withdrawAmount}
+          onConfirm={() => withdraw.mutate()}
+        />
+        {withdraw.isError && <p role="alert">{withdraw.error.message}</p>}
+
+        {proposals.data && (
+          <table>
+            <caption>Pending proposals</caption>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-surface-elevated)' }}>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Canister</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Canister ID</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Cycle Balance</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Daily Velocity</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', textAlign: 'right' }}>Status</th>
+              <tr>
+                <th>ID</th>
+                <th>Proposer</th>
+                <th>Action</th>
+                <th />
               </tr>
             </thead>
             <tbody>
-              {canisters.map((c) => (
-                <tr key={c.name} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>{c.name}</td>
-                  <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>{c.id}</td>
-                  <td style={{ padding: '0.85rem 1rem', color: 'var(--amber-star)', fontWeight: 600 }}>{c.balance}</td>
-                  <td style={{ padding: '0.85rem 1rem' }}>{c.dailyBurn}</td>
-                  <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                    <span className="badge badge-cyan">{c.status}</span>
+              {proposals.data.map(([id, p]) => (
+                <tr key={id.toString()}>
+                  <td>{id.toString()}</td>
+                  <td>{p.proposer.toText()}</td>
+                  <td>{p.action.__kind__}</td>
+                  <td>
+                    <ConfirmAction
+                      label="approve"
+                      phrase={id.toString()}
+                      disabled={approve.isPending}
+                      onConfirm={() => approve.mutate(id)}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        )}
+        {approve.isError && <p role="alert">{approve.error.message}</p>}
+      </section>
+
+      <section aria-label="Deposit history">
+        <h2>History</h2>
+        {history.data && (
+          <table>
+            <thead>
+              <tr>
+                <th>Seq</th>
+                <th>At</th>
+                <th>Actor</th>
+                <th>Kind</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.data[0].map((h) => (
+                <tr key={h.seq.toString()}>
+                  <td>{h.seq.toString()}</td>
+                  <td>{new Date(Number(h.at / 1_000_000n)).toISOString()}</td>
+                  <td>{h.actor.toText()}</td>
+                  <td>{h.kind.__kind__}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
     </div>
   );
 };

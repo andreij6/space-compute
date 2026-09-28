@@ -1,85 +1,153 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminNav } from '../components/AdminNav';
-import { Upload, CheckCircle2 } from 'lucide-react';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { useAuth } from '../auth';
+import { platformActor } from '../ic';
+import { unwrapAdmin } from '../lib/admin';
+import { DiscoveryStatus, Vote, type HoneypotSpec } from '../bindings/platform';
+
+function parseHoneypotJson(text: string): HoneypotSpec[] {
+  const parsed = JSON.parse(text);
+  if (!Array.isArray(parsed)) throw new Error('Expected a JSON array of honeypot specs.');
+  return parsed.map((row) => ({
+    subject_id: Number(row.subject_id),
+    category: String(row.category),
+    rationale: String(row.rationale),
+    truth: row.truth === 'Agree' ? Vote.Agree : Vote.Disagree,
+  }));
+}
 
 export const AdminDiscoveriesPage: React.FC = () => {
-  const [seedSuccess, setSeedSuccess] = useState(false);
+  const { identity } = useAuth();
+  const queryClient = useQueryClient();
+  const [starvingOnly, setStarvingOnly] = useState(false);
+  const [honeypotJson, setHoneypotJson] = useState('[]');
+  const [parseError, setParseError] = useState<string | null>(null);
 
-  const handleSeed = () => {
-    setSeedSuccess(true);
-    setTimeout(() => setSeedSuccess(false), 3000);
-  };
+  const discoveries = useQuery({
+    queryKey: ['admin', 'discoveries', starvingOnly],
+    queryFn: async () =>
+      unwrapAdmin(
+        await platformActor(identity!).admin_list_discoveries(
+          { status: DiscoveryStatus.UnderReview, starving: starvingOnly || undefined },
+          null,
+          50,
+        ),
+      ),
+  });
+
+  const honeypotStats = useQuery({
+    queryKey: ['admin', 'honeypot_stats'],
+    queryFn: async () => unwrapAdmin(await platformActor(identity!).admin_honeypot_stats()),
+  });
+
+  const addHoneypots = useMutation({
+    mutationFn: async (specs: HoneypotSpec[]) => unwrapAdmin(await platformActor(identity!).admin_add_honeypots(specs)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'honeypot_stats'] }),
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Consensus Engine</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Discoveries & Review Queue
-        </h1>
-      </div>
-
+    <div>
+      <h1>Discoveries & review queue</h1>
       <AdminNav />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pending Reviews</div>
-          <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--amber-star)' }}>
-            24
-          </div>
-        </div>
+      <label>
+        <input type="checkbox" checked={starvingOnly} onChange={(e) => setStarvingOnly(e.target.checked)} />
+        Starving only (past the review-starvation window)
+      </label>
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Starving (&gt;7 Days)</div>
-          <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--red-nova)' }}>
-            2
-          </div>
-        </div>
+      {discoveries.isPending && <p>Loading discoveries…</p>}
+      {discoveries.isError && <p role="alert">{discoveries.error.message}</p>}
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Avg. Quorum Time</div>
-          <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--cyan-nebula)' }}>
-            4.8 Hours
-          </div>
-        </div>
-      </div>
+      {discoveries.data && (
+        <table>
+          <thead>
+            <tr>
+              <th>Public ID</th>
+              <th>Field</th>
+              <th>Category</th>
+              <th>Reviews</th>
+              <th>Corroborations</th>
+              <th>Honeypot</th>
+              <th>Starving</th>
+            </tr>
+          </thead>
+          <tbody>
+            {discoveries.data.items.map((d) => (
+              <tr key={d.public_id}>
+                <td>{d.public_id}</td>
+                <td>{d.field}</td>
+                <td>{d.category}</td>
+                <td>
+                  {d.reviews_done}/{d.needed_reviews}
+                </td>
+                <td>{d.corroborations}</td>
+                <td>{d.is_honeypot ? 'yes' : 'no'}</td>
+                <td>{d.starving ? 'yes' : 'no'}</td>
+              </tr>
+            ))}
+            {discoveries.data.items.length === 0 && (
+              <tr>
+                <td colSpan={7}>No discoveries match.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
 
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Upload size={18} style={{ color: 'var(--amber-star)' }} />
-          <span>Honeypot Gold Target Seed Tool</span>
-        </h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-          Inject verified ground-truth subjects to continuously test agent accuracy and calibrate consensus weights.
-        </p>
-
-        <div style={{ 
-          border: '1.5px dashed var(--border-subtle)', 
-          borderRadius: 'var(--radius-md)', 
-          padding: '2rem 1.5rem', 
-          textAlign: 'center',
-          backgroundColor: 'var(--bg-surface-elevated)'
-        }}>
-          <Upload size={32} style={{ color: 'var(--text-dim)', margin: '0 auto 0.75rem' }} />
-          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-            Drop Honeypot Batch JSON file here
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: '1rem' }}>
-            Schema: Array of &#123; subject_id, ground_truth, coordinates, fits_hash &#125;
-          </div>
-          <button type="button" className="btn-primary" onClick={handleSeed}>
-            <span>Seed 50 Gold Targets</span>
-          </button>
-        </div>
-
-        {seedSuccess && (
-          <div style={{ marginTop: '1rem', color: 'var(--cyan-nebula)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CheckCircle2 size={16} /> Successfully injected and committed 50 honeypot subjects to the platform pool.
-          </div>
+      <section aria-label="Honeypot accuracy per reviewer">
+        <h2>Honeypot accuracy per reviewer</h2>
+        {honeypotStats.isPending && <p>Loading honeypot stats…</p>}
+        {honeypotStats.isError && <p role="alert">{honeypotStats.error.message}</p>}
+        {honeypotStats.data && (
+          <table>
+            <thead>
+              <tr>
+                <th>Reviewer AAA</th>
+                <th>Hits</th>
+                <th>Trials</th>
+              </tr>
+            </thead>
+            <tbody>
+              {honeypotStats.data.map((s) => (
+                <tr key={s.reviewer_aaa.toText()}>
+                  <td>{s.reviewer_aaa.toText()}</td>
+                  <td>{s.hits}</td>
+                  <td>{s.trials}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-      </div>
+      </section>
+
+      <section aria-label="Add honeypots">
+        <h2>Add honeypots (JSON upload)</h2>
+        <p>There is deliberately no edit or delete for confirmed citations.</p>
+        <textarea
+          value={honeypotJson}
+          onChange={(e) => setHoneypotJson(e.target.value)}
+          rows={6}
+          aria-label="Honeypot batch JSON"
+        />
+        {parseError && <p role="alert">{parseError}</p>}
+        <ConfirmAction
+          label="add honeypots"
+          phrase="add honeypots"
+          disabled={addHoneypots.isPending}
+          onConfirm={() => {
+            try {
+              setParseError(null);
+              addHoneypots.mutate(parseHoneypotJson(honeypotJson));
+            } catch (e) {
+              setParseError(e instanceof Error ? e.message : 'Invalid JSON.');
+            }
+          }}
+        />
+        {addHoneypots.isError && <p role="alert">{addHoneypots.error.message}</p>}
+        {addHoneypots.isSuccess && <p role="status">Added {addHoneypots.data} honeypots.</p>}
+      </section>
     </div>
   );
 };

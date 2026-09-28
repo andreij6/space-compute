@@ -1,76 +1,147 @@
-import React from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminNav } from '../components/AdminNav';
-import { FileCode } from 'lucide-react';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { useAuth } from '../auth';
+import { platformActor } from '../ic';
+import { unwrapAdmin } from '../lib/admin';
+import type { Protocol } from '../bindings/platform';
 
 export const AdminCatalogPage: React.FC = () => {
-  const schema = `{
-  "$schema": "https://space-compute.org/schemas/question-tree-v2.json",
-  "name": "JWST Galaxy Morphology Tree",
-  "root": "Q01_SmoothOrFeatured",
-  "questions": {
-    "Q01_SmoothOrFeatured": {
-      "prompt": "Is the galaxy completely smooth and rounded, or does it have features/disk?",
-      "options": ["Smooth", "Featured / Disk", "Star / Artifact"]
-    },
-    "Q02_DiskFeatures": {
-      "prompt": "Does the disk feature spiral arms, bars, or clumpiness?",
-      "options": ["Spiral Arms", "Central Bar", "Clumpy", "Edge-On Ring"]
-    }
-  }
-}`;
+  const { identity } = useAuth();
+  const queryClient = useQueryClient();
+  const [protocolJson, setProtocolJson] = useState('');
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  const subjects = useQuery({
+    queryKey: ['admin', 'subjects'],
+    queryFn: async () => unwrapAdmin(await platformActor(identity!).admin_list_subjects({}, null, 50)),
+  });
+  const protocols = useQuery({
+    queryKey: ['admin', 'protocols'],
+    queryFn: async () => unwrapAdmin(await platformActor(identity!).admin_list_protocols()),
+  });
+
+  const invalidateSubjects = () => queryClient.invalidateQueries({ queryKey: ['admin', 'subjects'] });
+  const invalidateProtocols = () => queryClient.invalidateQueries({ queryKey: ['admin', 'protocols'] });
+
+  const setSubjectActive = useMutation({
+    mutationFn: async ({ subjectId, active }: { subjectId: number; active: boolean }) =>
+      unwrapAdmin(await platformActor(identity!).admin_set_subject_active(subjectId, active)),
+    onSuccess: invalidateSubjects,
+  });
+  const addProtocol = useMutation({
+    mutationFn: async (protocol: Protocol) => unwrapAdmin(await platformActor(identity!).admin_add_protocol(protocol)),
+    onSuccess: invalidateProtocols,
+  });
+  const setCurrentProtocol = useMutation({
+    mutationFn: async (version: number) => unwrapAdmin(await platformActor(identity!).admin_set_current_protocol(version)),
+    onSuccess: invalidateProtocols,
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Dataset Administration</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Data Catalog & Protocols
-        </h1>
-      </div>
-
+    <div>
+      <h1>Subjects & protocols</h1>
       <AdminNav />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>CEERS Field</div>
-          <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--amber-star)' }}>
-            48,200
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--cyan-nebula)' }}>98% Classified (Retired)</div>
-        </div>
+      <section aria-label="Subjects">
+        <h2>Subjects</h2>
+        {subjects.isPending && <p>Loading subjects…</p>}
+        {subjects.isError && <p role="alert">{subjects.error.message}</p>}
+        {subjects.data && (
+          <table>
+            <thead>
+              <tr>
+                <th>Subject ID</th>
+                <th>Field</th>
+                <th>Active</th>
+                <th>Has gold</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {subjects.data.map((s) => (
+                <tr key={s.ref_.subject_id}>
+                  <td>{s.ref_.subject_id}</td>
+                  <td>{s.ref_.field}</td>
+                  <td>{s.active ? 'yes' : 'no'}</td>
+                  <td>{s.gold ? 'yes' : 'no'}</td>
+                  <td>
+                    <button
+                      type="button"
+                      disabled={setSubjectActive.isPending}
+                      onClick={() => setSubjectActive.mutate({ subjectId: s.ref_.subject_id, active: !s.active })}
+                    >
+                      {s.active ? 'Deactivate' : 'Activate'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {setSubjectActive.isError && <p role="alert">{setSubjectActive.error.message}</p>}
+      </section>
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>COSMOS-Web Field</div>
-          <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--cyan-nebula)' }}>
-            64,150
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--amber-star)' }}>45% Classified (Active)</div>
-        </div>
+      <section aria-label="Protocols">
+        <h2>Protocol versions</h2>
+        {protocols.isPending && <p>Loading protocols…</p>}
+        {protocols.isError && <p role="alert">{protocols.error.message}</p>}
+        {protocols.data && (
+          <table>
+            <thead>
+              <tr>
+                <th>Version</th>
+                <th>Questions</th>
+                <th>Categories</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {protocols.data.map((p) => (
+                <tr key={p.version}>
+                  <td>{p.version}</td>
+                  <td>{p.questions.length}</td>
+                  <td>{p.discovery_categories.length}</td>
+                  <td>
+                    <ConfirmAction
+                      label="set current"
+                      phrase={String(p.version)}
+                      disabled={setCurrentProtocol.isPending}
+                      onConfirm={() => setCurrentProtocol.mutate(p.version)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {setCurrentProtocol.isError && <p role="alert">{setCurrentProtocol.error.message}</p>}
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>JADES Deep Field</div>
-          <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--blue-cosmic)' }}>
-            30,500
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--cyan-nebula)' }}>Queued for Next Season</div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileCode size={18} style={{ color: 'var(--cyan-nebula)' }} />
-          <span>Active Classification Question Tree Schema</span>
-        </h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          JSON decision tree delivered to connected AI agents for standardized morphological classification.
-        </p>
-
-        <pre className="citation-block" style={{ whiteSpace: 'pre-wrap', maxHeight: '260px', overflowY: 'auto' }}>
-          {schema}
-        </pre>
-      </div>
+        <h3>Add a protocol version (JSON)</h3>
+        <textarea
+          value={protocolJson}
+          onChange={(e) => setProtocolJson(e.target.value)}
+          rows={6}
+          aria-label="Protocol JSON"
+          placeholder='{"version":2,"guidance_md":"...","questions":[],"discovery_categories":[]}'
+        />
+        {parseError && <p role="alert">{parseError}</p>}
+        <ConfirmAction
+          label="add protocol"
+          phrase="add protocol"
+          disabled={addProtocol.isPending}
+          onConfirm={() => {
+            try {
+              setParseError(null);
+              addProtocol.mutate(JSON.parse(protocolJson));
+            } catch (e) {
+              setParseError(e instanceof Error ? e.message : 'Invalid JSON.');
+            }
+          }}
+        />
+        {addProtocol.isError && <p role="alert">{addProtocol.error.message}</p>}
+      </section>
     </div>
   );
 };

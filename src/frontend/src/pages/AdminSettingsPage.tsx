@@ -1,189 +1,209 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Principal } from '@icp-sdk/core/principal';
 import { AdminNav } from '../components/AdminNav';
-import { Save } from 'lucide-react';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { ParamsEditor } from '../components/ParamsEditor';
+import { useAuth } from '../auth';
+import { platformActor, paymentsActor, treasuryActor } from '../ic';
+import { canRemoveAdmin, unwrapAdmin } from '../lib/admin';
+import type { Params as PlatformParams } from '../bindings/platform';
+import type { Features, Params as PaymentsParams } from '../bindings/payments';
+
+function AdminList({
+  title,
+  admins,
+  onAdd,
+  onRemove,
+  adding,
+  removing,
+}: {
+  title: string;
+  admins: Principal[];
+  onAdd: (p: Principal) => void;
+  onRemove: (p: Principal) => void;
+  adding: boolean;
+  removing: boolean;
+}) {
+  const [newAdmin, setNewAdmin] = useState('');
+  return (
+    <div>
+      <h3>{title}</h3>
+      <ul>
+        {admins.map((p) => (
+          <li key={p.toText()}>
+            {p.toText()}{' '}
+            <ConfirmAction
+              label="remove"
+              phrase={p.toText().slice(0, 5)}
+              disabled={removing || !canRemoveAdmin(admins)}
+              onConfirm={() => onRemove(p)}
+            />
+          </li>
+        ))}
+      </ul>
+      <label>
+        New admin principal
+        <input value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} />
+      </label>
+      <button
+        type="button"
+        disabled={adding || !newAdmin.trim()}
+        onClick={() => {
+          onAdd(Principal.fromText(newAdmin.trim()));
+          setNewAdmin('');
+        }}
+      >
+        Add admin
+      </button>
+    </div>
+  );
+}
 
 export const AdminSettingsPage: React.FC = () => {
-  const [flags, setFlags] = useState({
-    cardPacks: true,
-    btcPacks: true,
-    ethPacks: true,
-    sponsoredInvites: true
+  const { identity } = useAuth();
+  const queryClient = useQueryClient();
+
+  const platformOverview = useQuery({
+    queryKey: ['admin', 'platform', 'overview'],
+    queryFn: async () => unwrapAdmin(await platformActor(identity!).admin_overview()),
+  });
+  const paymentsOverview = useQuery({
+    queryKey: ['admin', 'payments', 'overview'],
+    queryFn: async () => unwrapAdmin(await paymentsActor(identity!).admin_overview()),
+  });
+  const treasuryConfig = useQuery({
+    queryKey: ['admin', 'treasury', 'config'],
+    queryFn: async () => unwrapAdmin(await treasuryActor(identity!).admin_get_config()),
   });
 
-  const [params, setParams] = useState({
-    retirementThresholdK: 5,
-    goldInjectionRatePercent: 4.0,
-    reviewQuorum: 12
+  const invalidatePlatform = () => queryClient.invalidateQueries({ queryKey: ['admin', 'platform', 'overview'] });
+  const invalidatePayments = () => queryClient.invalidateQueries({ queryKey: ['admin', 'payments', 'overview'] });
+  const invalidateTreasury = () => queryClient.invalidateQueries({ queryKey: ['admin', 'treasury', 'config'] });
+
+  const setPlatformParams = useMutation({
+    mutationFn: async (params: PlatformParams) => unwrapAdmin(await platformActor(identity!).admin_set_params(params)),
+    onSuccess: invalidatePlatform,
+  });
+  const setPaymentsParams = useMutation({
+    mutationFn: async (params: PaymentsParams) => unwrapAdmin(await paymentsActor(identity!).admin_set_params(params)),
+    onSuccess: invalidatePayments,
+  });
+  const setFeatures = useMutation({
+    mutationFn: async (features: Features) => unwrapAdmin(await paymentsActor(identity!).admin_set_features(features)),
+    onSuccess: invalidatePayments,
   });
 
-  const [saved, setSaved] = useState(false);
-
-  const toggleFlag = (key: keyof typeof flags) => {
-    setFlags(f => ({ ...f, [key]: !f[key] }));
-  };
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
+  const addPlatformAdmin = useMutation({
+    mutationFn: async (p: Principal) => unwrapAdmin(await platformActor(identity!).admin_add_admin(p)),
+    onSuccess: invalidatePlatform,
+  });
+  const removePlatformAdmin = useMutation({
+    mutationFn: async (p: Principal) => unwrapAdmin(await platformActor(identity!).admin_remove_admin(p)),
+    onSuccess: invalidatePlatform,
+  });
+  const addPaymentsAdmin = useMutation({
+    mutationFn: async (p: Principal) => unwrapAdmin(await paymentsActor(identity!).admin_add_admin(p)),
+    onSuccess: invalidatePayments,
+  });
+  const removePaymentsAdmin = useMutation({
+    mutationFn: async (p: Principal) => unwrapAdmin(await paymentsActor(identity!).admin_remove_admin(p)),
+    onSuccess: invalidatePayments,
+  });
+  const setTreasuryAdmins = useMutation({
+    mutationFn: async (admins: Principal[]) =>
+      unwrapAdmin(await treasuryActor(identity!).admin_set_config({ ...treasuryConfig.data!, admins })),
+    onSuccess: invalidateTreasury,
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Platform Config</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Global Settings & Feature Flags
-        </h1>
-      </div>
-
+    <div>
+      <h1>Settings, feature flags & admins</h1>
       <AdminNav />
 
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
-          Dynamic Feature Flags
-        </h3>
+      <section aria-label="Platform params">
+        <h2>Platform params</h2>
+        {platformOverview.isPending && <p>Loading…</p>}
+        {platformOverview.isError && <p role="alert">{platformOverview.error.message}</p>}
+        {platformOverview.data && (
+          <ParamsEditor
+            base={platformOverview.data.params}
+            onSave={(p) => setPlatformParams.mutate(p)}
+            saving={setPlatformParams.isPending}
+            error={setPlatformParams.error?.message}
+          />
+        )}
+      </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Card Fuel Packs</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Stripe fiat payments</div>
-            </div>
-            <button
-              type="button"
-              className={`badge ${flags.cardPacks ? 'badge-cyan' : 'badge-subtle'}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => toggleFlag('cardPacks')}
-            >
-              {flags.cardPacks ? 'Enabled' : 'Disabled'}
-            </button>
-          </div>
+      <section aria-label="Payments params">
+        <h2>Payments params</h2>
+        {paymentsOverview.isPending && <p>Loading…</p>}
+        {paymentsOverview.isError && <p role="alert">{paymentsOverview.error.message}</p>}
+        {paymentsOverview.data && (
+          <ParamsEditor
+            base={paymentsOverview.data.params}
+            onSave={(p) => setPaymentsParams.mutate(p)}
+            saving={setPaymentsParams.isPending}
+            error={setPaymentsParams.error?.message}
+          />
+        )}
+      </section>
 
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>BTC Fuel Packs</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>ckBTC native deposits</div>
-            </div>
-            <button
-              type="button"
-              className={`badge ${flags.btcPacks ? 'badge-cyan' : 'badge-subtle'}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => toggleFlag('btcPacks')}
-            >
-              {flags.btcPacks ? 'Enabled' : 'Disabled'}
-            </button>
-          </div>
+      <section aria-label="Feature flags (ICP-only MVP: card/BTC/ETH stay pause-only)">
+        <h2>Feature flags</h2>
+        {paymentsOverview.data && (
+          <>
+            {(['card', 'btc', 'eth', 'sponsored_spawn'] as const).map((flag) => (
+              <p key={flag}>
+                {flag}: {paymentsOverview.data.features[flag] ? 'enabled' : 'disabled'}{' '}
+                <ConfirmAction
+                  label={paymentsOverview.data.features[flag] ? `disable ${flag}` : `enable ${flag}`}
+                  phrase={flag}
+                  disabled={setFeatures.isPending}
+                  onConfirm={() =>
+                    setFeatures.mutate({ ...paymentsOverview.data!.features, [flag]: !paymentsOverview.data!.features[flag] })
+                  }
+                />
+              </p>
+            ))}
+            {setFeatures.isError && <p role="alert">{setFeatures.error.message}</p>}
+          </>
+        )}
+      </section>
 
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>ETH Fuel Packs</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>ckETH / EVM RPC</div>
-            </div>
-            <button
-              type="button"
-              className={`badge ${flags.ethPacks ? 'badge-cyan' : 'badge-subtle'}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => toggleFlag('ethPacks')}
-            >
-              {flags.ethPacks ? 'Enabled' : 'Disabled'}
-            </button>
-          </div>
-
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Sponsored Invites</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Zero-cost AAA onboarding</div>
-            </div>
-            <button
-              type="button"
-              className={`badge ${flags.sponsoredInvites ? 'badge-cyan' : 'badge-subtle'}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => toggleFlag('sponsoredInvites')}
-            >
-              {flags.sponsoredInvites ? 'Enabled' : 'Disabled'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
-          Scientific Consensus Parameters
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-              Retirement Threshold (K Consensus)
-            </label>
-            <input
-              type="number"
-              value={params.retirementThresholdK}
-              onChange={(e) => setParams({ ...params, retirementThresholdK: Number(e.target.value) })}
-              style={{
-                width: '100%',
-                backgroundColor: 'var(--bg-surface-elevated)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.6rem 0.8rem',
-                color: 'var(--text-main)',
-                fontFamily: 'var(--font-mono)'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-              Gold Honeypot Injection Rate (%)
-            </label>
-            <input
-              type="number"
-              step="0.5"
-              value={params.goldInjectionRatePercent}
-              onChange={(e) => setParams({ ...params, goldInjectionRatePercent: Number(e.target.value) })}
-              style={{
-                width: '100%',
-                backgroundColor: 'var(--bg-surface-elevated)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.6rem 0.8rem',
-                color: 'var(--text-main)',
-                fontFamily: 'var(--font-mono)'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-              Peer Review Discovery Quorum
-            </label>
-            <input
-              type="number"
-              value={params.reviewQuorum}
-              onChange={(e) => setParams({ ...params, reviewQuorum: Number(e.target.value) })}
-              style={{
-                width: '100%',
-                backgroundColor: 'var(--bg-surface-elevated)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0.6rem 0.8rem',
-                color: 'var(--text-main)',
-                fontFamily: 'var(--font-mono)'
-              }}
-            />
-          </div>
-        </div>
-
-        <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button type="button" className="btn-primary" onClick={handleSave}>
-            <Save size={16} />
-            <span>Save Configuration Changes</span>
-          </button>
-          {saved && <span style={{ color: 'var(--cyan-nebula)', fontSize: '0.85rem' }}>Changes committed to platform canister state!</span>}
-        </div>
-      </div>
+      <section aria-label="Admins">
+        <h2>Admins</h2>
+        {platformOverview.data && (
+          <AdminList
+            title="Platform admins"
+            admins={platformOverview.data.admins}
+            onAdd={(p) => addPlatformAdmin.mutate(p)}
+            onRemove={(p) => removePlatformAdmin.mutate(p)}
+            adding={addPlatformAdmin.isPending}
+            removing={removePlatformAdmin.isPending}
+          />
+        )}
+        {paymentsOverview.data && (
+          <AdminList
+            title="Payments admins"
+            admins={paymentsOverview.data.admins}
+            onAdd={(p) => addPaymentsAdmin.mutate(p)}
+            onRemove={(p) => removePaymentsAdmin.mutate(p)}
+            adding={addPaymentsAdmin.isPending}
+            removing={removePaymentsAdmin.isPending}
+          />
+        )}
+        {treasuryConfig.data && (
+          <AdminList
+            title="Treasury admins"
+            admins={treasuryConfig.data.admins}
+            onAdd={(p) => setTreasuryAdmins.mutate([...treasuryConfig.data!.admins, p])}
+            onRemove={(p) => setTreasuryAdmins.mutate(treasuryConfig.data!.admins.filter((a) => a.toText() !== p.toText()))}
+            adding={setTreasuryAdmins.isPending}
+            removing={setTreasuryAdmins.isPending}
+          />
+        )}
+      </section>
     </div>
   );
 };

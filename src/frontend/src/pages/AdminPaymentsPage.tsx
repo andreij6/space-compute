@@ -1,94 +1,96 @@
-import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminNav } from '../components/AdminNav';
-import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
+import { ParamsEditor } from '../components/ParamsEditor';
+import { useAuth } from '../auth';
+import { paymentsActor } from '../ic';
+import { unwrapAdmin } from '../lib/admin';
+import type { Params } from '../bindings/payments';
 
 export const AdminPaymentsPage: React.FC = () => {
-  const sagas = [
-    { id: 'saga-1044', user: '2vxsx...cai', method: 'ckBTC', amount: '0.00015 BTC', error: 'Callback timeout on CMC minting', status: 'stalled' },
-    { id: 'saga-1042', user: 'rrkah...cai', method: 'Stripe', amount: '$5.00 USD', error: 'Webhook signature verification retry', status: 'retrying' },
-  ];
+  const { identity } = useAuth();
+  const queryClient = useQueryClient();
+
+  const overview = useQuery({
+    queryKey: ['admin', 'payments', 'overview'],
+    queryFn: async () => unwrapAdmin(await paymentsActor(identity!).admin_overview()),
+  });
+  const ops = useQuery({
+    queryKey: ['admin', 'payments', 'ops'],
+    queryFn: async () => unwrapAdmin(await paymentsActor(identity!).admin_list_ops({}, null, 50)),
+  });
+
+  const setParams = useMutation({
+    mutationFn: async (params: Params) => unwrapAdmin(await paymentsActor(identity!).admin_set_params(params)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'payments', 'overview'] }),
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Financial Sagas</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          Payments & Token Ledgers
-        </h1>
-      </div>
-
+    <div>
+      <h1>Payments & ledgers (ICP only)</h1>
       <AdminNav />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Treasury ICP</div>
-          <div style={{ fontSize: '1.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--amber-star)' }}>
-            4,280.5 ICP
-          </div>
-        </div>
+      {overview.isPending && <p>Loading payments overview…</p>}
+      {overview.isError && <p role="alert">{overview.error.message}</p>}
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ckBTC Ledger Balance</div>
-          <div style={{ fontSize: '1.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--cyan-nebula)' }}>
-            0.425 BTC
-          </div>
-        </div>
+      {overview.data && (
+        <dl>
+          <dt>Treasury ICP balance (e8s)</dt>
+          <dd>{overview.data.treasury_icp_balance_e8s.toString()}</dd>
+          <dt>Main ICP balance (e8s)</dt>
+          <dd>{overview.data.main_icp_balance_e8s.toString()}</dd>
+          <dt>Failed ops</dt>
+          <dd>{overview.data.failed_ops.toString()}</dd>
+          <dt>Stuck ops</dt>
+          <dd>{overview.data.stuck_ops.toString()}</dd>
+          <dt>Card packs</dt>
+          <dd>{overview.data.features.card ? 'enabled' : 'disabled (ICP-only MVP)'}</dd>
+        </dl>
+      )}
 
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ckETH Ledger Balance</div>
-          <div style={{ fontSize: '1.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--blue-cosmic)' }}>
-            8.120 ETH
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <AlertTriangle size={18} style={{ color: 'var(--amber-star)' }} />
-          <span>Stalled Saga Operations</span>
-        </h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-          Inter-canister payment sagas requiring manual administrative intervention or rollback.
-        </p>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.85rem' }}>
+      <section aria-label="Recent payment ops">
+        <h2>Recent payment ops</h2>
+        {ops.isPending && <p>Loading ops…</p>}
+        {ops.isError && <p role="alert">{ops.error.message}</p>}
+        {ops.data && (
+          <table>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-surface-elevated)' }}>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Saga ID</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Target User</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Method</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Failure Detail</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', textAlign: 'right' }}>Actions</th>
+              <tr>
+                <th>ID</th>
+                <th>Kind</th>
+                <th>State</th>
+                <th>Amount (e8s)</th>
               </tr>
             </thead>
             <tbody>
-              {sagas.map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)' }}>{s.id}</td>
-                  <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)' }}>{s.user}</td>
-                  <td style={{ padding: '0.85rem 1rem' }}>{s.method} ({s.amount})</td>
-                  <td style={{ padding: '0.85rem 1rem', color: 'var(--red-nova)' }}>{s.error}</td>
-                  <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
-                      <button type="button" className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
-                        <RefreshCw size={12} />
-                        <span>Resume</span>
-                      </button>
-                      <button type="button" className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--red-nova)' }}>
-                        <RotateCcw size={12} />
-                        <span>Refund</span>
-                      </button>
-                    </div>
-                  </td>
+              {ops.data.items.map((op) => (
+                <tr key={op.id.toString()}>
+                  <td>{op.id.toString()}</td>
+                  <td>{op.kind.__kind__}</td>
+                  <td>{op.state.__kind__}</td>
+                  <td>{op.amount_e8s.toString()}</td>
                 </tr>
               ))}
+              {ops.data.items.length === 0 && (
+                <tr>
+                  <td colSpan={4}>No ops recorded.</td>
+                </tr>
+              )}
             </tbody>
           </table>
-        </div>
-      </div>
+        )}
+      </section>
+
+      {overview.data && (
+        <section aria-label="Payments params">
+          <h2>Params</h2>
+          <ParamsEditor
+            base={overview.data.params}
+            onSave={(params) => setParams.mutate(params)}
+            saving={setParams.isPending}
+            error={setParams.error?.message}
+          />
+        </section>
+      )}
     </div>
   );
 };

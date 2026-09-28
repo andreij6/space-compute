@@ -1,133 +1,157 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Principal } from '@icp-sdk/core/principal';
 import { AdminNav } from '../components/AdminNav';
-import { Search, RefreshCw, X, Ban } from 'lucide-react';
-import { mockLeaderboard } from '../mockData';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { useAuth } from '../auth';
+import { platformActor } from '../ic';
+import { unwrapAdmin } from '../lib/admin';
 
 export const AdminAAAsPage: React.FC = () => {
-  const [search, setSearch] = useState('');
-  const [selectedAaa, setSelectedAaa] = useState<(typeof mockLeaderboard)[number] | null>(mockLeaderboard[0]);
+  const { identity } = useAuth();
+  const queryClient = useQueryClient();
+  const [namePrefix, setNamePrefix] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [suspendReason, setSuspendReason] = useState('');
 
-  const filtered = mockLeaderboard.filter(a => 
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.owner.toLowerCase().includes(search.toLowerCase())
-  );
+  const list = useQuery({
+    queryKey: ['admin', 'aaas', namePrefix],
+    queryFn: async () =>
+      unwrapAdmin(
+        await platformActor(identity!).admin_list_aaas(
+          namePrefix ? { name_prefix: namePrefix } : {},
+          null,
+          50,
+        ),
+      ),
+  });
+
+  const detail = useQuery({
+    queryKey: ['admin', 'aaa', selected],
+    queryFn: async () => unwrapAdmin(await platformActor(identity!).admin_get_aaa(Principal.fromText(selected!))),
+    enabled: !!selected,
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'aaas'] });
+    queryClient.invalidateQueries({ queryKey: ['admin', 'aaa', selected] });
+  };
+
+  const suspend = useMutation({
+    mutationFn: async () =>
+      unwrapAdmin(await platformActor(identity!).admin_suspend_aaa(Principal.fromText(selected!), suspendReason)),
+    onSuccess: invalidate,
+  });
+  const unsuspend = useMutation({
+    mutationFn: async () => unwrapAdmin(await platformActor(identity!).admin_unsuspend_aaa(Principal.fromText(selected!))),
+    onSuccess: invalidate,
+  });
+  const retryInstall = useMutation({
+    mutationFn: async () => unwrapAdmin(await platformActor(identity!).admin_retry_install(Principal.fromText(selected!))),
+    onSuccess: invalidate,
+  });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Canister Registry</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          AAAs Directory & Operations
-        </h1>
-      </div>
-
+    <div>
+      <h1>AAAs directory</h1>
       <AdminNav />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: '300px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Search AAAs..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0.5rem 0.75rem 0.5rem 2.25rem',
-              color: 'var(--text-main)',
-              fontSize: '0.85rem'
-            }}
-          />
-        </div>
-      </div>
+      <label>
+        Search by name prefix
+        <input value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
+      </label>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selectedAaa ? '1fr 340px' : '1fr', gap: '1.5rem' }}>
-        <div className="card" style={{ padding: '0', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-surface-elevated)' }}>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>AAA Name</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Owner</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tier</th>
-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Accuracy</th>
+      {list.isPending && <p>Loading AAAs…</p>}
+      {list.isError && <p role="alert">{list.error.message}</p>}
+
+      {list.data && (
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Owner</th>
+              <th>Status</th>
+              <th>Suspended</th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.data.map((aaa) => (
+              <tr key={aaa.owner.toText()}>
+                <td>
+                  <button type="button" onClick={() => setSelected(aaa.owner.toText())}>
+                    {aaa.name}
+                  </button>
+                </td>
+                <td>{aaa.owner.toText()}</td>
+                <td>{aaa.status}</td>
+                <td>{aaa.admin_suspended ? 'yes' : 'no'}</td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item) => (
-                <tr
-                  key={item.name}
-                  onClick={() => setSelectedAaa(item)}
-                  style={{
-                    borderBottom: '1px solid var(--border-subtle)',
-                    backgroundColor: selectedAaa?.name === item.name ? 'var(--amber-glow)' : undefined,
-                    cursor: 'pointer',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>{item.name}</td>
-                  <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>@{item.owner}</td>
-                  <td style={{ padding: '0.85rem 1rem' }}>
-                    <span className="badge badge-amber">Tier {item.tier}</span>
-                  </td>
-                  <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--cyan-nebula)' }}>
-                    {item.accuracy}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+            {list.data.length === 0 && (
+              <tr>
+                <td colSpan={4}>No AAAs match.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
 
-        {selectedAaa && (
-          <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-                {selectedAaa.name}
-              </h3>
-              <button type="button" onClick={() => setSelectedAaa(null)} style={{ color: 'var(--text-muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
+      {selected && (
+        <section aria-label="AAA detail">
+          <h2>{selected}</h2>
+          {detail.isPending && <p>Loading detail…</p>}
+          {detail.isError && <p role="alert">{detail.error.message}</p>}
+          {detail.data && (
+            <dl>
+              <dt>Status</dt>
+              <dd>{detail.data.status}</dd>
+              <dt>House AAA</dt>
+              <dd>{detail.data.is_house ? 'yes' : 'no'}</dd>
+              <dt>Wasm version</dt>
+              <dd>{detail.data.wasm_version}</dd>
+              <dt>Install attempts</dt>
+              <dd>{detail.data.install_attempts}</dd>
+              <dt>Admin suspended</dt>
+              <dd>{detail.data.admin_suspended ? 'yes' : 'no'}</dd>
+            </dl>
+          )}
 
-            <div style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Owner Principal:</span>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-dim)', wordBreak: 'break-all' }}>
-                  2vxsx-fae7a-3x67w-5o67o-4a4g6-p46a2-yquaa-aaaaa-cai
-                </div>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Registered Wasm Hash:</span>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--cyan-nebula)' }}>
-                  0x9812bf...44a1 (v1.2.0)
-                </div>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Canister Cycles:</span>
-                <div style={{ fontWeight: 600, color: 'var(--amber-star)' }}>
-                  12.4 TCycles (~21 Days)
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
-              <button type="button" className="btn-secondary" style={{ justifyContent: 'center', fontSize: '0.8rem' }}>
-                <RefreshCw size={14} />
-                <span>Force Wasm Upgrade</span>
-              </button>
-              <button type="button" className="btn-secondary" style={{ justifyContent: 'center', fontSize: '0.8rem', color: 'var(--red-nova)' }}>
-                <Ban size={14} />
-                <span>Suspend AAA Canister</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          {detail.data && !detail.data.admin_suspended && (
+            <p>
+              <label>
+                Suspension reason
+                <input value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} />
+              </label>
+              <ConfirmAction
+                label="suspend"
+                phrase={detail.data.name}
+                disabled={suspend.isPending || !suspendReason.trim()}
+                onConfirm={() => suspend.mutate()}
+              />
+            </p>
+          )}
+          {detail.data && detail.data.admin_suspended && (
+            <p>
+              <ConfirmAction label="unsuspend" phrase={detail.data.name} disabled={unsuspend.isPending} onConfirm={() => unsuspend.mutate()} />
+            </p>
+          )}
+          {detail.data && (
+            <p>
+              <ConfirmAction
+                label="retry install"
+                phrase={detail.data.name}
+                disabled={retryInstall.isPending}
+                onConfirm={() => retryInstall.mutate()}
+              />
+            </p>
+          )}
+          {(suspend.isError || unsuspend.isError || retryInstall.isError) && (
+            <p role="alert">
+              {suspend.error?.message ?? unsuspend.error?.message ?? retryInstall.error?.message}
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 };

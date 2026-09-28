@@ -1,91 +1,122 @@
-import React from 'react';
+import { useRef, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminNav } from '../components/AdminNav';
-import { UploadCloud, FileArchive } from 'lucide-react';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { useAuth } from '../auth';
+import { platformActor } from '../ic';
+import { unwrapAdmin } from '../lib/admin';
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 export const AdminReleasesPage: React.FC = () => {
-  const versions = [
-    { version: 'v1.2.0', hash: '0x9812bf3d...44a1', size: '1.42 MiB (gz)', budgetOk: true, adoption: '88%', status: 'Active Release' },
-    { version: 'v1.1.0', hash: '0x32cc4b11...99ef', size: '1.38 MiB (gz)', budgetOk: true, adoption: '12%', status: 'Deprecated' },
-  ];
+  const { identity } = useAuth();
+  const queryClient = useQueryClient();
+  const [version, setVersion] = useState('');
+  const [staged, setStaged] = useState<{ bytes: Uint8Array; sha256: Uint8Array } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const wasms = useQuery({
+    queryKey: ['admin', 'wasms'],
+    queryFn: async () => unwrapAdmin(await platformActor(identity!).admin_list_wasms()),
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['admin', 'wasms'] });
+
+  const upload = useMutation({
+    mutationFn: async () => {
+      if (!staged) throw new Error('Choose a wasm file first.');
+      return unwrapAdmin(await platformActor(identity!).admin_upload_wasm(Number(version), staged.bytes, staged.sha256));
+    },
+    onSuccess: invalidate,
+  });
+  const approve = useMutation({
+    mutationFn: async (v: number) => unwrapAdmin(await platformActor(identity!).admin_approve_wasm(v)),
+    onSuccess: invalidate,
+  });
+
+  async function onFileChosen(file: File) {
+    setUploadError(null);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const sha256 = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+      setStaged({ bytes, sha256 });
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : 'Could not read the file.');
+    }
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <span className="badge badge-amber">Canister Upgrades</span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-          AAA Wasm Releases & Budget
-        </h1>
-      </div>
-
+    <div>
+      <h1>AAA wasm releases</h1>
       <AdminNav />
 
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <UploadCloud size={18} style={{ color: 'var(--amber-star)' }} />
-          <span>Upload New AAA Canister Binary</span>
-        </h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-          Verify Wasm fits within the strict 1.5 MiB gzipped budget before signing release hash.
-        </p>
+      <section aria-label="Upload wasm">
+        <h2>Upload a new AAA wasm binary</h2>
+        <label>
+          Version
+          <input type="number" value={version} onChange={(e) => setVersion(e.target.value)} />
+        </label>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".wasm,.gz"
+          onChange={(e) => e.target.files?.[0] && onFileChosen(e.target.files[0])}
+        />
+        {staged && <p>Computed sha256: {toHex(staged.sha256)} ({staged.bytes.length} bytes)</p>}
+        {uploadError && <p role="alert">{uploadError}</p>}
+        <ConfirmAction
+          label="upload wasm"
+          phrase={version || 'version'}
+          disabled={upload.isPending || !staged || !version}
+          onConfirm={() => upload.mutate()}
+        />
+        {upload.isError && <p role="alert">{upload.error.message}</p>}
+      </section>
 
-        <div style={{ 
-          border: '1.5px dashed var(--border-subtle)', 
-          borderRadius: 'var(--radius-md)', 
-          padding: '2rem 1.5rem', 
-          textAlign: 'center',
-          backgroundColor: 'var(--bg-surface-elevated)'
-        }}>
-          <FileArchive size={32} style={{ color: 'var(--cyan-nebula)', margin: '0 auto 0.75rem' }} />
-          <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-            Select `aaa.wasm.gz` to stage release
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: '1rem' }}>
-            Built using `cargo build --target wasm32-unknown-unknown --release`
-          </div>
-          <button type="button" className="btn-secondary">
-            <span>Choose Binary File</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
-          Release Registry
-        </h3>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.85rem' }}>
+      <section aria-label="Release registry">
+        <h2>Release registry</h2>
+        {wasms.isPending && <p>Loading releases…</p>}
+        {wasms.isError && <p role="alert">{wasms.error.message}</p>}
+        {wasms.data && (
+          <table>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-surface-elevated)' }}>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Version</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Sha256 Hash</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Size Budget</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>Adoption %</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', textAlign: 'right' }}>Status</th>
+              <tr>
+                <th>Version</th>
+                <th>Sha256</th>
+                <th>Size (bytes)</th>
+                <th>Approved</th>
+                <th />
               </tr>
             </thead>
             <tbody>
-              {versions.map((v) => (
-                <tr key={v.version} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>{v.version}</td>
-                  <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>{v.hash}</td>
-                  <td style={{ padding: '0.85rem 1rem', color: 'var(--cyan-nebula)', fontWeight: 500 }}>
-                    {v.size} (PASS &lt;= 1.5M)
-                  </td>
-                  <td style={{ padding: '0.85rem 1rem' }}>{v.adoption}</td>
-                  <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                    <span className={`badge ${v.status === 'Active Release' ? 'badge-cyan' : 'badge-subtle'}`}>
-                      {v.status}
-                    </span>
+              {wasms.data.map(([v, meta]) => (
+                <tr key={v}>
+                  <td>{v}</td>
+                  <td>{toHex(meta.sha256)}</td>
+                  <td>{meta.size.toString()}</td>
+                  <td>{meta.approved ? 'yes' : 'no'}</td>
+                  <td>
+                    {!meta.approved && (
+                      <ConfirmAction
+                        label="approve"
+                        phrase={toHex(meta.sha256).slice(0, 8)}
+                        disabled={approve.isPending}
+                        onConfirm={() => approve.mutate(v)}
+                      />
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        )}
+        {approve.isError && <p role="alert">{approve.error.message}</p>}
+      </section>
     </div>
   );
 };
