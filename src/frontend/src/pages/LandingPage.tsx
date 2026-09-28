@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { platformActor } from '../ic';
+import { DiscoveryStatus } from '../bindings/platform';
+import { categoryLabel } from '../categories';
 
 export const LandingPage = () => {
   return (
@@ -219,5 +221,26 @@ function StatsPanel() {
 }
 
 function RecentDiscoveries() {
-  return <p>Recent confirmed discoveries appear here once platform.list_discoveries is live.</p>;
+  const recent = useQuery({
+    queryKey: ['list_discoveries', 'landing'],
+    queryFn: () => platformActor().list_discoveries({ status: DiscoveryStatus.Confirmed }, null, 6),
+    refetchInterval: REFRESH,
+  });
+  if (recent.isPending) return <p>Loading recent discoveries…</p>;
+  if (recent.isError) return <p role="alert">Discoveries unavailable: {recent.error.message}</p>;
+  if (recent.data.items.length === 0) return <p>No confirmed discoveries yet — check back soon.</p>;
+  return (
+    <div className="grid-responsive">
+      {recent.data.items.map((disc) => (
+        <Link to={`/d/${disc.public_id}`} key={disc.public_id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <span className="badge badge-amber">{categoryLabel(disc.category)}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--amber-star)' }}>
+            {disc.public_id}
+          </span>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', lineHeight: 1.5 }}>{disc.rationale}</p>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Discovered by {disc.discoverer_name}</span>
+        </Link>
+      ))}
+    </div>
+  );
 }

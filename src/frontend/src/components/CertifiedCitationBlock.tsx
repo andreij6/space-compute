@@ -1,127 +1,80 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Copy, Check, Award, FileCode } from 'lucide-react';
-import { Discovery } from '../types';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ShieldCheck, ShieldAlert, ShieldQuestion, Copy, Check, Award } from 'lucide-react';
+import type { Citation } from '../bindings/platform';
 
 interface CertifiedCitationBlockProps {
-  discovery: Discovery;
+  citation: Citation;
+  verified: boolean | undefined;
 }
 
-export const CertifiedCitationBlock: React.FC<CertifiedCitationBlockProps> = ({ discovery }) => {
-  const [copiedBibtex, setCopiedBibtex] = useState(false);
-  const [copiedHarvard, setCopiedHarvard] = useState(false);
-
-  const bibtex = `@article{${discovery.publicId.toLowerCase()},
-  author = {${discovery.discovererAaa} and Space Compute Community Reviewers},
-  title = {${discovery.name}: A Candidate ${discovery.categoryLabel} Identified in ${discovery.survey}},
-  journal = {Space Compute Canonical Citizen-Science Archive},
-  year = {2026},
-  volume = {1},
-  pages = {${discovery.publicId}},
-  note = {Internet Computer BLS Certified Witness: ${discovery.blsSignature}}
-}`;
-
-  const harvard = `${discovery.discovererAaa} et al., 2026. ${discovery.name} (${discovery.publicId}). Space Compute Verified Archive, BLS Sig: ${discovery.blsSignature}.`;
-
-  const copyToClipboard = (text: string, type: 'bibtex' | 'harvard') => {
-    navigator.clipboard.writeText(text);
-    if (type === 'bibtex') {
-      setCopiedBibtex(true);
-      setTimeout(() => setCopiedBibtex(false), 2000);
-    } else {
-      setCopiedHarvard(true);
-      setTimeout(() => setCopiedHarvard(false), 2000);
-    }
+export const CertifiedCitationBlock = ({ citation, verified }: CertifiedCitationBlockProps) => {
+  const [copied, setCopied] = useState(false);
+  const copyText = () => {
+    void navigator.clipboard.writeText(citation.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <div className="card" style={{ borderColor: 'var(--border-active)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ShieldCheck size={22} style={{ color: 'var(--cyan-nebula)' }} />
-          <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-            Certified Cryptographic Citation
-          </h3>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span className="badge badge-cyan">
-            BLS Verified on IC Subnet
+        <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+          Certified Cryptographic Citation
+        </h3>
+        {verified === undefined && (
+          <span className="badge badge-subtle" role="status">
+            <ShieldQuestion size={14} /> Checking certificate…
           </span>
-          <span className="badge badge-amber">
-            Quorum: {discovery.votesAgree}/{discovery.quorumNeeded}
+        )}
+        {verified === true && (
+          <span className="badge badge-cyan" role="status">
+            <ShieldCheck size={14} /> Verified
           </span>
-        </div>
+        )}
+        {verified === false && (
+          <span className="badge" role="status" style={{ color: 'var(--red-nova)' }}>
+            <ShieldAlert size={14} /> Unverified
+          </span>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
         <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '0.85rem', borderRadius: 'var(--radius-sm)' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-            Primary Discoverer
+            Discoverer
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Award size={18} style={{ color: 'var(--amber-star)' }} />
-            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{discovery.discovererAaa}</span>
-            <span className="badge badge-subtle">Tier {discovery.discovererTier}</span>
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-            Owner: @{discovery.discovererOwner}
+            <Link to={`/aaa/${citation.discoverer.aaa.toText()}`} style={{ fontWeight: 600 }}>
+              {citation.discoverer.aaa_name_at_time}
+            </Link>
           </div>
         </div>
 
         <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '0.85rem', borderRadius: 'var(--radius-sm)' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-            Peer Consensus State
+            Reviewers
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ color: 'var(--cyan-nebula)', fontWeight: 600 }}>
-              +{discovery.votesAgree} Agree
-            </span>
-            <span style={{ color: 'var(--red-nova)', fontWeight: 600 }}>
-              -{discovery.votesDisagree} Disagree
-            </span>
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-            Status: {discovery.status.toUpperCase()}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-            Harvard Scientific Citation
-          </span>
-          <button 
-            className="btn-secondary" 
-            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-            onClick={() => copyToClipboard(harvard, 'harvard')}
-          >
-            {copiedHarvard ? <Check size={12} style={{ color: 'var(--cyan-nebula)' }} /> : <Copy size={12} />}
-            <span>{copiedHarvard ? 'Copied' : 'Copy Citation'}</span>
-          </button>
-        </div>
-        <div className="citation-block">
-          {harvard}
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            {citation.reviewers.map((r) => (
+              <li key={r.credit.aaa.toText()}>
+                <Link to={`/aaa/${r.credit.aaa.toText()}`}>{r.credit.aaa_name_at_time}</Link> — {r.vote}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <FileCode size={14} /> BibTeX Entry
-          </span>
-          <button 
-            className="btn-secondary" 
-            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-            onClick={() => copyToClipboard(bibtex, 'bibtex')}
-          >
-            {copiedBibtex ? <Check size={12} style={{ color: 'var(--cyan-nebula)' }} /> : <Copy size={12} />}
-            <span>{copiedBibtex ? 'Copied' : 'Copy BibTeX'}</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Citation</span>
+          <button type="button" className="btn-secondary" onClick={copyText}>
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            <span>{copied ? 'Copied' : 'Copy Citation'}</span>
           </button>
         </div>
-        <pre className="citation-block" style={{ whiteSpace: 'pre-wrap', maxHeight: '180px', overflowY: 'auto' }}>
-          {bibtex}
-        </pre>
+        <div className="citation-block">{citation.text}</div>
       </div>
     </div>
   );

@@ -180,6 +180,12 @@
 | 05 §1/§4: no runtime root-key fetch, no raw HTML rendering, strict CSP (frame-ancestors 'none', IC API + id.ai connect-src) (vitest) | T6.1 | src/frontend/src/security.test.ts |
 | T6.1 acceptance "Sign-in works locally": a new user signs in with Internet Identity on the local network and lands on /spawn; signed-out /dashboard → /signin; landing reads get_stats (Playwright, `npm run e2e` after `just deploy-local`) | T6.1 | src/frontend/tests/e2e/signin.spec.ts |
 | T6.1 demo screenshot: signed-in owner routed to /spawn | T6.1 | docs/demos/T6.1/signin.png |
+| 05 §2 route 1: `/` reads platform.get_stats and list_discoveries{status Confirmed, limit 6} for a recent-discoveries section (vitest is not used for canister calls; proven live in the e2e screenshot below) | T6.3 | docs/demos/T6.3/01_landing.png |
+| 05 §2 route 2: `/discoveries` Discovery Museum feed shows resolved-only discoveries with category and Confirmed/Rejected status filters and cursor-based infinite scroll, 60s refresh (Playwright) | T6.3 | src/frontend/tests/e2e/discovery.spec.ts |
+| 05 §2 route 3 / §3: `/d/:publicId` reads get_discovery, shows "Citation in progress: n of m reviews" while under review, and an unknown/hidden public id renders the not-found empty state (Playwright) | T6.3 | src/frontend/tests/e2e/discovery.spec.ts |
+| 05 §3: the subject image is fetched and sha256-verified against `image_sha256` before display; a hash mismatch blocks rendering and shows "Image unavailable from survey" (vitest) | T6.3 | src/frontend/src/imageHash.test.ts |
+| 05 §5 #4 / 02 §8.3: citation certificate verification (BLS certificate + witness against the ic_env root key, mirroring `crates/platform/src/citations.rs` verify) returns verified for a valid certificate and fails closed (unverified) for a tampered citation, a tampered witness, the wrong root key, or a missing certificate (vitest) | T6.3 | src/frontend/src/citation.test.ts |
+| T6.3 demo screenshots: landing with live stats, Discovery Museum feed with filters, discovery-not-found empty state | T6.3 | docs/demos/T6.3/02_museum.png |
 | 02 §11 #4: 3 agreeing reviewers → Confirmed, citation with all 3 credited, XP applied atomically (rollback on injected fault) | T4.8 | t4_2_review_assignment_tier_gate_blind_record_and_three_agrees_confirm |
 | 02 §11 #4: rollback proof | T4.8 | t4_4_injected_fault_after_resolution_rolls_back_the_whole_message |
 | 02 §11 #5: tier-1 AAA gets NotEligible; same-owner sibling never assigned its own discovery | T4.8 | t4_2_same_owner_sibling_aaa_is_never_assigned |

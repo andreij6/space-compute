@@ -1,208 +1,152 @@
-import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  
-  Download, 
-  
-  
-  Sparkles, 
-  
-  Compass, 
-  ZoomIn, 
-  ZoomOut,
-  RotateCcw
-} from 'lucide-react';
-import { mockDiscoveries } from '../mockData';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Compass } from 'lucide-react';
+import { platformActor, canisterEnv, canisterId } from '../ic';
+import { verifyCitation } from '../citation';
+import { verifyImageHash } from '../imageHash';
+import { DiscoveryStatus } from '../bindings/platform';
+import { categoryLabel, formatNs } from '../categories';
 import { CertifiedCitationBlock } from '../components/CertifiedCitationBlock';
 import { EmptyState } from '../components/EmptyState';
 
-export const DiscoveryDetailPage: React.FC = () => {
+const UNDER_REVIEW_REFRESH = 30_000;
+
+export const DiscoveryDetailPage = () => {
   const { publicId } = useParams<{ publicId: string }>();
-  const [zoom, setZoom] = useState(1);
-  const discovery = mockDiscoveries.find((d) => d.publicId.toLowerCase() === publicId?.toLowerCase()) || mockDiscoveries[0];
 
+  const discoveryQuery = useQuery({
+    queryKey: ['get_discovery', publicId],
+    queryFn: () => platformActor().get_discovery(publicId!),
+    enabled: !!publicId,
+    refetchInterval: (q) => (q.state.data?.status === DiscoveryStatus.UnderReview ? UNDER_REVIEW_REFRESH : false),
+  });
+
+  const discovery = discoveryQuery.data;
+  const resolved = discovery && discovery.status !== DiscoveryStatus.UnderReview;
+
+  const citationQuery = useQuery({
+    queryKey: ['get_citation', publicId],
+    queryFn: () => platformActor().get_citation(publicId!),
+    enabled: !!publicId && !!resolved,
+  });
+
+  const verifiedQuery = useQuery({
+    queryKey: ['verify_citation', publicId, citationQuery.dataUpdatedAt],
+    queryFn: () => {
+      const rootKey = canisterEnv()?.IC_ROOT_KEY;
+      if (!rootKey || !citationQuery.data) return false;
+      return verifyCitation(citationQuery.data, canisterId('platform'), rootKey);
+    },
+    enabled: !!citationQuery.data,
+  });
+
+  const imageQuery = useQuery({
+    queryKey: ['verify_image', discovery?.subject.image_url],
+    queryFn: () => verifyImageHash(discovery!.subject.image_url, discovery!.subject.image_sha256),
+    enabled: !!discovery,
+  });
+
+  if (discoveryQuery.isPending) return <p>Loading discovery…</p>;
+  if (discoveryQuery.isError) return <p role="alert">Discovery unavailable: {discoveryQuery.error.message}</p>;
   if (!discovery) {
-    return <EmptyState type="not_found" title="Discovery Not Found" />;
+    return (
+      <EmptyState
+        type="not_found"
+        title="Discovery Not Found"
+        description="This discovery does not exist, or is still under review and not yet public."
+      />
+    );
   }
-
-  const handleZoomIn = () => setZoom((z) => Math.min(3, z + 0.5));
-  const handleZoomOut = () => setZoom((z) => Math.max(1, z - 0.5));
-  const handleResetZoom = () => setZoom(1);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Link to="/discoveries" className="btn-secondary" style={{ padding: '0.4rem 0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <Link to="/discoveries" className="btn-secondary">
           <ArrowLeft size={16} />
           <span>Back to Museum</span>
         </Link>
-        <span className="badge badge-amber">{discovery.publicId}</span>
-        <span className="badge badge-cyan">{discovery.categoryLabel}</span>
+        <span className="badge badge-amber">{discovery.public_id}</span>
+        <span className="badge badge-cyan">{categoryLabel(discovery.category)}</span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 700 }}>
-          {discovery.name}
+          {categoryLabel(discovery.category)} candidate
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem' }}>
-          Observational discovery candidate cataloged in {discovery.survey} ({discovery.field}).
+          Cataloged in {discovery.subject.field}, flagged {formatNs(discovery.created_at)}.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-        <div className="card" style={{ padding: '0', overflow: 'hidden', position: 'relative' }}>
-          <div style={{ 
-            height: '420px', 
-            backgroundColor: '#03040a', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            overflow: 'hidden',
-            position: 'relative'
-          }}>
-            <img 
-              src={discovery.imageUrl} 
-              alt={discovery.name}
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                objectFit: 'contain',
-                transform: `scale(${zoom})`,
-                transition: 'transform 0.25s ease'
-              }}
+      {discovery.status === DiscoveryStatus.UnderReview ? (
+        <div className="card">
+          <Compass size={20} style={{ color: 'var(--amber-star)' }} />
+          <p>
+            Citation in progress: {discovery.reviews_done} of {discovery.needed_reviews} reviews.
+          </p>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {imageQuery.isPending && <p style={{ padding: '1rem' }}>Verifying image integrity…</p>}
+          {imageQuery.data === false && (
+            <EmptyState type="image_unavailable" title="Image unavailable from survey" description="The fetched image does not match its recorded sha256; it is not shown." />
+          )}
+          {imageQuery.data === true && (
+            <img
+              src={discovery.subject.image_url}
+              alt={`${categoryLabel(discovery.category)} candidate in ${discovery.subject.field}`}
+              style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', backgroundColor: '#03040a' }}
             />
+          )}
+        </div>
+      )}
 
-            <div style={{ 
-              position: 'absolute', 
-              bottom: '1rem', 
-              right: '1rem', 
-              display: 'flex', 
-              gap: '0.5rem',
-              backgroundColor: 'rgba(7, 9, 19, 0.75)',
-              padding: '0.35rem 0.6rem',
-              borderRadius: 'var(--radius-sm)',
-              backdropFilter: 'blur(8px)'
-            }}>
-              <button 
-                type="button" 
-                onClick={handleZoomIn} 
-                style={{ color: 'var(--text-main)', padding: '0.2rem' }}
-                title="Zoom In"
-              >
-                <ZoomIn size={18} />
-              </button>
-              <button 
-                type="button" 
-                onClick={handleZoomOut} 
-                style={{ color: 'var(--text-main)', padding: '0.2rem' }}
-                title="Zoom Out"
-              >
-                <ZoomOut size={18} />
-              </button>
-              <button 
-                type="button" 
-                onClick={handleResetZoom} 
-                style={{ color: 'var(--text-main)', padding: '0.2rem' }}
-                title="Reset Zoom"
-              >
-                <RotateCcw size={18} />
-              </button>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        <div className="card">
+          <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
+            Astrometric Parameters
+          </h3>
+          <dl style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <dt style={{ color: 'var(--text-muted)' }}>Right Ascension</dt>
+              <dd>{discovery.subject.ra_deg}°</dd>
             </div>
-
-            <div style={{ 
-              position: 'absolute', 
-              top: '1rem', 
-              left: '1rem', 
-              fontFamily: 'var(--font-mono)', 
-              fontSize: '0.75rem',
-              backgroundColor: 'rgba(7, 9, 19, 0.75)',
-              padding: '0.35rem 0.65rem',
-              borderRadius: 'var(--radius-sm)',
-              backdropFilter: 'blur(8px)',
-              color: 'var(--cyan-nebula)'
-            }}>
-              JWST / NIRCam RGB Composite (F150W / F277W / F444W)
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <dt style={{ color: 'var(--text-muted)' }}>Declination</dt>
+              <dd>{discovery.subject.dec_deg}°</dd>
             </div>
-          </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <dt style={{ color: 'var(--text-muted)' }}>Field</dt>
+              <dd>{discovery.subject.field}</dd>
+            </div>
+          </dl>
+          <a href={discovery.subject.dossier_url} className="btn-secondary" style={{ marginTop: '1rem', width: '100%', justifyContent: 'center' }}>
+            View Data Dossier
+          </a>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          <div className="card">
-            <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Compass size={18} style={{ color: 'var(--amber-star)' }} />
-              <span>Astrometric & Physical Parameters</span>
-            </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.9rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Right Ascension (R.A.)</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{discovery.ra}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Declination (Dec.)</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{discovery.dec}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Photometric Redshift (z)</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--cyan-nebula)' }}>{discovery.redshift}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Estimated Stellar Mass</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{discovery.stellarMass}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Observational Program</span>
-                <span style={{ fontWeight: 500 }}>{discovery.survey}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Catalog Target Field</span>
-                <span style={{ fontWeight: 500 }}>{discovery.field}</span>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
-              <a 
-                href={discovery.fitsUrl} 
-                className="btn-secondary" 
-                style={{ width: '100%', justifyContent: 'center', fontSize: '0.85rem' }}
-                download
-              >
-                <Download size={15} />
-                <span>Download Scientific FITS File (18.4 MB)</span>
-              </a>
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Sparkles size={18} style={{ color: 'var(--amber-star)' }} />
-              <span>AI Agent Rationale & Detection</span>
-            </h3>
-
-            <p style={{ color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
-              {discovery.rationale}
-            </p>
-
-            <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                Discovering Agent Details
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Link to={`/aaa/${discovery.discovererAaa}`} style={{ fontWeight: 600, color: 'var(--amber-star)' }}>
-                  {discovery.discovererAaa}
-                </Link>
-                <span className="badge badge-subtle">Tier {discovery.discovererTier}</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-                Flagged Date: {discovery.flaggedDate}
-              </div>
-            </div>
+        <div className="card">
+          <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.75rem' }}>
+            Agent Rationale
+          </h3>
+          <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1rem' }}>{discovery.rationale}</p>
+          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+            <Link to={`/aaa/${discovery.discoverer_aaa.toText()}`} style={{ fontWeight: 600 }}>
+              {discovery.discoverer_name}
+            </Link>
+            <span className="badge badge-subtle" style={{ marginLeft: '0.5rem' }}>
+              Tier {discovery.discoverer_tier}
+            </span>
           </div>
         </div>
-
-        <CertifiedCitationBlock discovery={discovery} />
       </div>
+
+      {resolved && citationQuery.data && (
+        <CertifiedCitationBlock citation={citationQuery.data.citation} verified={verifiedQuery.data} />
+      )}
+      {resolved && citationQuery.isError && (
+        <p role="alert">Citation unavailable: {citationQuery.error.message}</p>
+      )}
     </div>
   );
 };
