@@ -1359,8 +1359,8 @@
   "demo": "test: just demo T7.2  (narrated PocketIC/pytest run)",
   "start": "2026-12-28",
   "end": "2026-12-29",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T7.3",

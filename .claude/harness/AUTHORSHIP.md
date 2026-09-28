@@ -69,6 +69,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | invite sponsor minimum | 50cfe18 | lead |
 | T6.14 | f02d6aa | Sonnet sub-agent |
 | T8.1 (tooling prep; staging deploy itself awaits owner) | 689653e | Sonnet sub-agent |
+| T7.2 | b9378ff | Sonnet sub-agent; 20×20 measured, 200×100 not completed (PocketIC timeouts under load) — Opus review pending |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
