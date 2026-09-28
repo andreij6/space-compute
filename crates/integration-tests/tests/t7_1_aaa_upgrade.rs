@@ -73,7 +73,7 @@ fn sample_protocol(v: u16) -> Protocol {
 
 #[test]
 fn t7_1_aaa_v_n_minus_1_state_survives_upgrade_to_v_n() {
-    println!("T7.1 demo: aaa installed at the pinned vN-1 baseline, populated, upgraded to the current vN wasm — operators, records and the burn/heartbeat timers all survive");
+    println!("T7.1 demo: aaa installed at the pinned vN-1 baseline, populated, upgraded to the current vN wasm — operators, records and auto-topup config survive, and the burn/heartbeat timers (added after the baseline) start on post_upgrade");
     let env = IcpEnv::new();
     let alice = user(1);
     let fake_payments = user(2);
@@ -208,17 +208,13 @@ fn t7_1_aaa_v_n_minus_1_state_survives_upgrade_to_v_n() {
         .query::<_, Result<aaa::record::Status, ApiError>>(aaa, owner, "status", ())
         .expect("status");
     assert_eq!(
-        status_before.stats.auto_topup_failures, 1,
-        "the 6h burn timer must have fired once and failed to reach the fake payments principal"
+        status_before.stats.auto_topup_failures, 0,
+        "the vN-1 baseline predates the T3.4 burn timer, so nothing may have fired yet"
     );
-    step(&format!(
-        "advanced 6h: the burn_tick timer fired, tried request_auto_topup against a non-canister payments_id, auto_topup_failures={}",
-        status_before.stats.auto_topup_failures
-    ));
+    step("advanced 6h on the vN-1 baseline: no burn timer exists yet, auto_topup_failures=0");
 
-    let rec_before: Result<Option<aaa::record::Record>, ApiError> =
-        env.query(aaa, owner, "get_record", 1u64);
-    let rec_before = rec_before.expect("owner get_record must succeed").unwrap();
+    let rec_before: Option<aaa::record::Record> = env.query(aaa, owner, "get_record", 1u64);
+    let rec_before = rec_before.expect("the vN-1 get_record returns opt Record");
     assert_eq!(rec_before.seq, 1);
     assert_eq!(rec_before.agent_label.as_deref(), Some("agent-alpha"));
 
@@ -249,7 +245,7 @@ fn t7_1_aaa_v_n_minus_1_state_survives_upgrade_to_v_n() {
         let rec: Result<AaaRecord, ApiError> = env.query(platform, alice, "admin_get_aaa", aaa);
         rec.expect("platform sees the aaa").last_seen_at
     };
-    step("captured pre-upgrade snapshot: 2 records, 2 operators, 1 auto-topup failure");
+    step("captured pre-upgrade snapshot: 2 records, 2 operators, 0 auto-topup failures");
 
     env.pic
         .upgrade_canister(aaa, canister_wasm("aaa"), vec![], Some(alice))
@@ -300,10 +296,10 @@ fn t7_1_aaa_v_n_minus_1_state_survives_upgrade_to_v_n() {
         .expect("status");
     assert!(
         status_after.stats.auto_topup_failures > status_before.stats.auto_topup_failures,
-        "the 6h burn timer must resume after post_upgrade re-registers it: the auto_topup threshold ({huge_threshold}) must still be in effect"
+        "the 6h burn timer must start after post_upgrade registers it: the auto_topup threshold ({huge_threshold}) set on the baseline must still be in effect"
     );
     step(&format!(
-        "burn_tick timer resumed after upgrade: auto_topup_failures {} -> {} (the auto_topup config value survived the upgrade too)",
+        "burn_tick timer started after upgrade: auto_topup_failures {} -> {} (the auto_topup config value survived the upgrade too)",
         status_before.stats.auto_topup_failures, status_after.stats.auto_topup_failures
     ));
 
@@ -316,9 +312,9 @@ fn t7_1_aaa_v_n_minus_1_state_survives_upgrade_to_v_n() {
     };
     assert!(
         last_seen_after > last_seen_before,
-        "the 24h daily_tick timer must resume after post_upgrade and call platform.heartbeat"
+        "the 24h daily_tick timer must start after post_upgrade and call platform.heartbeat"
     );
     step(&format!(
-        "daily_tick timer resumed after upgrade: platform.last_seen_at {last_seen_before} -> {last_seen_after}"
+        "daily_tick timer started after upgrade: platform.last_seen_at {last_seen_before} -> {last_seen_after}"
     ));
 }

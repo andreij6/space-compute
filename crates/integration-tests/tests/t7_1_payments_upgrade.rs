@@ -417,6 +417,38 @@ fn t7_1_payments_v_n_minus_1_state_survives_upgrade_to_v_n() {
     }
     step("mandate and all three journal ops are byte-for-byte intact after the upgrade");
 
+    let by_owner: payments::journal::Page<Op> = decode_one(
+        &env.pic
+            .query_call(
+                payments,
+                owner1,
+                "list_ops_for_owner",
+                encode_args((owner1, None::<u64>, 50u16)).unwrap(),
+            )
+            .expect("list_ops_for_owner"),
+    )
+    .unwrap();
+    assert!(
+        by_owner.items.iter().any(|op| op.id == deposit_op),
+        "ops journaled by the vN-1 baseline (which had no owner index) must be backfilled into list_ops_for_owner"
+    );
+    let by_aaa: payments::journal::Page<Op> = decode_one(
+        &env.pic
+            .query_call(
+                payments,
+                owner1,
+                "list_ops_for_aaa",
+                encode_args((aaa1, None::<u64>, 50u16)).unwrap(),
+            )
+            .expect("list_ops_for_aaa"),
+    )
+    .unwrap();
+    assert!(
+        by_aaa.items.iter().any(|op| op.id == auto_op),
+        "ops journaled by the vN-1 baseline (which had no aaa index) must be backfilled into list_ops_for_aaa"
+    );
+    step("the owner/aaa op indexes that did not exist in the baseline were backfilled on post_upgrade");
+
     let reused_after = env
         .pic
         .update_call(

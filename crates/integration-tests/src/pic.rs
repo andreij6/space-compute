@@ -71,8 +71,6 @@ pub fn canister_wasm(name: &str) -> Vec<u8> {
     .unwrap_or_else(|e| panic!("missing {name}.wasm: {e}"))
 }
 
-pub const UPGRADE_BASELINE_COMMIT: &str = "992a48c443d1e99ab8d6384c54fdb6e4576a60e8";
-
 pub fn baseline_wasm(name: &str) -> Vec<u8> {
     static BUILD: Once = Once::new();
     let root = crate::repo_root();
@@ -85,8 +83,7 @@ pub fn baseline_wasm(name: &str) -> Vec<u8> {
         assert!(ok, "building upgrade-baseline wasms failed");
     });
     let gz = std::fs::read(root.join(format!(
-        "target/upgrade-baseline/{}/{}.wasm.gz",
-        UPGRADE_BASELINE_COMMIT,
+        "target/upgrade-baseline/{}.wasm.gz",
         name.replace('-', "_")
     )))
     .unwrap_or_else(|e| panic!("missing baseline {name}.wasm.gz: {e}"));
@@ -94,6 +91,12 @@ pub fn baseline_wasm(name: &str) -> Vec<u8> {
     flate2::read::GzDecoder::new(gz.as_slice())
         .read_to_end(&mut raw)
         .unwrap_or_else(|e| panic!("ungzip baseline {name}.wasm.gz: {e}"));
+    use sha2::{Digest, Sha256};
+    assert_ne!(
+        Sha256::digest(&raw),
+        Sha256::digest(canister_wasm(name)),
+        "baseline {name} module hash equals the current wasm: the upgrade test would be vN -> vN"
+    );
     raw
 }
 
