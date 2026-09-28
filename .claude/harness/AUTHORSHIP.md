@@ -73,6 +73,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T6.10 | 53b6a42 | Sonnet sub-agent; Lighthouse a11y 98/98/98, bundle 192 KB gz — Opus review in frontend fix lane |
 | T7.3 | d566c39 | Opus sub-agent (also Opus review of T7.2: pricing assumptions wrong, reviews never measured — harness fixed, 40×70 re-measured) |
 | T7.12 | 098912b | Opus sub-agent; real cost ~1.3 KB/classification, 8 MiB bucket granularity was the 44 KB artefact → 1 MiB buckets on new installs; gold index; PocketIC measurement deferred |
+| T9.1 | e5e8a64 | Opus sub-agent; tokens from brief/assets/old mock — Claude Design mockups pending owner |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 

@@ -1734,8 +1734,8 @@
   "demo": "shots: docs/demos/T9.1/*.png (Playwright)",
   "start": "2027-01-12",
   "end": "2027-01-15",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T9.2",
