@@ -442,34 +442,36 @@ fn t4_10_admin_read_apis_are_paged_admin_only_and_reflect_state() {
     assert_eq!(overview_after.alerts.suspended_aaas, 1);
     step("admin_overview alerts.suspended_aaas reflects a real admin_suspend_aaa");
 
-    let page1: Result<Vec<platform::registry::AaaRecord>, ApiError> = query(
+    let page1: Result<platform::registry::AaaPage, ApiError> = query(
         &env,
         platform,
         alice,
         "admin_list_aaas",
-        (AdminListAaasFilter::default(), None::<u64>, 2u32),
+        (AdminListAaasFilter::default(), None::<Principal>, 2u32),
     );
     let page1 = page1.expect("admin_list_aaas page 1");
-    assert_eq!(page1.len(), 2);
-    let page2: Result<Vec<platform::registry::AaaRecord>, ApiError> = query(
+    assert_eq!(page1.items.len(), 2);
+    let page2: Result<platform::registry::AaaPage, ApiError> = query(
         &env,
         platform,
         alice,
         "admin_list_aaas",
-        (AdminListAaasFilter::default(), Some(2u64), 2u32),
+        (AdminListAaasFilter::default(), page1.next_cursor, 2u32),
     );
     let page2 = page2.expect("admin_list_aaas page 2");
-    assert_eq!(page2.len(), 1);
+    assert_eq!(page2.items.len(), 1);
+    assert_eq!(page2.next_cursor, None);
     let mut names: Vec<String> = page1
+        .items
         .iter()
-        .chain(page2.iter())
+        .chain(page2.items.iter())
         .map(|r| r.name.clone())
         .collect();
     names.sort();
     assert_eq!(names, vec!["Paged-1", "Paged-2", "Paged-3"]);
     step("admin_list_aaas pages through all 3 AAAs with a cursor, 2 per page");
 
-    let suspended_only: Result<Vec<platform::registry::AaaRecord>, ApiError> = query(
+    let suspended_only: Result<platform::registry::AaaPage, ApiError> = query(
         &env,
         platform,
         alice,
@@ -480,11 +482,11 @@ fn t4_10_admin_read_apis_are_paged_admin_only_and_reflect_state() {
                 name_prefix: None,
                 owner: None,
             },
-            None::<u64>,
+            None::<Principal>,
             100u32,
         ),
     );
-    assert_eq!(suspended_only.unwrap().len(), 1);
+    assert_eq!(suspended_only.unwrap().items.len(), 1);
 
     let subject_batch = vec![SubjectInput {
         subject: sample_ref(1),

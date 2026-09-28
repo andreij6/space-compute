@@ -3,7 +3,7 @@ use integration_tests::pic::{canister_wasm, user, IcpEnv};
 use integration_tests::step;
 use platform::catalog::SubjectInput;
 use platform::config::Params;
-use platform::events::{ActivityItem, Event, EventKind, Page};
+use platform::events::{ActivityItem, ActivityKind, Event, Page};
 use platform::registry::RegisterArgs;
 use sc_types::{
     Answer, AnswerOption, ApiError, ClassificationReceipt, ClassificationSubmission,
@@ -152,7 +152,10 @@ fn t2_5_events_append_and_paged_activity() {
     assert_eq!(act1.items.len(), 1);
     assert_eq!(act1.items[0].aaa, aaa_1);
     assert_eq!(act1.items[0].owner, owner1);
-    assert!(matches!(act1.items[0].kind, EventKind::AaaSpawned { .. }));
+    assert!(matches!(
+        act1.items[0].kind,
+        ActivityKind::AaaSpawned { .. }
+    ));
 
     let spawned_event_id = act1.items[0].id;
     let single_event: Option<Event> = decode_one(
@@ -168,6 +171,19 @@ fn t2_5_events_append_and_paged_activity() {
     .unwrap();
     assert!(single_event.is_some());
     assert_eq!(single_event.unwrap().id, spawned_event_id);
+    let stranger_event: Option<Event> = decode_one(
+        &env.pic
+            .query_call(
+                platform,
+                user(250),
+                "get_event",
+                encode_args((spawned_event_id,)).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(stranger_event, None);
+    step("get_event is admin-only: a stranger gets None");
 
     let batch = vec![
         SubjectInput {
@@ -258,70 +274,53 @@ fn t2_5_events_append_and_paged_activity() {
             .unwrap(),
     )
     .unwrap();
-    assert_eq!(act_all.items.len(), 3);
-    assert!(act_all.items[0].id > act_all.items[1].id);
-    assert!(act_all.items[1].id > act_all.items[2].id);
+    assert_eq!(act_all.items.len(), 4);
+    assert!(act_all.items.windows(2).all(|w| w[0].id > w[1].id));
     assert!(matches!(
         act_all.items[0].kind,
-        EventKind::Classified { .. }
+        ActivityKind::Classified { .. }
     ));
-    assert!(matches!(
+    assert_eq!(
         act_all.items[1].kind,
-        EventKind::Classified { .. }
-    ));
+        ActivityKind::BadgeAwarded {
+            badge: "first_light".into()
+        }
+    );
     assert!(matches!(
         act_all.items[2].kind,
-        EventKind::AaaSpawned { .. }
+        ActivityKind::Classified { .. }
+    ));
+    assert!(matches!(
+        act_all.items[3].kind,
+        ActivityKind::AaaSpawned { .. }
     ));
     for item in &act_all.items {
         assert_eq!(item.aaa, aaa_1);
     }
-    step("all 3 events returned in newest-first order with strict per-AAA isolation");
+    step("all 4 events (incl. the First Light badge) returned newest-first with strict per-AAA isolation");
 
-    let p1: Page<ActivityItem> = decode_one(
-        &env.pic
-            .query_call(
-                platform,
-                owner1,
-                "list_aaa_activity",
-                encode_args((aaa_1, Option::<u64>::None, 1u32)).unwrap(),
-            )
-            .unwrap(),
-    )
-    .unwrap();
-    assert_eq!(p1.items.len(), 1);
-    assert_eq!(p1.items[0].id, act_all.items[0].id);
-    assert!(p1.next_cursor.is_some());
-
-    let p2: Page<ActivityItem> = decode_one(
-        &env.pic
-            .query_call(
-                platform,
-                owner1,
-                "list_aaa_activity",
-                encode_args((aaa_1, p1.next_cursor, 1u32)).unwrap(),
-            )
-            .unwrap(),
-    )
-    .unwrap();
-    assert_eq!(p2.items.len(), 1);
-    assert_eq!(p2.items[0].id, act_all.items[1].id);
-    assert!(p2.next_cursor.is_some());
-
-    let p3: Page<ActivityItem> = decode_one(
-        &env.pic
-            .query_call(
-                platform,
-                owner1,
-                "list_aaa_activity",
-                encode_args((aaa_1, p2.next_cursor, 1u32)).unwrap(),
-            )
-            .unwrap(),
-    )
-    .unwrap();
-    assert_eq!(p3.items.len(), 1);
-    assert_eq!(p3.items[0].id, act_all.items[2].id);
-    assert!(p3.next_cursor.is_none());
+    let mut seen = Vec::new();
+    let mut cursor: Option<u64> = None;
+    loop {
+        let page: Page<ActivityItem> = decode_one(
+            &env.pic
+                .query_call(
+                    platform,
+                    owner1,
+                    "list_aaa_activity",
+                    encode_args((aaa_1, cursor, 1u32)).unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(page.items.len(), 1);
+        seen.push(page.items[0].id);
+        match page.next_cursor {
+            Some(c) => cursor = Some(c),
+            None => break,
+        }
+    }
+    assert_eq!(seen, act_all.items.iter().map(|i| i.id).collect::<Vec<_>>());
     step("paged activity with cursor visits all records exactly once in order");
 
     let suspend_bytes = env
@@ -350,7 +349,7 @@ fn t2_5_events_append_and_paged_activity() {
     assert_eq!(act_after_suspend.items.len(), 1);
     assert!(matches!(
         act_after_suspend.items[0].kind,
-        EventKind::AaaSuspended { .. }
+        ActivityKind::AaaSuspended { .. }
     ));
     step("AaaSuspended event appended and retrieved as newest activity");
 }

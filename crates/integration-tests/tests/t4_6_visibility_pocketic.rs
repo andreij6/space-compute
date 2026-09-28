@@ -4,7 +4,7 @@ use integration_tests::step;
 use platform::catalog::SubjectInput;
 use platform::config::Params;
 use platform::discoveries::{DiscoveryCard, DiscoveryStatus, DiscoveryView, ListFilter};
-use platform::events::Page;
+use platform::events::{ActivityItem, ActivityKind, Event, Page};
 use platform::progression::{LeaderPage, Stats};
 use platform::registry::RegisterArgs;
 use sc_types::{
@@ -253,6 +253,46 @@ impl World {
     fn stranger(&self) -> Principal {
         user(200)
     }
+
+    fn activity(&self, caller: Principal, aaa: Principal) -> Vec<ActivityKind> {
+        let bytes = self
+            .env
+            .pic
+            .query_call(
+                self.platform,
+                caller,
+                "list_aaa_activity",
+                encode_args((aaa, None::<u64>, 100u32)).unwrap(),
+            )
+            .unwrap();
+        decode_one::<Page<ActivityItem>>(&bytes)
+            .unwrap()
+            .items
+            .into_iter()
+            .map(|i| i.kind)
+            .collect()
+    }
+
+    fn stranger_sees_no_raw_events(&self) {
+        let total = (0..10_000u64)
+            .take_while(|&id| {
+                self.env
+                    .query::<_, Option<Event>>(self.platform, self.admin, "get_event", id)
+                    .is_some()
+            })
+            .count() as u64;
+        assert!(total > 0);
+        for id in 0..total {
+            let e: Option<Event> = self
+                .env
+                .query(self.platform, self.stranger(), "get_event", id);
+            assert_eq!(e, None);
+        }
+    }
+}
+
+fn has(kinds: &[ActivityKind], pred: impl Fn(&ActivityKind) -> bool) -> bool {
+    kinds.iter().any(pred)
 }
 
 #[test]
@@ -289,13 +329,36 @@ fn t4_6_under_review_hidden_from_strangers_visible_to_owner_and_discoverer() {
     assert_eq!(stats.under_review_count, 1);
     assert_eq!(stats.confirmed_discoveries, 0);
 
+    let flagged = |k: &ActivityKind| matches!(k, ActivityKind::DiscoveryFlagged { .. });
+    assert!(!has(&w.activity(stranger, discoverer_aaa), flagged));
+    assert!(w.activity(discoverer_owner, discoverer_aaa).contains(
+        &ActivityKind::DiscoveryFlagged {
+            public_id: public_id.clone()
+        }
+    ));
+    step("R-12: a stranger's list_aaa_activity hides the UnderReview DiscoveryFlagged; the owner still sees it");
+
     let ids: Vec<u64> = w.agents[1..]
         .iter()
         .map(|&a| w.assignment(a).assignment_id)
         .collect();
-    for (&agent, &id) in w.agents[1..].iter().zip(&ids) {
+    let (reviewer_a, reviewer_a_owner) = w.agents[1];
+    w.review(w.agents[1], ids[0]);
+    let submitted = |k: &ActivityKind| matches!(k, ActivityKind::ReviewSubmitted { .. });
+    assert!(!has(&w.activity(stranger, reviewer_a), submitted));
+    assert!(has(&w.activity(reviewer_a_owner, reviewer_a), submitted));
+    w.stranger_sees_no_raw_events();
+    step("R-12: a live review stays hidden from strangers (owner sees it); get_event returns None to strangers for every event");
+
+    for (&agent, &id) in w.agents[2..].iter().zip(&ids[1..]) {
         w.review(agent, id);
     }
+    assert!(w
+        .activity(stranger, discoverer_aaa)
+        .contains(&ActivityKind::DiscoveryFlagged {
+            public_id: public_id.clone()
+        }));
+    assert!(has(&w.activity(stranger, reviewer_a), submitted));
     step(&format!(
         "three reviewers agree: {public_id} resolves to Confirmed in this message"
     ));
@@ -355,6 +418,26 @@ fn t4_6_honeypots_never_appear_in_discoveries_leaderboard_or_citations() {
             .update(w.platform, w.agents[1].0, "submit_review", sub);
     assert!(receipt.is_ok());
     step("the honeypot was assigned and scored immediately");
+
+    let (aaa, owner) = w.agents[1];
+    let review_kinds = |k: &ActivityKind| {
+        matches!(
+            k,
+            ActivityKind::ReviewSubmitted { .. } | ActivityKind::ReviewScored { .. }
+        )
+    };
+    assert!(!has(&w.activity(w.stranger(), aaa), review_kinds));
+    let own = w.activity(owner, aaa);
+    assert!(has(&own, |k| matches!(
+        k,
+        ActivityKind::ReviewSubmitted { .. }
+    )));
+    assert!(!has(&own, |k| matches!(
+        k,
+        ActivityKind::ReviewScored { .. }
+    )));
+    w.stranger_sees_no_raw_events();
+    step("R-12: the honeypot review and its immediate score never reach a stranger; the owner sees the submission but no tell-tale score");
 
     let admin_list = w.list_discoveries(w.admin, ListFilter::default());
     assert!(

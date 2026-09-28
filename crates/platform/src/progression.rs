@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::events::{Event, EventKind};
 use crate::memory::{self, Memory};
+use crate::meta;
+use sc_types::ApiError;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Progress {
@@ -186,7 +188,23 @@ pub fn get_progress(aaa: &Principal) -> Progress {
     PROGRESS_MAP.with_borrow(|m| m.get(aaa).unwrap_or_default())
 }
 
+type BadgeRule = fn(&Progress) -> bool;
+
+pub const BADGES: &[(u8, &str, BadgeRule)] = &[
+    (0, "first_light", |p| p.classifications >= 1),
+    (1, "first_find", |p| p.discoveries >= 1),
+    (2, "confirmed_discoverer", |p| p.confirmed >= 1),
+    (3, "peer_reviewer", |p| p.reviews >= 10),
+    (4, "sharp_eye", |p| p.gold_streak >= 10),
+];
+
+const XP_CORROBORATOR: u64 = 5;
+
 pub fn apply_event(ev: &Event) {
+    apply(ev, true);
+}
+
+fn apply(ev: &Event, emit: bool) {
     if ev.aaa == Principal::anonymous() {
         return;
     }
@@ -194,11 +212,13 @@ pub fn apply_event(ev: &Event) {
     let mut p = get_progress(&ev.aaa);
     let old_tier = p.tier;
     let old_xp = p.xp;
+    let old_badges = p.badges;
 
     match &ev.kind {
-        EventKind::Classified { gold, .. } => {
+        EventKind::Classified { gold, fee, .. } => {
             p.classifications += 1;
             p.xp += 1;
+            p.cycles_contributed = p.cycles_contributed.saturating_add(u128::from(*fee));
             if let Some((hits, trials)) = gold {
                 p.gold_tasks += 1;
                 p.gold_hits += *hits as u32;
@@ -217,9 +237,10 @@ pub fn apply_event(ev: &Event) {
                 p.cons_hits += *trials as u32;
             }
         }
-        EventKind::ReviewSubmitted { .. } => {
+        EventKind::ReviewSubmitted { fee, .. } => {
             p.reviews += 1;
             p.xp += 3;
+            p.cycles_contributed = p.cycles_contributed.saturating_add(u128::from(*fee));
         }
         EventKind::ReviewScored { matched, .. } => {
             p.rev_trials += 1;
@@ -235,6 +256,9 @@ pub fn apply_event(ev: &Event) {
             p.confirmed += 1;
             p.xp += 50;
         }
+        EventKind::CorroborationConfirmed { .. } => {
+            p.xp += XP_CORROBORATOR;
+        }
         EventKind::CyclesContributed { amount } => {
             p.cycles_contributed = p.cycles_contributed.saturating_add(*amount);
         }
@@ -243,21 +267,10 @@ pub fn apply_event(ev: &Event) {
 
     let rep = calculate_reputation(&p);
     p.tier = calculate_tier(&p, rep);
-
-    if p.classifications >= 1 {
-        p.badges |= 1 << 0;
-    }
-    if p.discoveries >= 1 {
-        p.badges |= 1 << 1;
-    }
-    if p.confirmed >= 1 {
-        p.badges |= 1 << 2;
-    }
-    if p.reviews >= 10 {
-        p.badges |= 1 << 3;
-    }
-    if p.gold_streak >= 10 {
-        p.badges |= 1 << 4;
+    for (bit, _, rule) in BADGES {
+        if rule(&p) {
+            p.badges |= 1 << bit;
+        }
     }
 
     PROGRESS_MAP.with_borrow_mut(|m| m.insert(ev.aaa, p.clone()));
@@ -284,6 +297,24 @@ pub fn apply_event(ev: &Event) {
                 (),
             );
         });
+    }
+
+    if !emit {
+        return;
+    }
+    let record = |kind| crate::events::record_event(ev.at, ev.aaa, ev.owner, kind);
+    if p.tier != old_tier {
+        record(EventKind::TierChanged {
+            from: old_tier,
+            to: p.tier,
+        });
+    }
+    for (bit, id, _) in BADGES {
+        if p.badges & !old_badges & (1 << bit) != 0 {
+            record(EventKind::BadgeAwarded {
+                badge: (*id).into(),
+            });
+        }
     }
 }
 
@@ -394,40 +425,82 @@ pub struct ReplayStatus {
 
 pub const REPLAY_BATCH_MAX: u32 = 5_000;
 
-pub fn replay(from_event_id: u64, batch: u32) -> ReplayStatus {
-    if from_event_id == 0 {
-        PROGRESS_MAP.with_borrow_mut(|m| {
-            let keys: Vec<Principal> = m.iter().map(|e| *e.key()).collect();
-            for k in keys {
-                m.remove(&k);
-            }
-        });
-        LEADERBOARD_MAP.with_borrow_mut(|m| {
-            let keys: Vec<LeaderboardKey> = m.iter().map(|e| *e.key()).collect();
-            for k in keys {
-                m.remove(&k);
-            }
-        });
+pub fn replay_active() -> bool {
+    meta::get(meta::REPLAY_NEXT).is_some()
+}
+
+pub fn start_replay(from_event_id: u64, batch: u32) -> Result<ReplayStatus, ApiError> {
+    if from_event_id != 0 {
+        return Err(ApiError::invalid("a replay always starts at event 0"));
+    }
+    if replay_active() {
+        return Err(ApiError::Conflict("a replay is already running".into()));
+    }
+    meta::set(
+        meta::REPLAY_BATCH,
+        u64::from(batch.clamp(1, REPLAY_BATCH_MAX)),
+    );
+    meta::set(meta::REPLAY_CLEARING, 1);
+    meta::set(meta::REPLAY_NEXT, 0);
+    Ok(replay_step())
+}
+
+fn clear_some<
+    K: ic_stable_structures::Storable + Ord + Clone,
+    V: ic_stable_structures::Storable,
+>(
+    m: &mut StableBTreeMap<K, V, Memory>,
+    budget: u64,
+) -> u64 {
+    let mut n = 0;
+    while n < budget && m.pop_first().is_some() {
+        n += 1;
+    }
+    n
+}
+
+pub fn replay_step() -> ReplayStatus {
+    let Some(next) = meta::get(meta::REPLAY_NEXT) else {
+        return ReplayStatus {
+            next_event_id: crate::events::len(),
+            processed: 0,
+            done: true,
+        };
+    };
+    let mut budget = meta::get(meta::REPLAY_BATCH).unwrap_or(u64::from(REPLAY_BATCH_MAX));
+    if meta::get(meta::REPLAY_CLEARING).is_some() {
+        budget -= PROGRESS_MAP.with_borrow_mut(|m| clear_some(m, budget));
+        budget -= LEADERBOARD_MAP.with_borrow_mut(|m| clear_some(m, budget));
+        if budget == 0 {
+            return ReplayStatus {
+                next_event_id: next,
+                processed: 0,
+                done: false,
+            };
+        }
+        meta::remove(meta::REPLAY_CLEARING);
     }
 
-    let batch = batch.clamp(1, REPLAY_BATCH_MAX) as u64;
     let total = crate::events::len();
-    let end = from_event_id.saturating_add(batch).min(total);
-
-    let mut processed = 0u64;
-    for id in from_event_id..end {
+    let end = next.saturating_add(budget).min(total);
+    for id in next..end {
         if let Some(ev) = crate::events::get_event(id) {
             if !matches!(ev.kind, EventKind::Admin { .. }) {
-                apply_event(&ev);
+                apply(&ev, false);
             }
         }
-        processed += 1;
     }
-
+    let done = end >= total;
+    if done {
+        meta::remove(meta::REPLAY_NEXT);
+        meta::remove(meta::REPLAY_BATCH);
+    } else {
+        meta::set(meta::REPLAY_NEXT, end);
+    }
     ReplayStatus {
         next_event_id: end,
-        processed,
-        done: end >= total,
+        processed: end - next,
+        done,
     }
 }
 
@@ -795,8 +868,8 @@ mod tests {
             fee: 1,
             needed_reviews: 3,
             created_at: 1,
-            claim_ra_deg: 0.0,
-            claim_dec_deg: 0.0,
+            claim_ra_deg: Some(0.0),
+            claim_dec_deg: Some(0.0),
         });
         under_review.status = DiscoveryStatus::UnderReview;
         discoveries::put(&under_review);
@@ -813,8 +886,8 @@ mod tests {
             fee: 1,
             needed_reviews: 3,
             created_at: 2,
-            claim_ra_deg: 0.0,
-            claim_dec_deg: 0.0,
+            claim_ra_deg: Some(0.0),
+            claim_dec_deg: Some(0.0),
         });
         confirmed.status = DiscoveryStatus::Confirmed;
         confirmed.resolved_at = Some(2);
@@ -1007,17 +1080,144 @@ mod tests {
         });
         assert_ne!(get_progress(&aaa_1), expected_1);
 
-        let mut status = replay(0, 3);
-        assert!(!status.done);
-        while !status.done {
-            status = replay(status.next_event_id, 3);
-        }
+        let status = run_replay(3);
         assert_eq!(status.next_event_id, events::len());
 
         assert_eq!(get_progress(&aaa_1), expected_1);
         assert_eq!(get_progress(&aaa_2), expected_2);
         assert_eq!(get_progress(&admin), Progress::default());
         assert_eq!(get_leaderboard(None, 100), expected_lb);
+    }
+
+    fn run_replay(batch: u32) -> ReplayStatus {
+        let mut status = start_replay(0, batch).unwrap();
+        while !status.done {
+            status = replay_step();
+        }
+        status
+    }
+
+    fn classify(i: u64, gold: Option<(u8, u8)>, fee: u64) -> EventKind {
+        EventKind::Classified {
+            classification_id: i,
+            subject_id: i as u32,
+            gold,
+            fee,
+        }
+    }
+
+    #[test]
+    fn t4_3_replay_applies_events_recorded_mid_replay_exactly_once() {
+        use crate::events;
+        let aaa = Principal::from_slice(&[240, 1]);
+        let owner = Principal::from_slice(&[240, 2]);
+        for i in 0..4 {
+            events::record_event(i, aaa, owner, classify(i, None, 0));
+        }
+        start_replay(0, 2).unwrap();
+        assert!(replay_active());
+        let mut status = replay_step();
+        assert!(!status.done);
+        events::record_event(10, aaa, owner, classify(10, None, 0));
+        assert!(get_progress(&aaa).classifications < 4);
+        while !status.done {
+            status = replay_step();
+        }
+        assert!(!replay_active());
+        assert_eq!(get_progress(&aaa).classifications, 5);
+        events::record_event(11, aaa, owner, classify(11, None, 0));
+        assert_eq!(get_progress(&aaa).classifications, 6);
+    }
+
+    #[test]
+    fn t4_3_replay_rejects_second_and_non_zero_start_and_batches_clear() {
+        let owner = Principal::from_slice(&[241, 0]);
+        for i in 0..7u8 {
+            apply_event(&Event {
+                v: 1,
+                id: 0,
+                at: 1,
+                aaa: Principal::from_slice(&[241, 1, i]),
+                owner,
+                kind: classify(1, None, 0),
+            });
+        }
+        assert!(matches!(start_replay(5, 2), Err(ApiError::InvalidInput(_))));
+        let first = start_replay(0, 3).unwrap();
+        assert!(!first.done);
+        assert_eq!(first.processed, 0);
+        assert_eq!(PROGRESS_MAP.with_borrow(|m| m.len()), 4);
+        assert!(matches!(start_replay(0, 3), Err(ApiError::Conflict(_))));
+        let mut status = replay_step();
+        while !status.done {
+            status = replay_step();
+        }
+        for i in 0..7u8 {
+            assert_eq!(
+                get_progress(&Principal::from_slice(&[241, 1, i])).classifications,
+                0
+            );
+        }
+        assert!(start_replay(0, 3).is_ok());
+    }
+
+    #[test]
+    fn t4_3_tier_and_badge_changes_emit_events_live_but_not_on_replay() {
+        use crate::events;
+        let aaa = Principal::from_slice(&[242, 1]);
+        let owner = Principal::from_slice(&[242, 2]);
+        let kinds = |from: u64| -> Vec<EventKind> {
+            (from..events::len())
+                .filter_map(events::get_event)
+                .filter(|e| e.aaa == aaa)
+                .map(|e| e.kind)
+                .collect()
+        };
+        let start = events::len();
+        for i in 1..=25u64 {
+            events::record_event(i, aaa, owner, classify(i, Some((2, 2)), 0));
+        }
+        let live = kinds(start);
+        assert!(live.contains(&EventKind::BadgeAwarded {
+            badge: "first_light".into()
+        }));
+        assert!(live.contains(&EventKind::TierChanged { from: 1, to: 2 }));
+        assert_eq!(
+            live.iter()
+                .filter(|k| matches!(k, EventKind::BadgeAwarded { .. }))
+                .count(),
+            2
+        );
+        let before = get_progress(&aaa);
+        let len = events::len();
+        run_replay(REPLAY_BATCH_MAX);
+        assert_eq!(events::len(), len);
+        assert_eq!(get_progress(&aaa), before);
+    }
+
+    #[test]
+    fn t4_3_fees_count_as_cycles_contributed_and_corroborators_earn_5_xp() {
+        let aaa = Principal::from_slice(&[243, 1]);
+        let owner = Principal::from_slice(&[243, 2]);
+        let ev = |kind| Event {
+            v: 1,
+            id: 0,
+            at: 1,
+            aaa,
+            owner,
+            kind,
+        };
+        apply_event(&ev(classify(1, None, 200)));
+        apply_event(&ev(EventKind::ReviewSubmitted {
+            review_id: 1,
+            seq: 1,
+            honeypot: false,
+            fee: 50,
+        }));
+        apply_event(&ev(EventKind::CorroborationConfirmed { seq: 1 }));
+        let p = get_progress(&aaa);
+        assert_eq!(p.cycles_contributed, 250);
+        assert_eq!(p.xp, 1 + 3 + 5);
     }
 
     fn t4_8_event_kind_strategy() -> impl proptest::strategy::Strategy<Value = EventKind> {
@@ -1104,10 +1304,7 @@ mod tests {
             let incremental_a = get_progress(&aaa_a);
             let incremental_b = get_progress(&aaa_b);
 
-            let mut status = replay(0, REPLAY_BATCH_MAX);
-            while !status.done {
-                status = replay(status.next_event_id, REPLAY_BATCH_MAX);
-            }
+            run_replay(REPLAY_BATCH_MAX);
 
             proptest::prop_assert_eq!(get_progress(&aaa_a), incremental_a);
             proptest::prop_assert_eq!(get_progress(&aaa_b), incremental_b);

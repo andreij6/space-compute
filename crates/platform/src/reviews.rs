@@ -220,22 +220,15 @@ pub struct HoneypotStat {
 pub fn honeypot_stats() -> Vec<HoneypotStat> {
     let mut by_reviewer: std::collections::BTreeMap<Principal, (u32, u32)> =
         std::collections::BTreeMap::new();
-    REVIEWS.with_borrow(|m| {
-        for entry in m.iter() {
-            let r = entry.value();
-            let Some(d) = discoveries::get(r.discovery_seq) else {
-                continue;
-            };
-            if !d.is_honeypot {
-                continue;
-            }
+    for d in discoveries::queued(QUEUE_HONEYPOT) {
+        for r in reviews_of(d.seq) {
             let stat = by_reviewer.entry(r.reviewer_aaa).or_insert((0, 0));
             stat.0 += 1;
             if d.honeypot_truth == Some(r.vote) {
                 stat.1 += 1;
             }
         }
-    });
+    }
     by_reviewer
         .into_iter()
         .map(|(reviewer_aaa, (trials, hits))| HoneypotStat {
@@ -463,6 +456,31 @@ pub fn submit(
     })
 }
 
+#[cfg(test)]
+pub fn put_review_for_test(review_id: u64, discovery_seq: u64) {
+    REVIEWS.with_borrow_mut(|m| {
+        m.insert(
+            review_id,
+            Review {
+                v: 1,
+                review_id,
+                assignment_id: 0,
+                discovery_seq,
+                reviewer_aaa: Principal::anonymous(),
+                owner: Principal::anonymous(),
+                vote: Vote::Agree,
+                rationale: String::new(),
+                weight_bp: 0,
+                fee: 0,
+                observed_image_sha256: vec![],
+                agent_label: None,
+                at: 0,
+                xp_awarded: 0,
+            },
+        )
+    });
+}
+
 fn vote_of(outcome: DiscoveryStatus) -> Vote {
     if outcome == DiscoveryStatus::Confirmed {
         Vote::Agree
@@ -573,6 +591,17 @@ fn resolve(mut d: Discovery, outcome: DiscoveryStatus, protocol_version: u16, no
         citation_url: None,
     };
     credits::record_credit(d.discoverer_aaa, d.seq, copy(CreditRole::Discoverer));
+    for c in claims::corroborations(d.seq) {
+        if outcome == DiscoveryStatus::Confirmed {
+            events::record_event(
+                now,
+                c.aaa,
+                c.owner,
+                EventKind::CorroborationConfirmed { seq: d.seq },
+            );
+        }
+        credits::record_credit(c.aaa, d.seq, copy(CreditRole::Corroborator));
+    }
     let truth = vote_of(outcome);
     for r in &reviews {
         events::record_event(
@@ -646,8 +675,8 @@ mod tests {
             fee: 1,
             needed_reviews: 3,
             created_at: at,
-            claim_ra_deg: 0.0,
-            claim_dec_deg: 0.0,
+            claim_ra_deg: Some(0.0),
+            claim_dec_deg: Some(0.0),
         })
     }
 
@@ -992,12 +1021,12 @@ mod tests {
         assert_eq!(
             votes,
             vec![
-                (p(2), p(102), Vote::Agree, 10),
-                (p(3), p(103), Vote::Disagree, 10),
-                (p(4), p(104), Vote::Disagree, 10)
+                (p(2), p(102), Vote::Agree, 15),
+                (p(3), p(103), Vote::Disagree, 15),
+                (p(4), p(104), Vote::Disagree, 15)
             ]
         );
-        assert_eq!(c.total_cycles_contributed, 37);
+        assert_eq!(c.total_cycles_contributed, 52);
         assert!(c.text.ends_with("Space Compute, Rejected 2026-09-27."));
         assert!(citations::certified(&d.public_id, vec![]).is_some());
     }
@@ -1068,7 +1097,10 @@ mod tests {
             truth: Vote::Agree,
         };
         assert_eq!(add_honeypots(vec![spec(60)], NOW), Ok(1));
-        assert_eq!(add_honeypots(vec![spec(60), spec(61), spec(61)], NOW), Ok(1));
+        assert_eq!(
+            add_honeypots(vec![spec(60), spec(61), spec(61)], NOW),
+            Ok(1)
+        );
         assert_eq!(add_honeypots(vec![spec(60), spec(61)], NOW), Ok(0));
         let mut subjects = Vec::new();
         discoveries::find_queued(QUEUE_HONEYPOT, |d| {
@@ -1404,5 +1436,39 @@ mod tests {
                 _ => {}
             }
         }
+    }
+
+    #[test]
+    fn t4_9_confirmed_corroborators_get_5_xp_and_a_credit() {
+        let d = discovery(1, p(1), p(101), NOW);
+        let corroborator = p(9);
+        claims::corroborate(
+            d.seq,
+            claims::Corroboration {
+                aaa: corroborator,
+                owner: p(109),
+                classification_id: 9,
+                at: NOW,
+            },
+        );
+        let xp_before = progression::get_progress(&corroborator).xp;
+        let pr = params();
+        for n in 2..=4 {
+            tier2(p(n));
+            let id = assign_id(p(n), p(100 + n), NOW).unwrap();
+            submit(p(n), p(100 + n), sub(id, Vote::Agree), &pr, 1, NOW, 0).unwrap();
+        }
+        assert_eq!(
+            discoveries::get(d.seq).unwrap().status,
+            DiscoveryStatus::Confirmed
+        );
+        assert_eq!(progression::get_progress(&corroborator).xp, xp_before + 5);
+        let page = credits::list_aaa_credits(credits::ListAaaCreditsArgs {
+            aaa: corroborator,
+            cursor: 0,
+        });
+        assert_eq!(page.items.len(), 1);
+        assert_eq!(page.items[0].role, CreditRole::Corroborator);
+        assert_eq!(page.items[0].outcome, CreditOutcome::Confirmed);
     }
 }

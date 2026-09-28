@@ -243,13 +243,35 @@ impl World {
     }
 
     fn citation(&self, public_id: &str) -> CertifiedCitation {
+        #[derive(candid::CandidType, serde::Deserialize)]
+        struct BaselineCertifiedCitation {
+            citation: citations::Citation,
+            certificate: Vec<u8>,
+            witness: Vec<u8>,
+        }
+        let c: Option<BaselineCertifiedCitation> = self.env.query(
+            self.platform,
+            user(200),
+            "get_citation",
+            public_id.to_string(),
+        );
+        let c = c.expect("citation exists");
+        CertifiedCitation {
+            citation_candid: citations::encode(&c.citation),
+            citation: c.citation,
+            certificate: c.certificate,
+            witness: c.witness,
+        }
+    }
+
+    fn current_citation(&self, public_id: &str) -> CertifiedCitation {
         let c: Option<CertifiedCitation> = self.env.query(
             self.platform,
             user(200),
             "get_citation",
             public_id.to_string(),
         );
-        c.expect("citation exists")
+        c.expect("citation exists with citation_candid on vN")
     }
 }
 
@@ -334,7 +356,8 @@ fn t7_1_platform_v_n_minus_1_state_survives_upgrade_to_v_n() {
     }
     step("upgraded platform from the vN-1 baseline to the current vN wasm");
 
-    let after = w.citation(&public_id);
+    let after = w.current_citation(&public_id);
+    assert_eq!(after.citation_candid, citations::encode(&before.citation));
     assert_eq!(after.citation, before.citation);
     assert_eq!(after.witness, before.witness);
     assert_eq!(citations::verify(&after, w.platform), Ok(()));
@@ -389,6 +412,9 @@ fn t7_1_platform_v_n_minus_1_state_survives_upgrade_to_v_n() {
     };
     assert!(overview_after.admins.contains(&extra_admin));
     assert_eq!(overview_after.total_aaas, 4);
+    assert_eq!(overview_after.stats.active_aaas, 4);
+    assert_eq!(overview_after.alerts.installing_aaas, 0);
+    assert_eq!(overview_after.alerts.suspended_aaas, 0);
     step("post-upgrade-only reads (AaaPublic, Overview — types that gained fields since the vN-1 baseline) decode fine against the current wasm");
 
     let rng_seeded_before = overview_after.rng_seeded_at;
@@ -410,5 +436,89 @@ fn t7_1_platform_v_n_minus_1_state_survives_upgrade_to_v_n() {
     step(&format!(
         "hourly timers resumed after upgrade: rng_seeded_at {:?} -> {:?}",
         rng_seeded_before, overview_ticked.rng_seeded_at
+    ));
+}
+
+impl World {
+    fn upgrade(&self) {
+        self.env
+            .pic
+            .upgrade_canister(
+                self.platform,
+                canister_wasm("platform"),
+                encode_one(()).unwrap(),
+                Some(self.admin),
+            )
+            .expect("upgrade must succeed");
+    }
+
+    fn public(&self, aaa: Principal) -> AaaPublic {
+        let p: Option<AaaPublic> = self
+            .env
+            .query(self.platform, self.admin, "get_aaa_public", aaa);
+        p.expect("public profile")
+    }
+
+    fn replay(&self, batch: u32) -> Result<platform::progression::ReplayStatus, ApiError> {
+        let bytes = self
+            .env
+            .pic
+            .update_call(
+                self.platform,
+                self.admin,
+                "admin_replay_progression",
+                encode_args((0u64, batch)).unwrap(),
+            )
+            .expect("admin_replay_progression");
+        decode_one(&bytes).unwrap()
+    }
+}
+
+#[test]
+fn t7_1_replay_survives_upgrade_mid_replay_and_applies_mid_replay_events_once() {
+    println!("Opus review fix: a progression replay keeps its cursor in stable memory, rejects a second replay, applies events that arrive mid-replay exactly once, and resumes after an upgrade");
+    let w = World::new();
+    w.upgrade();
+    w.flag_and_promote_reviewers(3);
+    let agents: Vec<Principal> = w.agents.iter().map(|a| a.0).collect();
+    let before: Vec<AaaPublic> = agents.iter().map(|&a| w.public(a)).collect();
+    let leaderboard_before = w.leaderboard();
+    step("upgraded to vN and built progress for 4 agents from ~100 events");
+
+    let first = w.replay(1).expect("replay starts");
+    assert!(!first.done);
+    assert!(matches!(w.replay(1), Err(ApiError::Conflict(_))));
+    step(
+        "replay started with batch=1; a second admin_replay_progression is rejected with Conflict",
+    );
+
+    w.set_params(0, 3);
+    w.classify(w.agents[1], false);
+    step("a classification arrives while the replay is running");
+
+    w.upgrade();
+    assert!(matches!(w.replay(1), Err(ApiError::Conflict(_))));
+    step("upgraded mid-replay: the stable cursor survives (a new replay is still rejected)");
+
+    let mut expected = before.clone();
+    expected[1].xp += 1;
+    expected[1].counters.classifications += 1;
+    let mut ticks = 0;
+    while agents.iter().map(|&a| w.public(a)).collect::<Vec<_>>() != expected {
+        assert!(ticks < 2_000, "replay did not finish after upgrade");
+        w.env.pic.tick();
+        ticks += 1;
+    }
+    for _ in 0..3 {
+        w.env.pic.tick();
+    }
+    assert!(w.replay(5_000).expect("replay can run again").done);
+    assert_eq!(
+        agents.iter().map(|&a| w.public(a)).collect::<Vec<_>>(),
+        expected
+    );
+    assert_eq!(w.leaderboard().items.len(), leaderboard_before.items.len());
+    step(&format!(
+        "post_upgrade resumed the replay; after {ticks} ticks every agent matches its pre-replay progress, with the mid-replay classification applied exactly once"
     ));
 }

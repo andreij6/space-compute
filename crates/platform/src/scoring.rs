@@ -495,8 +495,8 @@ pub fn process_submission(
                         fee,
                         needed_reviews: params.reviews_min as u8,
                         created_at: now,
-                        claim_ra_deg: ra,
-                        claim_dec_deg: dec,
+                        claim_ra_deg: Some(ra),
+                        claim_dec_deg: Some(dec),
                     });
                     claims::index(&subject.ref_.field, cell, &flag.category, discovery.seq);
                     discovery_seq = Some(discovery.seq);

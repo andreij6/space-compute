@@ -42,6 +42,7 @@ pub const CORROBORATIONS: u8 = 51;
 pub const AUDIT_INDEX: u8 = 52;
 pub const AUDIT_DATA: u8 = 53;
 pub const AWAITING_REVIEWERS: u8 = 54;
+pub const META: u8 = 55;
 
 thread_local! {
     static MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =

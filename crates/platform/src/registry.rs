@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 
 use crate::blocklist;
 use crate::memory::{self, Memory};
+use crate::meta;
 
 pub const MAX_WASM_BYTES: usize = 1_887_436;
 
@@ -351,7 +352,7 @@ pub fn pre_register_aaa(
         admin_suspended: false,
         is_house: Some(false),
     };
-    AAA_REGISTRY.with_borrow_mut(|m| m.insert(args.canister_id, record));
+    AAA_REGISTRY.with_borrow_mut(|m| put(m, args.canister_id, record));
     AAA_OWNERS.with_borrow_mut(|m| m.insert(args.owner, args.canister_id));
 
     Ok((resolved_name, version, wasm_blob, false))
@@ -379,7 +380,7 @@ pub fn complete_register_aaa(
             rec.platform_is_controller = true;
             rec.verified_at = now;
             rec.wasm_version = version;
-            m.insert(canister_id, rec.clone());
+            put(m, canister_id, rec.clone());
             Ok((rec.name, rec.owner))
         }
         None => Err(ApiError::NotFound),
@@ -435,7 +436,7 @@ pub fn complete_upgrade_aaa(
         AAA_REGISTRY.with_borrow_mut(|m| {
             if let Some(mut rec) = m.get(&aaa) {
                 rec.status = AaaStatus::Suspended;
-                m.insert(aaa, rec);
+                put(m, aaa, rec);
             }
         });
         return Err(ApiError::Suspended);
@@ -444,7 +445,7 @@ pub fn complete_upgrade_aaa(
         Some(mut rec) => {
             rec.wasm_version = version;
             rec.verified_at = now;
-            m.insert(aaa, rec);
+            put(m, aaa, rec);
             Ok(())
         }
         None => Err(ApiError::NotFound),
@@ -472,7 +473,7 @@ fn suspend_for_provenance(
 ) -> ApiError {
     let owner = record.owner;
     record.status = AaaStatus::Suspended;
-    AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
+    AAA_REGISTRY.with_borrow_mut(|m| put(m, aaa, record));
     crate::events::record_event(
         now,
         aaa,
@@ -506,7 +507,7 @@ pub fn verify_provenance(
     let Some(hash) = module_hash else {
         let owner = record.owner;
         record.status = AaaStatus::Deleted;
-        AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
+        AAA_REGISTRY.with_borrow_mut(|m| put(m, aaa, record));
         crate::events::record_event(
             now,
             aaa,
@@ -549,7 +550,7 @@ pub fn verify_provenance(
         return Err(ApiError::Suspended);
     }
     record.verified_at = now;
-    AAA_REGISTRY.with_borrow_mut(|m| m.insert(aaa, record));
+    AAA_REGISTRY.with_borrow_mut(|m| put(m, aaa, record));
     AAA_PROVENANCE.with_borrow_mut(|m| {
         m.insert(
             aaa,
@@ -584,7 +585,7 @@ pub fn record_heartbeat(
     }
     record.last_seen_at = now_ns;
     record.last_cycles = args.cycles;
-    AAA_REGISTRY.with_borrow_mut(|m| m.insert(caller, record));
+    AAA_REGISTRY.with_borrow_mut(|m| put(m, caller, record));
     Ok(())
 }
 
@@ -711,8 +712,35 @@ pub fn record_update_profile(
     if let Some(seed) = args.avatar_seed {
         record.avatar_seed = seed;
     }
-    AAA_REGISTRY.with_borrow_mut(|m| m.insert(caller, record));
+    AAA_REGISTRY.with_borrow_mut(|m| put(m, caller, record));
     Ok(())
+}
+
+fn status_key(status: AaaStatus) -> u8 {
+    meta::AAA_STATUS_BASE + status as u8
+}
+
+fn put(m: &mut StableBTreeMap<Principal, AaaRecord, Memory>, aaa: Principal, rec: AaaRecord) {
+    let new = rec.status;
+    let old = m.insert(aaa, rec).map(|r| r.status);
+    if old != Some(new) {
+        if let Some(old) = old {
+            meta::bump(status_key(old), false);
+        }
+        meta::bump(status_key(new), true);
+    }
+}
+
+pub fn backfill_status_counts() {
+    let mut counts = [0u64; 5];
+    AAA_REGISTRY.with_borrow(|m| {
+        for e in m.iter() {
+            counts[e.value().status as usize] += 1;
+        }
+    });
+    for (i, n) in counts.into_iter().enumerate() {
+        meta::set(meta::AAA_STATUS_BASE + i as u8, n);
+    }
 }
 
 pub fn get_aaa(aaa: &Principal) -> Option<AaaRecord> {
@@ -745,34 +773,27 @@ pub fn get_aaa_by_name(name: &str) -> Option<AaaRecord> {
     get_aaa(&principal)
 }
 
-pub fn list_aaas(filter: &AdminListAaasFilter, cursor: Option<u64>, limit: u32) -> Vec<AaaRecord> {
-    let cap = (limit as usize).min(100);
-    let skip = cursor.unwrap_or(0) as usize;
-    AAA_REGISTRY.with_borrow(|m| {
-        m.iter()
-            .map(|e| e.value())
-            .filter(|r| {
-                if let Some(status) = filter.status {
-                    if r.status != status {
-                        return false;
-                    }
-                }
-                if let Some(owner) = filter.owner {
-                    if r.owner != owner {
-                        return false;
-                    }
-                }
-                if let Some(ref prefix) = filter.name_prefix {
-                    if !r.name.to_lowercase().starts_with(&prefix.to_lowercase()) {
-                        return false;
-                    }
-                }
-                true
-            })
-            .skip(skip)
-            .take(cap)
-            .collect()
-    })
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub struct AaaPage {
+    pub items: Vec<AaaRecord>,
+    pub next_cursor: Option<Principal>,
+}
+
+pub fn list_aaas(filter: &AdminListAaasFilter, cursor: Option<Principal>, limit: u32) -> AaaPage {
+    let cap = sc_types::limits::page_limit(limit) as usize;
+    let prefix = filter.name_prefix.as_ref().map(|p| p.to_lowercase());
+    let keep = |r: &AaaRecord| {
+        filter.status.is_none_or(|s| r.status == s)
+            && filter.owner.is_none_or(|o| r.owner == o)
+            && prefix
+                .as_ref()
+                .is_none_or(|p| r.name.to_lowercase().starts_with(p))
+    };
+    let (items, next_cursor) = AAA_REGISTRY.with_borrow(|m| {
+        let entries = m.range(cursor.unwrap_or(Principal::from_slice(&[]))..);
+        crate::events::scan_page(entries.map(|e| (*e.key(), e.value())), cap, keep)
+    });
+    AaaPage { items, next_cursor }
 }
 
 pub fn get_operators(aaa: &Principal) -> Option<OperatorSet> {
@@ -780,11 +801,7 @@ pub fn get_operators(aaa: &Principal) -> Option<OperatorSet> {
 }
 
 pub fn active_aaas_count() -> u64 {
-    AAA_REGISTRY.with_borrow(|m| {
-        m.iter()
-            .filter(|e| e.value().status == AaaStatus::Active)
-            .count() as u64
-    })
+    count_by_status(AaaStatus::Active)
 }
 
 pub fn get_provenance(aaa: &Principal) -> Option<Provenance> {
@@ -796,7 +813,7 @@ pub fn suspend_aaa(aaa: Principal) -> Result<(), ApiError> {
         Some(mut rec) => {
             rec.status = AaaStatus::Suspended;
             rec.admin_suspended = true;
-            m.insert(aaa, rec);
+            put(m, aaa, rec);
             Ok(())
         }
         None => Err(ApiError::NotFound),
@@ -808,7 +825,7 @@ pub fn unsuspend_aaa(aaa: Principal) -> Result<(), ApiError> {
         Some(mut rec) => {
             rec.status = AaaStatus::Active;
             rec.admin_suspended = false;
-            m.insert(aaa, rec);
+            put(m, aaa, rec);
             Ok(())
         }
         None => Err(ApiError::NotFound),
@@ -834,7 +851,7 @@ pub fn rename_aaa(aaa: Principal, new_name: String) -> Result<(), ApiError> {
                 n.insert(new_key, aaa);
             });
             rec.name = valid_name;
-            m.insert(aaa, rec);
+            put(m, aaa, rec);
             Ok(())
         }
         None => Err(ApiError::NotFound),
@@ -845,7 +862,7 @@ pub fn set_house(aaa: Principal, is_house: bool) -> Result<(), ApiError> {
     AAA_REGISTRY.with_borrow_mut(|m| match m.get(&aaa) {
         Some(mut rec) => {
             rec.is_house = Some(is_house);
-            m.insert(aaa, rec);
+            put(m, aaa, rec);
             Ok(())
         }
         None => Err(ApiError::NotFound),
@@ -853,7 +870,7 @@ pub fn set_house(aaa: Principal, is_house: bool) -> Result<(), ApiError> {
 }
 
 pub fn count_by_status(status: AaaStatus) -> u64 {
-    AAA_REGISTRY.with_borrow(|m| m.iter().filter(|e| e.value().status == status).count() as u64)
+    meta::count(status_key(status))
 }
 
 pub fn total_aaas() -> u64 {
@@ -868,7 +885,7 @@ pub fn increment_install_attempts(canister_id: &Principal) -> Result<u8, ApiErro
             }
             rec.install_attempts = rec.install_attempts.saturating_add(1);
             let attempts = rec.install_attempts;
-            m.insert(*canister_id, rec);
+            put(m, *canister_id, rec);
             Ok(attempts)
         }
         None => Err(ApiError::NotFound),
@@ -1213,7 +1230,7 @@ mod tests {
             None,
             10,
         );
-        assert_eq!(list.len(), 1);
+        assert_eq!(list.items.len(), 1);
         assert!(active_aaas_count() >= 1);
     }
 
@@ -1699,5 +1716,69 @@ mod tests {
             upload_wasm(4, bad.clone(), Sha256::digest(&bad).to_vec()),
             Err(ApiError::InvalidInput(_))
         ));
+    }
+
+    #[test]
+    fn t4_10_status_counters_track_transitions_and_backfill_agrees() {
+        for i in 0..3u8 {
+            registered(p(170 + i), p(180 + i), &format!("Counted-{i}"), 1);
+        }
+        assert_eq!(count_by_status(AaaStatus::Active), 3);
+        suspend_aaa(p(180)).unwrap();
+        suspend_aaa(p(180)).unwrap();
+        assert_eq!(count_by_status(AaaStatus::Active), 2);
+        assert_eq!(count_by_status(AaaStatus::Suspended), 1);
+        pre_register_aaa(
+            &RegisterArgs {
+                canister_id: p(190),
+                owner: p(191),
+                name: "Installing-1".into(),
+                avatar_seed: 1,
+            },
+            1,
+        )
+        .unwrap();
+        assert_eq!(count_by_status(AaaStatus::Installing), 1);
+        unsuspend_aaa(p(180)).unwrap();
+        assert_eq!(active_aaas_count(), 3);
+        assert_eq!(count_by_status(AaaStatus::Suspended), 0);
+        meta::set(status_key(AaaStatus::Active), 99);
+        backfill_status_counts();
+        assert_eq!(active_aaas_count(), 3);
+        assert_eq!(count_by_status(AaaStatus::Installing), 1);
+    }
+
+    #[test]
+    fn t4_10_admin_list_aaas_pages_by_key_cursor_with_filters() {
+        for i in 0..5u8 {
+            registered(p(200 + i), p(210 + i), &format!("Paged-{i}"), 1);
+        }
+        registered(p(220), p(221), "Other", 1);
+        let filter = AdminListAaasFilter {
+            name_prefix: Some("paged".into()),
+            ..AdminListAaasFilter::default()
+        };
+        let mut names = Vec::new();
+        let mut cursor = None;
+        loop {
+            let page = list_aaas(&filter, cursor, 2);
+            assert!(page.items.len() <= 2);
+            names.extend(page.items.into_iter().map(|r| r.name));
+            match page.next_cursor {
+                Some(c) => cursor = Some(c),
+                None => break,
+            }
+        }
+        names.sort();
+        assert_eq!(
+            names,
+            (0..5).map(|i| format!("Paged-{i}")).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            list_aaas(&AdminListAaasFilter::default(), None, 100)
+                .items
+                .len(),
+            6
+        );
     }
 }

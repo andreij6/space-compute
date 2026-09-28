@@ -4,6 +4,7 @@ type AaaCounters = record {
   confirmed : nat64;
   classifications : nat64;
 };
+type AaaPage = record { next_cursor : opt principal; items : vec AaaRecord };
 type AaaPublic = record {
   xp : nat64;
   status : AaaStatus;
@@ -45,7 +46,27 @@ type ActivityItem = record {
   id : nat64;
   aaa : principal;
   owner : principal;
-  kind : EventKind;
+  kind : ActivityKind;
+};
+type ActivityKind = variant {
+  CyclesContributed : record { amount : nat };
+  DiscoveryResolved : record { public_id : text; outcome : text };
+  CorroborationConfirmed : record { public_id : text };
+  Classified : record {
+    fee : nat64;
+    classification_id : nat64;
+    subject_id : nat32;
+  };
+  ReviewScored : record { review_id : nat64; matched : bool };
+  ConsensusScored : record { agree : bool; trials : nat8; subject_id : nat32 };
+  TierChanged : record { to : nat8; from : nat8 };
+  ImageMismatch : record { subject_id : nat32 };
+  BadgeAwarded : record { badge : text };
+  ReviewSubmitted : record { fee : nat64; review_id : nat64 };
+  AaaSuspended : record { reason : text };
+  AaaSpawned : record { name : text };
+  DiscoveryFlagged : record { public_id : text };
+  AaaUnsuspended;
 };
 type AdminDiscoveryCard = record {
   seq : nat64;
@@ -109,6 +130,7 @@ type AuditEntry = record {
 type CertifiedCitation = record {
   certificate : blob;
   witness : blob;
+  citation_candid : blob;
   citation : Citation;
 };
 type CheckNameResult = variant { Ok; Invalid; Taken };
@@ -188,7 +210,7 @@ type CreditCopy = record {
 };
 type CreditOutcome = variant { Confirmed; Rejected; NeedsMoreReview };
 type CreditPage = record { next_cursor : opt nat64; items : vec CreditCopy };
-type CreditRole = variant { Reviewer; Discoverer };
+type CreditRole = variant { Reviewer; Corroborator; Discoverer };
 type DiscoveryCard = record {
   status : DiscoveryStatus;
   needed_reviews : nat8;
@@ -239,6 +261,7 @@ type Event = record {
 type EventKind = variant {
   CyclesContributed : record { amount : nat };
   DiscoveryResolved : record { seq : nat64; outcome : text };
+  CorroborationConfirmed : record { seq : nat64 };
   Classified : record {
     fee : nat64;
     gold : opt record { nat8; nat8 };
@@ -328,8 +351,9 @@ type OverviewAlerts = record {
   image_mismatches_24h : nat64;
 };
 type Page = record { next_cursor : opt nat64; items : vec AdminDiscoveryCard };
-type Page_1 = record { next_cursor : opt nat64; items : vec ActivityItem };
-type Page_2 = record { next_cursor : opt nat64; items : vec DiscoveryCard };
+type Page_1 = record { next_cursor : opt nat64; items : vec Subject };
+type Page_2 = record { next_cursor : opt nat64; items : vec ActivityItem };
+type Page_3 = record { next_cursor : opt nat64; items : vec DiscoveryCard };
 type Params = record {
   claim_cell_arcsec : float64;
   max_tasks_per_aaa_per_hour : nat32;
@@ -388,11 +412,11 @@ type Result_16 = variant { Ok : ReviewReceipt; Err : ApiError };
 type Result_2 = variant { Ok : vec AuditEntry; Err : ApiError };
 type Result_3 = variant { Ok : AaaRecord; Err : ApiError };
 type Result_4 = variant { Ok : vec HoneypotStat; Err : ApiError };
-type Result_5 = variant { Ok : vec AaaRecord; Err : ApiError };
+type Result_5 = variant { Ok : AaaPage; Err : ApiError };
 type Result_6 = variant { Ok : vec principal; Err : ApiError };
 type Result_7 = variant { Ok : Page; Err : ApiError };
 type Result_8 = variant { Ok : vec Protocol; Err : ApiError };
-type Result_9 = variant { Ok : vec Subject; Err : ApiError };
+type Result_9 = variant { Ok : Page_1; Err : ApiError };
 type ReviewAssignment = record {
   subject : SubjectRef;
   lease_expires_at_ns : nat64;
@@ -481,7 +505,9 @@ service : () -> {
   admin_audit_log : (opt nat64, nat32) -> (Result_2) query;
   admin_get_aaa : (principal) -> (Result_3) query;
   admin_honeypot_stats : () -> (Result_4) query;
-  admin_list_aaas : (AdminListAaasFilter, opt nat64, nat32) -> (Result_5) query;
+  admin_list_aaas : (AdminListAaasFilter, opt principal, nat32) -> (
+      Result_5,
+    ) query;
   admin_list_admins : () -> (Result_6) query;
   admin_list_discoveries : (AdminListDiscoveriesFilter, opt nat64, nat32) -> (
       Result_7,
@@ -523,9 +549,9 @@ service : () -> {
   get_subject_consensus : (nat32) -> (opt SubjectConsensus) query;
   get_task : (opt principal) -> (Result_14);
   heartbeat : (Heartbeat) -> (Result);
-  list_aaa_activity : (principal, opt nat64, nat32) -> (Page_1) query;
+  list_aaa_activity : (principal, opt nat64, nat32) -> (Page_2) query;
   list_aaa_credits : (ListAaaCreditsArgs) -> (CreditPage) query;
-  list_discoveries : (ListFilter, opt nat64, nat32) -> (Page_2) query;
+  list_discoveries : (ListFilter, opt nat64, nat32) -> (Page_3) query;
   list_subject_classifications : (nat32) -> (vec Classification) query;
   register_aaa : (RegisterArgs) -> (Result);
   submit_classification : (ClassificationSubmission) -> (Result_15);

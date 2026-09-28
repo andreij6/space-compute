@@ -10,6 +10,7 @@ use crate::memory::{self, Memory};
 pub enum CreditRole {
     Discoverer,
     Reviewer,
+    Corroborator,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]

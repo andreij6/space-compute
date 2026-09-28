@@ -14,6 +14,9 @@ pub fn start() {
     ic_cdk_timers::set_timer_interval(HOURLY, reseed);
     ic_cdk_timers::set_timer_interval(HOURLY, starvation_sweep);
     ic_cdk_timers::set_timer_interval(HOURLY, sample_cycles);
+    if crate::progression::replay_active() {
+        schedule_replay_continue();
+    }
 }
 
 async fn sample_cycles() {
@@ -48,13 +51,12 @@ async fn reseed() {
     }
 }
 
-pub fn schedule_replay_continue(from_event_id: u64, batch: u32) {
-    ic_cdk_timers::set_timer(Duration::ZERO, continue_replay(from_event_id, batch));
+pub fn schedule_replay_continue() {
+    ic_cdk_timers::set_timer(Duration::ZERO, continue_replay());
 }
 
-async fn continue_replay(from_event_id: u64, batch: u32) {
-    let status = crate::progression::replay(from_event_id, batch);
-    if !status.done {
-        schedule_replay_continue(status.next_event_id, batch);
+async fn continue_replay() {
+    if !crate::progression::replay_step().done {
+        schedule_replay_continue();
     }
 }

@@ -10,6 +10,7 @@ pub mod discoveries;
 pub mod events;
 mod guard;
 mod memory;
+mod meta;
 mod metrics;
 pub mod progression;
 pub mod registry;
@@ -42,6 +43,7 @@ fn init() {
         Ok(())
     })
     .expect("init config");
+    meta::set(meta::COUNTERS_READY, 1);
     timers::start();
 }
 
@@ -56,6 +58,11 @@ fn post_upgrade() {
             Ok(())
         })
         .expect("bootstrap admin");
+    }
+    if meta::get(meta::COUNTERS_READY).is_none() {
+        registry::backfill_status_counts();
+        catalog::backfill_retired_count();
+        meta::set(meta::COUNTERS_READY, 1);
     }
     citations::rebuild();
     timers::start();

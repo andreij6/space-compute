@@ -48,6 +48,8 @@ pub struct Citation {
 pub struct CertifiedCitation {
     pub citation: Citation,
     #[serde(with = "serde_bytes")]
+    pub citation_candid: Vec<u8>,
+    #[serde(with = "serde_bytes")]
     pub certificate: Vec<u8>,
     #[serde(with = "serde_bytes")]
     pub witness: Vec<u8>,
@@ -75,8 +77,12 @@ pub fn text(
     )
 }
 
+pub fn encode(c: &Citation) -> Vec<u8> {
+    candid::encode_one(c).expect("encode citation")
+}
+
 pub fn hash(c: &Citation) -> Vec<u8> {
-    Sha256::digest(candid::encode_one(c).expect("encode citation")).to_vec()
+    Sha256::digest(encode(c)).to_vec()
 }
 
 pub fn insert(c: Citation) {
@@ -125,6 +131,7 @@ pub fn certified(public_id: &str, certificate: Vec<u8>) -> Option<CertifiedCitat
         .with_borrow(|t| serde_cbor::to_vec(&t.witness(public_id.as_bytes())))
         .expect("encode witness");
     Some(CertifiedCitation {
+        citation_candid: encode(&citation),
         citation,
         certificate,
         witness,
@@ -274,8 +281,8 @@ mod tests {
             fee: 1,
             needed_reviews: 3,
             created_at: 1_790_467_200_000_000_000,
-            claim_ra_deg: 0.0,
-            claim_dec_deg: 0.0,
+            claim_ra_deg: Some(0.0),
+            claim_dec_deg: Some(0.0),
         });
         let id = d.public_id.clone();
         let c = citation(d.seq, &id);
@@ -304,5 +311,57 @@ mod tests {
         let w = TREE.with_borrow(|t| t.witness(b"x"));
         let back: HashTree = serde_cbor::from_slice(&serde_cbor::to_vec(&w).unwrap()).unwrap();
         assert_eq!(back.digest(), root_hash());
+    }
+
+    #[test]
+    fn t4_5_citation_candid_bytes_hash_to_the_certified_leaf() {
+        let d = discoveries::create(discoveries::NewDiscovery {
+            subject_id: 7,
+            classification_id: 7,
+            discoverer_aaa: p(1),
+            discoverer_owner: p(101),
+            discoverer_name_at_time: "Agent-1".into(),
+            category: "lens".into(),
+            rationale: "arc".into(),
+            confidence: 80,
+            fee: 1,
+            needed_reviews: 3,
+            created_at: 1_790_467_200_000_000_000,
+            claim_ra_deg: Some(0.0),
+            claim_dec_deg: Some(0.0),
+        });
+        insert(citation(d.seq, &d.public_id));
+        let cc = certified(&d.public_id, vec![]).unwrap();
+        let witness: HashTree = serde_cbor::from_slice(&cc.witness).unwrap();
+        let leaf = Sha256::digest(&cc.citation_candid).to_vec();
+        assert_eq!(
+            witness.lookup_path([d.public_id.as_bytes()]),
+            LookupResult::Found(&leaf[..])
+        );
+        assert_eq!(
+            candid::decode_one::<Citation>(&cc.citation_candid).unwrap(),
+            cc.citation
+        );
+    }
+
+    #[test]
+    fn t4_5_citation_vector_fixture_matches_rust_encoding() {
+        let c = citation(1, "SC-2026-000001");
+        let hex = |b: &[u8]| b.iter().map(|x| format!("{x:02x}")).collect::<String>();
+        let json = format!(
+            "{{\n  \"public_id\": \"{}\",\n  \"citation_candid\": \"{}\",\n  \"leaf_sha256\": \"{}\"\n}}\n",
+            c.public_id,
+            hex(&encode(&c)),
+            hex(&hash(&c))
+        );
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../src/frontend/src/__fixtures__/citation-vector.json"
+        );
+        if std::env::var_os("UPDATE_FIXTURES").is_some() {
+            std::fs::create_dir_all(std::path::Path::new(path).parent().unwrap()).unwrap();
+            std::fs::write(path, &json).unwrap();
+        }
+        assert_eq!(std::fs::read_to_string(path).unwrap(), json);
     }
 }

@@ -179,8 +179,9 @@ fn t2_3_never_same_subject_twice_and_pool_dispatch() {
             encode_args((filter, None::<u64>, 10u32)).unwrap(),
         )
         .expect("query subjects");
-    let subj_list: Result<Vec<Subject>, ApiError> = decode_one(&subj_bytes).unwrap();
-    assert_eq!(subj_list.unwrap().len(), 5);
+    let subj_list: Result<platform::events::Page<Subject>, ApiError> =
+        decode_one(&subj_bytes).unwrap();
+    assert_eq!(subj_list.unwrap().items.len(), 5);
     step("added 5 subjects (3 standard pool subjects, 2 gold subjects)");
 
     let unregistered_call: Result<Task, ApiError> = env.update(platform, user(42), "get_task", ());

@@ -36,8 +36,8 @@ pub struct Discovery {
     pub resolved_at: Option<u64>,
     pub is_honeypot: bool,
     pub honeypot_truth: Option<Vote>,
-    pub claim_ra_deg: f64,
-    pub claim_dec_deg: f64,
+    pub claim_ra_deg: Option<f64>,
+    pub claim_dec_deg: Option<f64>,
 }
 
 crate::candid_storable!(Discovery);
@@ -84,6 +84,14 @@ pub fn find_queued(status: u8, mut pred: impl FnMut(&Discovery) -> bool) -> Opti
     })
 }
 
+pub fn queued(status: u8) -> Vec<Discovery> {
+    QUEUE.with_borrow(|q| {
+        q.range((status, 0, 0)..=(status, u64::MAX, u64::MAX))
+            .filter_map(|e| get(e.key().2))
+            .collect()
+    })
+}
+
 pub fn under_review_created_before(cutoff: u64) -> Vec<Discovery> {
     QUEUE.with_borrow(|q| {
         q.range((0, 0, 0)..=(0, cutoff, u64::MAX))
@@ -118,8 +126,8 @@ pub fn create_honeypot(
         resolved_at: None,
         is_honeypot: true,
         honeypot_truth: Some(truth),
-        claim_ra_deg: 0.0,
-        claim_dec_deg: 0.0,
+        claim_ra_deg: None,
+        claim_dec_deg: None,
     };
     store(&d);
     d
@@ -162,8 +170,8 @@ pub struct NewDiscovery {
     pub fee: u128,
     pub needed_reviews: u8,
     pub created_at: u64,
-    pub claim_ra_deg: f64,
-    pub claim_dec_deg: f64,
+    pub claim_ra_deg: Option<f64>,
+    pub claim_dec_deg: Option<f64>,
 }
 
 pub fn create(input: NewDiscovery) -> Discovery {
@@ -437,8 +445,8 @@ mod tests {
             fee: 200_000_000,
             needed_reviews: 3,
             created_at: 1_790_467_200_000_000_000,
-            claim_ra_deg: 214.9,
-            claim_dec_deg: -52.8,
+            claim_ra_deg: Some(214.9),
+            claim_dec_deg: Some(-52.8),
         });
         assert_eq!(d1.seq, 1);
         assert_eq!(d1.public_id, "SC-2026-000001");
@@ -459,8 +467,8 @@ mod tests {
             fee: 200_000_000,
             needed_reviews: 3,
             created_at: 1_790_467_200_000_000_000,
-            claim_ra_deg: 215.0,
-            claim_dec_deg: -52.9,
+            claim_ra_deg: Some(215.0),
+            claim_dec_deg: Some(-52.9),
         });
         assert_eq!(d2.seq, 2);
         assert_eq!(d2.public_id, "SC-2026-000002");
@@ -485,8 +493,8 @@ mod tests {
             fee: 1,
             needed_reviews: 3,
             created_at: at,
-            claim_ra_deg: 0.0,
-            claim_dec_deg: 0.0,
+            claim_ra_deg: Some(0.0),
+            claim_dec_deg: Some(0.0),
         });
         d.status = status;
         if status != DiscoveryStatus::UnderReview {
@@ -565,8 +573,8 @@ mod tests {
             fee: 1,
             needed_reviews: 3,
             created_at: NOW + 1,
-            claim_ra_deg: 1.0,
-            claim_dec_deg: 1.0,
+            claim_ra_deg: Some(1.0),
+            claim_dec_deg: Some(1.0),
         });
         b.status = DiscoveryStatus::Confirmed;
         b.resolved_at = Some(NOW + 1);

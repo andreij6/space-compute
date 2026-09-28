@@ -283,9 +283,9 @@ fn admin_get_aaa(aaa: Principal) -> Result<AaaRecord, ApiError> {
 #[ic_cdk::query]
 fn admin_list_aaas(
     filter: AdminListAaasFilter,
-    cursor: Option<u64>,
+    cursor: Option<Principal>,
     limit: u32,
-) -> Result<Vec<AaaRecord>, ApiError> {
+) -> Result<registry::AaaPage, ApiError> {
     require_admin()?;
     Ok(registry::list_aaas(&filter, cursor, limit))
 }
@@ -697,7 +697,7 @@ fn admin_list_subjects(
     filter: AdminListSubjectsFilter,
     cursor: Option<u64>,
     limit: u32,
-) -> Result<Vec<Subject>, ApiError> {
+) -> Result<events::Page<Subject>, ApiError> {
     require_admin()?;
     Ok(catalog::list_subjects(&filter, cursor, limit))
 }
@@ -860,12 +860,15 @@ fn list_aaa_activity(
     cursor: Option<u64>,
     limit: u32,
 ) -> events::Page<events::ActivityItem> {
-    events::list_aaa_activity(aaa, cursor, limit)
+    let caller = ic_cdk::api::msg_caller();
+    let privileged =
+        caller == aaa || registry::get_aaa_owner(&aaa) == Some(caller) || config::is_admin(&caller);
+    events::list_aaa_activity(aaa, privileged, cursor, limit)
 }
 
 #[ic_cdk::query]
 fn get_event(id: u64) -> Option<events::Event> {
-    events::get_event(id)
+    caller_is_admin().then(|| events::get_event(id)).flatten()
 }
 
 #[ic_cdk::query]
@@ -962,7 +965,7 @@ fn admin_replay_progression(
     batch: u32,
 ) -> Result<progression::ReplayStatus, ApiError> {
     let caller = require_admin()?;
-    let status = progression::replay(from_event_id, batch);
+    let status = progression::start_replay(from_event_id, batch)?;
     audit(
         caller,
         "admin_replay_progression",
@@ -975,7 +978,7 @@ fn admin_replay_progression(
         ),
     );
     if !status.done {
-        crate::timers::schedule_replay_continue(status.next_event_id, batch);
+        crate::timers::schedule_replay_continue();
     }
     Ok(status)
 }

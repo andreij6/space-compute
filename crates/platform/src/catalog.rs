@@ -205,7 +205,7 @@ pub fn add_subjects(batch: Vec<SubjectInput>) -> Result<u32, ApiError> {
                     gold: item.gold,
                     tally_count: 0,
                 };
-                sub_map.insert(id, subject);
+                put_subject(sub_map, id, subject);
                 if !is_gold {
                     pool.insert(id, ());
                 }
@@ -223,7 +223,7 @@ pub fn set_subject_active(
     SUBJECTS.with_borrow_mut(|sub_map| match sub_map.get(&subject_id) {
         Some(mut s) => {
             s.active = active;
-            sub_map.insert(subject_id, s.clone());
+            put_subject(sub_map, subject_id, s.clone());
             TASK_POOL.with_borrow_mut(|pool| {
                 if !active || s.gold.is_some() || s.tally_count >= retire_after_k {
                     pool.remove(&subject_id);
@@ -273,46 +273,46 @@ pub fn list_subjects(
     filter: &AdminListSubjectsFilter,
     cursor: Option<u64>,
     limit: u32,
-) -> Vec<Subject> {
-    let cap = (limit as usize).min(100);
-    let skip = cursor.unwrap_or(0) as usize;
-    SUBJECTS.with_borrow(|m| {
-        m.iter()
-            .map(|e| e.value())
-            .filter(|s| {
-                if let Some(ref field) = filter.field {
-                    if &s.ref_.field != field {
-                        return false;
-                    }
-                }
-                if let Some(active) = filter.active {
-                    if s.active != active {
-                        return false;
-                    }
-                }
-                if let Some(gold) = filter.gold {
-                    if s.gold.is_some() != gold {
-                        return false;
-                    }
-                }
-                true
-            })
-            .skip(skip)
-            .take(cap)
-            .collect()
-    })
+) -> crate::events::Page<Subject> {
+    let cap = sc_types::limits::page_limit(limit) as usize;
+    let keep = |s: &Subject| {
+        filter.field.as_ref().is_none_or(|f| &s.ref_.field == f)
+            && filter.active.is_none_or(|a| s.active == a)
+            && filter.gold.is_none_or(|g| s.gold.is_some() == g)
+    };
+    let start = cursor.map_or(0, |c| u32::try_from(c).unwrap_or(u32::MAX));
+    let (items, next) = SUBJECTS.with_borrow(|m| {
+        crate::events::scan_page(m.range(start..).map(|e| (*e.key(), e.value())), cap, keep)
+    });
+    crate::events::Page {
+        items,
+        next_cursor: next.map(u64::from),
+    }
 }
 
 pub fn total_subjects_count() -> u32 {
     SUBJECTS.with_borrow(|m| m.len() as u32)
 }
 
+fn is_retired(s: &Subject) -> bool {
+    !s.active && s.gold.is_none()
+}
+
+fn put_subject(m: &mut StableBTreeMap<u32, Subject, Memory>, id: u32, s: Subject) {
+    let now = is_retired(&s);
+    let before = m.insert(id, s).is_some_and(|old| is_retired(&old));
+    if now != before {
+        crate::meta::bump(crate::meta::RETIRED_SUBJECTS, now);
+    }
+}
+
+pub fn backfill_retired_count() {
+    let n = SUBJECTS.with_borrow(|m| m.iter().filter(|e| is_retired(&e.value())).count());
+    crate::meta::set(crate::meta::RETIRED_SUBJECTS, n as u64);
+}
+
 pub fn retired_subjects_count() -> u32 {
-    SUBJECTS.with_borrow(|m| {
-        m.iter()
-            .filter(|e| !e.value().active && e.value().gold.is_none())
-            .count() as u32
-    })
+    u32::try_from(crate::meta::count(crate::meta::RETIRED_SUBJECTS)).unwrap_or(u32::MAX)
 }
 
 pub fn has_seen(aaa: Principal, subject_id: u32) -> bool {
@@ -365,7 +365,7 @@ pub fn update_subject(subject: Subject, retire_after_k: u16) {
     let active = subject.active;
     let is_gold = subject.gold.is_some();
     let tally_count = subject.tally_count;
-    SUBJECTS.with_borrow_mut(|m| m.insert(id, subject));
+    SUBJECTS.with_borrow_mut(|m| put_subject(m, id, subject));
     TASK_POOL.with_borrow_mut(|pool| {
         if !active || is_gold || tally_count >= retire_after_k {
             pool.remove(&id);
@@ -597,8 +597,8 @@ mod tests {
             None,
             10,
         );
-        assert_eq!(list.len(), 1);
-        assert_eq!(list[0].ref_.subject_id, 102);
+        assert_eq!(list.items.len(), 1);
+        assert_eq!(list.items[0].ref_.subject_id, 102);
     }
 
     #[test]
@@ -825,5 +825,41 @@ mod tests {
         changed.guidance_md = "Different guidance.".into();
         assert!(matches!(add_protocol(changed), Err(ApiError::Conflict(_))));
         assert_eq!(get_protocol(7), Some(v7));
+    }
+
+    #[test]
+    fn t4_10_subjects_page_by_key_cursor_and_retired_counter_is_maintained() {
+        add_subjects(
+            (1..=7)
+                .map(|id| SubjectInput {
+                    subject: sample_ref(id),
+                    gold: None,
+                })
+                .collect(),
+        )
+        .unwrap();
+        let mut ids = Vec::new();
+        let mut cursor = None;
+        loop {
+            let page = list_subjects(&AdminListSubjectsFilter::default(), cursor, 3);
+            ids.extend(page.items.iter().map(|s| s.ref_.subject_id));
+            match page.next_cursor {
+                Some(c) => cursor = Some(c),
+                None => break,
+            }
+        }
+        assert_eq!(ids, (1..=7).collect::<Vec<_>>());
+        assert_eq!(retired_subjects_count(), 0);
+        set_subject_active(2, false, 5).unwrap();
+        set_subject_active(2, false, 5).unwrap();
+        let mut s = get_subject(3).unwrap();
+        s.active = false;
+        update_subject(s, 5);
+        assert_eq!(retired_subjects_count(), 2);
+        set_subject_active(2, true, 5).unwrap();
+        assert_eq!(retired_subjects_count(), 1);
+        crate::meta::set(crate::meta::RETIRED_SUBJECTS, 42);
+        backfill_retired_count();
+        assert_eq!(retired_subjects_count(), 1);
     }
 }

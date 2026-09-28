@@ -76,8 +76,8 @@ pub fn separation_arcsec(ra1: f64, dec1: f64, ra2: f64, dec2: f64) -> f64 {
     (dra * dra + ddec * ddec).sqrt() * 3600.0
 }
 
-fn neighbours(q: &ClaimQuery) -> Vec<Discovery> {
-    let mut seqs: Vec<u64> = CLAIM_INDEX.with_borrow(|m| {
+fn neighbours(q: &ClaimQuery) -> Vec<(Discovery, bool)> {
+    let mut seqs: Vec<(u64, bool)> = CLAIM_INDEX.with_borrow(|m| {
         (-1..=1)
             .flat_map(|dx| (-1..=1).map(move |dy| (dx, dy)))
             .filter_map(|(dx, dy)| {
@@ -87,22 +87,28 @@ fn neighbours(q: &ClaimQuery) -> Vec<Discovery> {
                     cell_y: q.cell.1.saturating_add(dy),
                     category: q.category.to_string(),
                 })
+                .map(|s| (s, dx == 0 && dy == 0))
             })
-            .flat_map(|s| s.0)
+            .flat_map(|(s, same)| s.0.into_iter().map(move |seq| (seq, same)))
             .collect()
     });
     seqs.sort_unstable();
-    seqs.dedup();
-    seqs.into_iter().filter_map(discoveries::get).collect()
+    seqs.dedup_by_key(|(seq, _)| *seq);
+    seqs.into_iter()
+        .filter_map(|(seq, same)| discoveries::get(seq).map(|d| (d, same)))
+        .collect()
 }
 
 pub fn resolve(q: &ClaimQuery) -> Resolution {
     let found: Vec<Discovery> = neighbours(q)
         .into_iter()
-        .filter(|d| {
-            separation_arcsec(q.ra_deg, q.dec_deg, d.claim_ra_deg, d.claim_dec_deg)
-                <= q.unique_radius_arcsec
+        .filter(|(d, same_cell)| match (d.claim_ra_deg, d.claim_dec_deg) {
+            (Some(ra), Some(dec)) => {
+                separation_arcsec(q.ra_deg, q.dec_deg, ra, dec) <= q.unique_radius_arcsec
+            }
+            _ => *same_cell,
         })
+        .map(|(d, _)| d)
         .collect();
     if let Some(open) = found.iter().find(|d| d.status != DiscoveryStatus::Rejected) {
         let already = open.discoverer_aaa == q.caller
@@ -174,8 +180,8 @@ mod tests {
             fee: 0,
             needed_reviews: 3,
             created_at: NOW,
-            claim_ra_deg: ra,
-            claim_dec_deg: dec,
+            claim_ra_deg: Some(ra),
+            claim_dec_deg: Some(dec),
         })
     }
 
@@ -307,5 +313,40 @@ mod tests {
         assert!((separation_arcsec(0.0, 0.0, 1.0 / 3600.0, 0.0) - 1.0).abs() < 1e-9);
         assert!((separation_arcsec(0.0, 0.0, 0.0, 1.0 / 3600.0) - 1.0).abs() < 1e-9);
         assert_eq!(separation_arcsec(10.0, -50.0, 10.0, -50.0), 0.0);
+    }
+
+    #[test]
+    fn t4_9_l032_claim_without_exact_position_falls_back_to_same_cell_match() {
+        let mut d = new_discovery(p(1), "lens");
+        d.claim_ra_deg = None;
+        d.claim_dec_deg = None;
+        discoveries::put(&d);
+        index("ceers", (7, 7), "lens", d.seq);
+        let far_same_cell = query_at(p(2), "lens", (7, 7), NOW, 50.0, 50.0);
+        assert_eq!(resolve(&far_same_cell), Resolution::Corroborate(d.clone()));
+        let neighbour = query_at(p(2), "lens", (8, 7), NOW, 0.0, 0.0);
+        assert_eq!(resolve(&neighbour), Resolution::New);
+    }
+
+    #[test]
+    fn t4_9_l032_legacy_f64_claim_position_decodes_as_some() {
+        #[derive(CandidType)]
+        struct Legacy {
+            claim_ra_deg: f64,
+            claim_dec_deg: f64,
+        }
+        #[derive(CandidType, Deserialize)]
+        struct Current {
+            claim_ra_deg: Option<f64>,
+            claim_dec_deg: Option<f64>,
+        }
+        let bytes = candid::encode_one(Legacy {
+            claim_ra_deg: 214.9,
+            claim_dec_deg: -52.8,
+        })
+        .unwrap();
+        let back: Current = candid::decode_one(&bytes).unwrap();
+        assert_eq!(back.claim_ra_deg, Some(214.9));
+        assert_eq!(back.claim_dec_deg, Some(-52.8));
     }
 }

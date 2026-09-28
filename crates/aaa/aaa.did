@@ -53,7 +53,7 @@ type CreditCopy = record {
   category : text;
   outcome : Outcome;
 };
-type CreditRole = variant { Reviewer; Discoverer };
+type CreditRole = variant { Reviewer; Corroborator; Discoverer };
 type DiscoveryCategory = record { id : text; description : text; label : text };
 type DiscoveryFlag = record {
   claim_position : opt ClaimPosition;

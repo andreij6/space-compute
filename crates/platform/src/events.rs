@@ -59,6 +59,9 @@ pub enum EventKind {
     Admin {
         method: String,
     },
+    CorroborationConfirmed {
+        seq: u64,
+    },
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -74,18 +77,154 @@ pub struct Event {
 crate::candid_storable!(Event);
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum ActivityKind {
+    AaaSpawned {
+        name: String,
+    },
+    Classified {
+        classification_id: u64,
+        subject_id: u32,
+        fee: u64,
+    },
+    DiscoveryFlagged {
+        public_id: String,
+    },
+    ReviewSubmitted {
+        review_id: u64,
+        fee: u64,
+    },
+    DiscoveryResolved {
+        public_id: String,
+        outcome: String,
+    },
+    CorroborationConfirmed {
+        public_id: String,
+    },
+    ReviewScored {
+        review_id: u64,
+        matched: bool,
+    },
+    ConsensusScored {
+        subject_id: u32,
+        agree: bool,
+        trials: u8,
+    },
+    BadgeAwarded {
+        badge: String,
+    },
+    TierChanged {
+        from: u8,
+        to: u8,
+    },
+    AaaSuspended {
+        reason: String,
+    },
+    AaaUnsuspended,
+    ImageMismatch {
+        subject_id: u32,
+    },
+    CyclesContributed {
+        amount: u128,
+    },
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ActivityItem {
     pub id: u64,
     pub at: u64,
     pub aaa: Principal,
     pub owner: Principal,
-    pub kind: EventKind,
+    pub kind: ActivityKind,
+}
+
+fn public_id(seq: u64, privileged: bool) -> Option<String> {
+    let d = crate::discoveries::get(seq)?;
+    let open = d.is_honeypot || d.status == crate::discoveries::DiscoveryStatus::UnderReview;
+    (privileged || !open).then_some(d.public_id)
+}
+
+fn public_kind(kind: EventKind, privileged: bool) -> Option<ActivityKind> {
+    use ActivityKind as A;
+    Some(match kind {
+        EventKind::AaaSpawned { name } => A::AaaSpawned { name },
+        EventKind::Classified {
+            classification_id,
+            subject_id,
+            fee,
+            ..
+        } => A::Classified {
+            classification_id,
+            subject_id,
+            fee,
+        },
+        EventKind::DiscoveryFlagged { seq } => A::DiscoveryFlagged {
+            public_id: public_id(seq, privileged)?,
+        },
+        EventKind::ReviewSubmitted {
+            review_id,
+            seq,
+            honeypot,
+            fee,
+        } => {
+            if !privileged && (honeypot || public_id(seq, false).is_none()) {
+                return None;
+            }
+            A::ReviewSubmitted { review_id, fee }
+        }
+        EventKind::DiscoveryResolved { seq, outcome } => A::DiscoveryResolved {
+            public_id: public_id(seq, false)?,
+            outcome,
+        },
+        EventKind::CorroborationConfirmed { seq } => A::CorroborationConfirmed {
+            public_id: public_id(seq, false)?,
+        },
+        EventKind::ReviewScored { review_id, matched } => {
+            let seq = crate::reviews::get_review(review_id)?.discovery_seq;
+            public_id(seq, false)?;
+            A::ReviewScored { review_id, matched }
+        }
+        EventKind::ConsensusScored {
+            subject_id,
+            agree,
+            trials,
+        } => A::ConsensusScored {
+            subject_id,
+            agree,
+            trials,
+        },
+        EventKind::BadgeAwarded { badge } => A::BadgeAwarded { badge },
+        EventKind::TierChanged { from, to } => A::TierChanged { from, to },
+        EventKind::AaaSuspended { reason } => A::AaaSuspended { reason },
+        EventKind::AaaUnsuspended => A::AaaUnsuspended,
+        EventKind::ImageMismatch { subject_id } => A::ImageMismatch { subject_id },
+        EventKind::CyclesContributed { amount } => A::CyclesContributed { amount },
+        EventKind::Admin { .. } => return None,
+    })
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Page<T> {
     pub items: Vec<T>,
     pub next_cursor: Option<u64>,
+}
+
+pub const SCAN_MAX: usize = 2_000;
+
+pub fn scan_page<K, V>(
+    entries: impl Iterator<Item = (K, V)>,
+    cap: usize,
+    keep: impl Fn(&V) -> bool,
+) -> (Vec<V>, Option<K>) {
+    let mut items = Vec::new();
+    for (i, (k, v)) in entries.enumerate() {
+        if items.len() == cap || i == SCAN_MAX {
+            return (items, Some(k));
+        }
+        if keep(&v) {
+            items.push(v);
+        }
+    }
+    (items, None)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -148,7 +287,9 @@ pub fn record_event(at: u64, aaa: Principal, owner: Principal, kind: EventKind) 
         AAA_ACTIVITY_MAP.with_borrow_mut(|m| {
             m.insert(AaaActivityKey { aaa, event_id: id }, ());
         });
-        crate::progression::apply_event(&entry);
+        if !crate::progression::replay_active() {
+            crate::progression::apply_event(&entry);
+        }
     }
 
     id
@@ -193,7 +334,12 @@ pub fn recent_activity(now: u64, window_ns: u64) -> RecentActivity {
     out
 }
 
-pub fn list_aaa_activity(aaa: Principal, cursor: Option<u64>, limit: u32) -> Page<ActivityItem> {
+pub fn list_aaa_activity(
+    aaa: Principal,
+    privileged: bool,
+    cursor: Option<u64>,
+    limit: u32,
+) -> Page<ActivityItem> {
     let limit = sc_types::limits::page_limit(limit) as usize;
     let max_id = cursor.unwrap_or(u64::MAX);
     let start_key = AaaActivityKey { aaa, event_id: 0 };
@@ -220,12 +366,14 @@ pub fn list_aaa_activity(aaa: Principal, cursor: Option<u64>, limit: u32) -> Pag
         batch
             .iter()
             .filter_map(|&id| log.get(id))
-            .map(|ev| ActivityItem {
-                id: ev.id,
-                at: ev.at,
-                aaa: ev.aaa,
-                owner: ev.owner,
-                kind: ev.kind,
+            .filter_map(|ev| {
+                Some(ActivityItem {
+                    id: ev.id,
+                    at: ev.at,
+                    aaa: ev.aaa,
+                    owner: ev.owner,
+                    kind: public_kind(ev.kind, privileged)?,
+                })
             })
             .collect()
     });
@@ -320,21 +468,21 @@ mod tests {
             );
         }
 
-        let page1 = list_aaa_activity(aaa_a, None, 2);
+        let page1 = list_aaa_activity(aaa_a, false, None, 2);
         assert_eq!(page1.items.len(), 2);
         assert!(page1.items[0].id > page1.items[1].id);
         assert_eq!(page1.items[0].aaa, aaa_a);
         assert_eq!(page1.items[1].aaa, aaa_a);
         assert!(page1.next_cursor.is_some());
 
-        let page2 = list_aaa_activity(aaa_a, page1.next_cursor, 2);
+        let page2 = list_aaa_activity(aaa_a, false, page1.next_cursor, 2);
         assert_eq!(page2.items.len(), 2);
         assert!(page2.items[0].id > page2.items[1].id);
         assert!(page1.items[1].id > page2.items[0].id);
         assert!(page2.next_cursor.is_some());
 
-        let page3 = list_aaa_activity(aaa_a, page2.next_cursor, 2);
-        assert_eq!(page3.items.len(), 1);
+        let page3 = list_aaa_activity(aaa_a, false, page2.next_cursor, 2);
+        assert_eq!(page3.items.len(), 2);
         assert!(page2.items[1].id > page3.items[0].id);
         assert!(page3.next_cursor.is_none());
 
@@ -358,7 +506,7 @@ mod tests {
             },
         );
 
-        let initial_activity = list_aaa_activity(aaa, None, 10);
+        let initial_activity = list_aaa_activity(aaa, false, None, 10);
         let initial_len = initial_activity.items.len();
 
         record_event(
@@ -373,19 +521,145 @@ mod tests {
             },
         );
 
-        let after_activity = list_aaa_activity(aaa, None, 10);
-        assert_eq!(after_activity.items.len(), initial_len + 1);
+        let after_activity = list_aaa_activity(aaa, false, None, 10);
+        assert_eq!(after_activity.items.len(), initial_len + 2);
         assert_eq!(
-            after_activity.items[0].kind,
-            EventKind::Classified {
+            after_activity.items[1].kind,
+            ActivityKind::Classified {
                 classification_id: 999,
                 subject_id: 1,
-                gold: None,
                 fee: 0
             }
         );
+        assert_eq!(
+            after_activity.items[0].kind,
+            ActivityKind::BadgeAwarded {
+                badge: "first_light".into()
+            }
+        );
 
-        let admin_activity = list_aaa_activity(admin, None, 10);
+        let admin_activity = list_aaa_activity(admin, true, None, 10);
         assert_eq!(admin_activity.items.len(), 0);
+    }
+
+    #[test]
+    fn t4_6_r12_public_activity_hides_live_discoveries_honeypots_and_gold() {
+        use crate::discoveries::{self, DiscoveryStatus, NewDiscovery};
+        use crate::reviews;
+        use sc_types::Vote;
+
+        let aaa = Principal::from_slice(&[150, 1]);
+        let owner = Principal::from_slice(&[150, 2]);
+        let d = discoveries::create(NewDiscovery {
+            subject_id: 1,
+            classification_id: 1,
+            discoverer_aaa: aaa,
+            discoverer_owner: owner,
+            discoverer_name_at_time: "A".into(),
+            category: "lens".into(),
+            rationale: "arc".into(),
+            confidence: 80,
+            fee: 0,
+            needed_reviews: 3,
+            created_at: 1,
+            claim_ra_deg: Some(1.0),
+            claim_dec_deg: Some(1.0),
+        });
+        let honeypot = discoveries::create_honeypot(1, "lens".into(), "r".into(), Vote::Agree, 1);
+        record_event(
+            1,
+            aaa,
+            owner,
+            EventKind::Classified {
+                classification_id: 1,
+                subject_id: 1,
+                gold: Some((1, 2)),
+                fee: 5,
+            },
+        );
+        record_event(2, aaa, owner, EventKind::DiscoveryFlagged { seq: d.seq });
+        record_event(
+            3,
+            aaa,
+            owner,
+            EventKind::ReviewSubmitted {
+                review_id: 7,
+                seq: d.seq,
+                honeypot: false,
+                fee: 0,
+            },
+        );
+        record_event(
+            4,
+            aaa,
+            owner,
+            EventKind::ReviewSubmitted {
+                review_id: 8,
+                seq: honeypot.seq,
+                honeypot: true,
+                fee: 0,
+            },
+        );
+        reviews::put_review_for_test(8, honeypot.seq);
+        record_event(
+            5,
+            aaa,
+            owner,
+            EventKind::ReviewScored {
+                review_id: 8,
+                matched: true,
+            },
+        );
+
+        let kinds = |privileged| -> Vec<ActivityKind> {
+            list_aaa_activity(aaa, privileged, None, 100)
+                .items
+                .into_iter()
+                .map(|i| i.kind)
+                .collect()
+        };
+        let stranger = kinds(false);
+        assert!(stranger.contains(&ActivityKind::Classified {
+            classification_id: 1,
+            subject_id: 1,
+            fee: 5
+        }));
+        assert!(!stranger.iter().any(|k| matches!(
+            k,
+            ActivityKind::DiscoveryFlagged { .. }
+                | ActivityKind::ReviewSubmitted { .. }
+                | ActivityKind::ReviewScored { .. }
+        )));
+
+        let own = kinds(true);
+        assert!(own.contains(&ActivityKind::DiscoveryFlagged {
+            public_id: d.public_id.clone()
+        }));
+        assert!(own.contains(&ActivityKind::ReviewSubmitted {
+            review_id: 7,
+            fee: 0
+        }));
+        assert!(own.contains(&ActivityKind::ReviewSubmitted {
+            review_id: 8,
+            fee: 0
+        }));
+        assert!(!own
+            .iter()
+            .any(|k| matches!(k, ActivityKind::ReviewScored { .. })));
+
+        let mut resolved = discoveries::get(d.seq).unwrap();
+        resolved.status = DiscoveryStatus::Confirmed;
+        discoveries::update(&resolved);
+        let after = kinds(false);
+        assert!(after.contains(&ActivityKind::DiscoveryFlagged {
+            public_id: d.public_id
+        }));
+        assert!(after.contains(&ActivityKind::ReviewSubmitted {
+            review_id: 7,
+            fee: 0
+        }));
+        assert!(!after
+            .iter()
+            .any(|k| matches!(k, ActivityKind::ReviewSubmitted { review_id: 8, .. })));
     }
 }

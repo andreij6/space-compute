@@ -24,6 +24,7 @@ pub enum Outcome {
 pub enum CreditRole {
     Discoverer,
     Reviewer,
+    Corroborator,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
