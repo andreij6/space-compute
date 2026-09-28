@@ -292,9 +292,17 @@ pub fn add_honeypots(specs: Vec<HoneypotSpec>, now: u64) -> Result<u32, ApiError
         }
         sc_types::limits::rationale(&s.rationale)?;
     }
-    let n = specs.len() as u32;
+    let mut seeded = std::collections::BTreeSet::new();
+    discoveries::find_queued(QUEUE_HONEYPOT, |d| {
+        seeded.insert(d.subject_id);
+        false
+    });
+    let mut n = 0;
     for s in specs {
-        discoveries::create_honeypot(s.subject_id, s.category, s.rationale, s.truth, now);
+        if seeded.insert(s.subject_id) {
+            discoveries::create_honeypot(s.subject_id, s.category, s.rationale, s.truth, now);
+            n += 1;
+        }
     }
     Ok(n)
 }
@@ -1047,6 +1055,28 @@ mod tests {
         let after = discoveries::get(d.seq).unwrap();
         assert_eq!(after.status, DiscoveryStatus::UnderReview);
         assert_eq!(after.needed_reviews, 5);
+    }
+
+    #[test]
+    fn t4_7_add_honeypots_skips_subjects_that_already_have_one() {
+        subject(60, true);
+        subject(61, true);
+        let spec = |subject_id: u32| HoneypotSpec {
+            subject_id,
+            category: "artifact".into(),
+            rationale: "unresolved point source, looks like a star".into(),
+            truth: Vote::Agree,
+        };
+        assert_eq!(add_honeypots(vec![spec(60)], NOW), Ok(1));
+        assert_eq!(add_honeypots(vec![spec(60), spec(61), spec(61)], NOW), Ok(1));
+        assert_eq!(add_honeypots(vec![spec(60), spec(61)], NOW), Ok(0));
+        let mut subjects = Vec::new();
+        discoveries::find_queued(QUEUE_HONEYPOT, |d| {
+            subjects.push(d.subject_id);
+            false
+        });
+        subjects.sort_unstable();
+        assert_eq!(subjects, vec![60, 61]);
     }
 
     #[test]
