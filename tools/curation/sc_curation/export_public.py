@@ -40,6 +40,10 @@ def parse_candid(text: str):
         i += 1
         if t.startswith('"'):
             return unescape(t[1:-1])
+        if t == "(":
+            inner = value()
+            i += 1
+            return inner
         if t in ("opt", "blob", "principal"):
             return value()
         if t == "null":

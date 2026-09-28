@@ -10,6 +10,8 @@ def test_t7_10_parses_icp_candid_text():
         "consensus": [["shape", "smooth"], ["merger", "none"]], "resolved_at": 1790000000,
     }
     assert export_public.parse_candid("(null)") is None
+    assert export_public.parse_candid("(record { next_cursor = opt (188 : nat64); items = vec { 1 : nat8 } })") == {
+        "next_cursor": 188, "items": [1]}
     assert export_public.parse_candid('(record { next_cursor = null; items = vec {} })') == {"next_cursor": None, "items": []}
     assert export_public.parse_candid('(variant { Confirmed }, -1.5 : float64, true, principal "aaaaa-aa")') == [
         "Confirmed", -1.5, True, "aaaaa-aa"]
