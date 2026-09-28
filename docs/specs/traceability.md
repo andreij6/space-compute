@@ -207,3 +207,8 @@
 | 05 §2 route 4: `/aaa/:id` credited-discoveries cursor paging accumulates without duplicates across pages (vitest) | T6.4 | src/frontend/src/paging.test.ts |
 | T6.4 acceptance "Tier/badges render": `/leaderboard` renders (empty state acceptable pre-Observer-tier) and an unknown AAA id on `/aaa/:id` renders the not-found empty state (Playwright, `npm run e2e` after `just deploy-local`) | T6.4 | src/frontend/tests/e2e/aaa-leaderboard.spec.ts |
 | T6.4 demo screenshots: leaderboard empty state, AAA profile not-found empty state | T6.4 | docs/demos/T6.4/02_profile_not_found.png |
+| 06 §2b / 07 §5b: practice_v1 is 200 GZ-CANDELS-labelled subjects, deterministic and disjoint from both selection_v1 and gold_v1 | T7.10 | test_t7_10_choose_is_deterministic_and_disjoint_from_selection_and_gold |
+| 06 §2b / 07 §5b: the committed practice_v1 set has exactly 200 unique subjects, none overlapping the task pool or gold | T7.10 | test_t7_10_committed_practice_set_never_overlaps_selection_or_gold |
+| 06 §2b: practice_v1 answers are valid protocol v1 questions/answers and `agent-kit/practice.py` scores the key against itself at 100% | T7.10 | test_t7_10_agent_kit_practice_scores_the_committed_answer_key_perfectly |
+| 07 §5b: the v0 open-data release (discoveries + citations, manifest/selection/gold metadata) builds byte-for-byte identically on a second run | T7.10 | test_t7_10_release_build_is_reproducible_byte_for_byte |
+| 07 §5b: the release's CHECKSUMS.json matches the sha256 of every file it ships | T7.10 | test_t7_10_release_checksums_file_matches_returned_hashes |

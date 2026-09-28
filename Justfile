@@ -74,6 +74,15 @@ curate-dossiers *ARGS:
 curate-qa:
     @cd tools/curation && uv run -q python -m sc_curation.qa
 
+# Build the 200-subject practice_v1 set (GZ-labelled, excluded from selection/gold) with answers
+curate-practice:
+    @cd tools/curation && uv run -q python -m sc_curation.practice --out ../../data/curation/v1 --bucket ../../target/bucket/practice_v1
+
+# Export resolved discoveries + citations from the local network, then build the v0 open-data release
+release-data:
+    @cd tools/curation && uv run -q python -m sc_curation.export_public --out ../../target/curation/v1/discoveries_export.json
+    @cd tools/curation && uv run -q python -m sc_curation.release --discoveries ../../target/curation/v1/discoveries_export.json --out ../../target/release/v0
+
 # Verify every hash in target/bucket, then upload to R2 (needs R2_* env vars; owner task T8.14)
 publish-data:
     @cd tools/curation && uv run -q python -m sc_curation.publish --upload
