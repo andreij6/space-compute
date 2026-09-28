@@ -30,7 +30,7 @@ T2.2 registry & factory (H), T2.3 catalog/get_task (M), T2.5 event log (M), then
 ## Per task, every time
 1. `just task-status <id> in_progress`; write the acceptance tests first (names `t<id>_…`, e.g. `t2_2_…`, so `just demo <id>` finds them).
 2. Implement the minimum that passes. Run `scripts/check-candid.sh --write` after API changes.
-3. `just demo <id>` and `just verify` must be green (a skip counts as a failure). Add traceability rows in `docs/specs/traceability.md`.
+3. While building (owner rule 2026-09-28): `just verify-unit` must be green — fmt, clippy, candid, unit tests only. Write integration/PocketIC/e2e tests but do NOT run them; the full `just verify` runs once when all coding is complete. Add traceability rows in `docs/specs/traceability.md`.
 4. Any task implemented by a non-Opus model (Sonnet/Haiku/external), and every H-tier task or anything touching money, auth or stable state: get one Opus review pass and fix what it finds (owner rule 2026-09-28).
 5. Add a progress.md entry (≤5 lines, newest first) and a LESSONS entry if something went wrong. Then `just task-status <id> done`, `just plan`.
 6. **Commit and push straight to main after every task**: `git add <explicit paths>` then `git commit -m "<id>: <summary>" -m "Agent: <your tool>/<model>"` (plus your AUTHORSHIP.md row in "Other agents") then `git push origin main`. One commit per task; no branches or PRs. The lead session reviews your tasks against their acceptance lines before they count as done.
