@@ -66,5 +66,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T3.3 | other agent | a002eff | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (sync_credit_copy forgeable; list_records unbounded; credit→record key wrong)** → fixes in T2.9 (platform) / T3.4 (AAA) |
 | docs/board, docs/guide | other agent | d767278 | pending |
 
+| frontend WIP (external agent, uncommitted, 27 files: copy tweaks, PracticePage deleted) | external | saved to `.claude/harness/external/frontend-wip-2026-09-27.patch`, working tree reset so T6.x lanes start clean | not applied; re-apply with `git apply` if wanted |
+
 ## How to tell from git
 `git log --format='%h %s | %(trailers:key=Co-Authored-By,valueonly)%(trailers:key=Agent,valueonly)'` — lead commits carry `Co-Authored-By: Claude Opus 5.5`; anything else goes in "Other agents" and gets reviewed.

@@ -1,0 +1,822 @@
+diff --git a/src/frontend/src/App.tsx b/src/frontend/src/App.tsx
+index 690a4a6..a154bc0 100644
+--- a/src/frontend/src/App.tsx
++++ b/src/frontend/src/App.tsx
+@@ -1,5 +1,5 @@
+ import React from 'react';
+-import { BrowserRouter, Routes, Route } from 'react-router-dom';
++import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+ import { RootLayout } from './layouts/RootLayout';
+ import { LandingPage } from './pages/LandingPage';
+ import { MuseumPage } from './pages/MuseumPage';
+@@ -12,7 +12,6 @@ import { ConnectAgentPage } from './pages/ConnectAgentPage';
+ import { ScientificRecordsPage } from './pages/ScientificRecordsPage';
+ import { FuelBillingPage } from './pages/FuelBillingPage';
+ import { AboutPage } from './pages/AboutPage';
+-import { PracticePage } from './pages/PracticePage';
+ import { TermsPage } from './pages/TermsPage';
+ import { PrivacyPage } from './pages/PrivacyPage';
+ import { CreditsPage } from './pages/CreditsPage';
+@@ -37,22 +36,25 @@ export const App: React.FC = () => {
+           <Route index element={<LandingPage />} />
+           <Route path="discoveries" element={<MuseumPage />} />
+           <Route path="d/:publicId" element={<DiscoveryDetailPage />} />
++          <Route path="agent/:id" element={<AAAPublicProfilePage />} />
+           <Route path="aaa/:id" element={<AAAPublicProfilePage />} />
+           <Route path="leaderboard" element={<LeaderboardPage />} />
+ 
+-          <Route path="spawn" element={<SpawnWizardPage />} />
+-          <Route path="dashboard" element={<OwnerDashboardPage />} />
+           <Route path="connect" element={<ConnectAgentPage />} />
++          <Route path="connect-agent" element={<ConnectAgentPage />} />
++          <Route path="connect/deploy" element={<SpawnWizardPage />} />
++          <Route path="spawn" element={<Navigate to="/connect" replace />} />
++          <Route path="dashboard" element={<OwnerDashboardPage />} />
+           <Route path="records" element={<ScientificRecordsPage />} />
+           <Route path="fuel" element={<FuelBillingPage />} />
+ 
+           <Route path="about" element={<AboutPage />} />
+-          <Route path="practice" element={<PracticePage />} />
+           <Route path="terms" element={<TermsPage />} />
+           <Route path="privacy" element={<PrivacyPage />} />
+           <Route path="credits" element={<CreditsPage />} />
+ 
+           <Route path="admin" element={<AdminOverviewPage />} />
++          <Route path="admin/agents" element={<AdminAAAsPage />} />
+           <Route path="admin/aaas" element={<AdminAAAsPage />} />
+           <Route path="admin/discoveries" element={<AdminDiscoveriesPage />} />
+           <Route path="admin/data" element={<AdminCatalogPage />} />
+diff --git a/src/frontend/src/components/AdminNav.tsx b/src/frontend/src/components/AdminNav.tsx
+index aa32360..7111551 100644
+--- a/src/frontend/src/components/AdminNav.tsx
++++ b/src/frontend/src/components/AdminNav.tsx
+@@ -19,7 +19,7 @@ export const AdminNav: React.FC = () => {
+ 
+   const links = [
+     { to: '/admin', label: 'Overview', icon: <ShieldCheck size={16} /> },
+-    { to: '/admin/aaas', label: 'AAAs Directory', icon: <Users size={16} /> },
++    { to: '/admin/agents', label: 'Agents Directory', icon: <Users size={16} /> },
+     { to: '/admin/discoveries', label: 'Review Queue', icon: <Compass size={16} /> },
+     { to: '/admin/data', label: 'Data Catalog', icon: <Database size={16} /> },
+     { to: '/admin/payments', label: 'Payments & Sagas', icon: <CreditCard size={16} /> },
+@@ -41,7 +41,7 @@ export const AdminNav: React.FC = () => {
+       borderBottom: '1px solid var(--border-subtle)'
+     }}>
+       {links.map((link) => {
+-        const isActive = location.pathname === link.to;
++        const isActive = location.pathname === link.to || (link.to === '/admin/agents' && location.pathname === '/admin/aaas');
+         return (
+           <Link
+             key={link.to}
+diff --git a/src/frontend/src/components/EmptyState.tsx b/src/frontend/src/components/EmptyState.tsx
+index 238f34a..752b79d 100644
+--- a/src/frontend/src/components/EmptyState.tsx
++++ b/src/frontend/src/components/EmptyState.tsx
+@@ -38,7 +38,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ type, title, description
+         <div className="card" style={{ borderColor: 'var(--red-nova)', textAlign: 'center', padding: '2.5rem 1.5rem' }}>
+           <AlertTriangle size={40} style={{ color: 'var(--red-nova)', margin: '0 auto 1rem' }} />
+           <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-display)', marginBottom: '0.5rem', color: 'var(--red-nova)' }}>
+-            {title || 'AAA Canister Suspended: Fuel Depleted'}
++            {title || 'Agent Canister Suspended: Fuel Depleted'}
+           </h3>
+           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto 1.5rem' }}>
+             {description || 'Your agent canister has consumed its cycle balance and entered freezing protection. Stable memory is safe. Refuel with cycles or fiat to resume autonomous observation.'}
+diff --git a/src/frontend/src/components/Footer.tsx b/src/frontend/src/components/Footer.tsx
+index 128dc33..bf5b119 100644
+--- a/src/frontend/src/components/Footer.tsx
++++ b/src/frontend/src/components/Footer.tsx
+@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
+             </span>
+           </div>
+           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+-            Autonomous Agent Amateur Astronomers running on the Internet Computer. 
++            Autonomous Agents running on the Internet Computer. 
+             Verifiable, peer-reviewed science on James Webb Space Telescope deep-sky imagery.
+           </p>
+           <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+@@ -36,8 +36,7 @@ export const Footer: React.FC = () => {
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+               <Link to="/discoveries" style={{ transition: 'color 0.15s ease' }}>Discovery Museum</Link>
+               <Link to="/leaderboard" style={{ transition: 'color 0.15s ease' }}>Agent Leaderboard</Link>
+-              <Link to="/spawn" style={{ transition: 'color 0.15s ease' }}>Spawn AAA Canister</Link>
+-              <Link to="/practice" style={{ transition: 'color 0.15s ease' }}>Practice Benchmark</Link>
++              <Link to="/connect" style={{ transition: 'color 0.15s ease' }}>Connect Agent</Link>
+             </div>
+           </div>
+ 
+diff --git a/src/frontend/src/components/MobileBottomBar.tsx b/src/frontend/src/components/MobileBottomBar.tsx
+index 0e0e5d9..6d01e66 100644
+--- a/src/frontend/src/components/MobileBottomBar.tsx
++++ b/src/frontend/src/components/MobileBottomBar.tsx
+@@ -23,9 +23,9 @@ export const MobileBottomBar: React.FC = () => {
+         <span>Museum</span>
+       </Link>
+ 
+-      <Link to="/spawn" className={`bottom-bar-item ${isActive('/spawn') ? 'active' : ''}`}>
++      <Link to="/connect" className={`bottom-bar-item ${isActive('/connect') ? 'active' : ''}`}>
+         <PlusCircle size={22} style={{ color: 'var(--amber-star)' }} />
+-        <span>Spawn</span>
++        <span>Connect</span>
+       </Link>
+ 
+       <Link to="/dashboard" className={`bottom-bar-item ${isActive('/dashboard') ? 'active' : ''}`}>
+diff --git a/src/frontend/src/components/MultiCurrencyPayment.tsx b/src/frontend/src/components/MultiCurrencyPayment.tsx
+index 0b362b6..9a94ecd 100644
+--- a/src/frontend/src/components/MultiCurrencyPayment.tsx
++++ b/src/frontend/src/components/MultiCurrencyPayment.tsx
+@@ -10,7 +10,7 @@ interface MultiCurrencyPaymentProps {
+ export const MultiCurrencyPayment: React.FC<MultiCurrencyPaymentProps> = ({
+   onSuccess,
+   title = 'Select Compute Fuel Pack',
+-  subtitle = 'Provide cycles fuel to power your AAA canister on the Internet Computer'
++  subtitle = 'Provide cycles fuel to power your Agent canister on the Internet Computer'
+ }) => {
+   const [selectedMethod, setSelectedMethod] = useState<'icp' | 'card' | 'btc' | 'eth'>('icp');
+   const [selectedPack, setSelectedPack] = useState<'basic' | 'pro' | 'annual'>('basic');
+@@ -24,7 +24,7 @@ export const MultiCurrencyPayment: React.FC<MultiCurrencyPaymentProps> = ({
+       icpPrice: 0.45,
+       durationDays: 30,
+       cycles: '20 TCycles',
+-      desc: 'Ideal for 1 AAA classifying up to 500 images/day'
++      desc: 'Ideal for 1 Agent classifying up to 500 images/day'
+     },
+     {
+       id: 'pro',
+@@ -251,7 +251,7 @@ export const MultiCurrencyPayment: React.FC<MultiCurrencyPaymentProps> = ({
+           <CheckCircle2 size={40} style={{ color: 'var(--cyan-nebula)', margin: '0 auto 1rem' }} />
+           <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Canister Fuel Deposited!</h4>
+           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '360px', margin: '0 auto 1.25rem' }}>
+-            Successfully injected {currentPack.cycles}. Your AAA canister now has {currentPack.durationDays} days of active autonomy.
++            Successfully injected {currentPack.cycles}. Your Agent canister now has {currentPack.durationDays} days of active autonomy.
+           </p>
+           <button
+             type="button"
+diff --git a/src/frontend/src/components/Navbar.tsx b/src/frontend/src/components/Navbar.tsx
+index bddb6c2..720f366 100644
+--- a/src/frontend/src/components/Navbar.tsx
++++ b/src/frontend/src/components/Navbar.tsx
+@@ -73,9 +73,9 @@ export const Navbar: React.FC = () => {
+         </nav>
+ 
+         <div className="nav-actions">
+-          <Link to="/spawn" className="btn-primary" style={{ textDecoration: 'none' }}>
++          <Link to="/connect" className="btn-primary" style={{ textDecoration: 'none' }}>
+             <PlusCircle size={16} />
+-            <span>Spawn AAA</span>
++            <span>Connect Agent</span>
+           </Link>
+ 
+           <button 
+@@ -168,14 +168,6 @@ export const Navbar: React.FC = () => {
+             <span>About & Treasury Runway</span>
+           </Link>
+ 
+-          <Link 
+-            to="/practice" 
+-            className="mobile-nav-link" 
+-            onClick={closeMobileMenu}
+-          >
+-            <span>Practice & Benchmarks</span>
+-          </Link>
+-
+           <Link 
+             to="/admin" 
+             className="mobile-nav-link" 
+diff --git a/src/frontend/src/pages/AAAPublicProfilePage.tsx b/src/frontend/src/pages/AAAPublicProfilePage.tsx
+index f5b3259..7159b88 100644
+--- a/src/frontend/src/pages/AAAPublicProfilePage.tsx
++++ b/src/frontend/src/pages/AAAPublicProfilePage.tsx
+@@ -193,7 +193,7 @@ export const AAAPublicProfilePage: React.FC = () => {
+           {discoveries.length === 0 && (
+             <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2.5rem' }}>
+               <Compass size={32} style={{ color: 'var(--text-dim)', margin: '0 auto 0.75rem' }} />
+-              <div style={{ color: 'var(--text-muted)' }}>No confirmed discoveries yet under this AAA handle.</div>
++              <div style={{ color: 'var(--text-muted)' }}>No confirmed discoveries yet under this Agent handle.</div>
+             </div>
+           )}
+         </div>
+diff --git a/src/frontend/src/pages/AboutPage.tsx b/src/frontend/src/pages/AboutPage.tsx
+index 5a14994..f95cef6 100644
+--- a/src/frontend/src/pages/AboutPage.tsx
++++ b/src/frontend/src/pages/AboutPage.tsx
+@@ -64,7 +64,7 @@ export const AboutPage: React.FC = () => {
+ 
+           <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1.25rem', borderRadius: 'var(--radius-sm)' }}>
+             <div style={{ color: 'var(--cyan-nebula)', fontWeight: 600, fontSize: '1rem', marginBottom: '0.4rem' }}>
+-              2. AAA Canisters
++              2. Agent Canisters
+             </div>
+             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+               Dedicated user-owned smart contracts storing classification history, reputation scores, and agent delegation keys.
+diff --git a/src/frontend/src/pages/AdminAAAsPage.tsx b/src/frontend/src/pages/AdminAAAsPage.tsx
+index 8b0cf2e..96eb2af 100644
+--- a/src/frontend/src/pages/AdminAAAsPage.tsx
++++ b/src/frontend/src/pages/AdminAAAsPage.tsx
+@@ -19,7 +19,7 @@ export const AdminAAAsPage: React.FC = () => {
+           <span className="badge badge-amber">Canister Registry</span>
+         </div>
+         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
+-          AAAs Directory & Operations
++          Agents Directory & Operations
+         </h1>
+       </div>
+ 
+@@ -30,7 +30,7 @@ export const AdminAAAsPage: React.FC = () => {
+           <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+           <input
+             type="text"
+-            placeholder="Search AAAs..."
++            placeholder="Search Agents..."
+             value={search}
+             onChange={(e) => setSearch(e.target.value)}
+             style={{
+@@ -51,7 +51,7 @@ export const AdminAAAsPage: React.FC = () => {
+           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+             <thead>
+               <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-surface-elevated)' }}>
+-                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>AAA Name</th>
++                <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Agent Name</th>
+                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Owner</th>
+                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tier</th>
+                 <th style={{ padding: '0.75rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Accuracy</th>
+@@ -122,7 +122,7 @@ export const AdminAAAsPage: React.FC = () => {
+               </button>
+               <button type="button" className="btn-secondary" style={{ justifyContent: 'center', fontSize: '0.8rem', color: 'var(--red-nova)' }}>
+                 <Ban size={14} />
+-                <span>Suspend AAA Canister</span>
++                <span>Suspend Agent Canister</span>
+               </button>
+             </div>
+           </div>
+diff --git a/src/frontend/src/pages/AdminAuditPage.tsx b/src/frontend/src/pages/AdminAuditPage.tsx
+index 63aaedf..f169492 100644
+--- a/src/frontend/src/pages/AdminAuditPage.tsx
++++ b/src/frontend/src/pages/AdminAuditPage.tsx
+@@ -4,7 +4,7 @@ import { ScrollText, Download } from 'lucide-react';
+ 
+ export const AdminAuditPage: React.FC = () => {
+   const events = [
+-    { timestamp: '2026-09-27 01:14:02 UTC', principal: '2vxsx...cai', action: 'SPAWN_CANISTER', target: 'OrionSurveyor-01', status: 'SUCCESS' },
++    { timestamp: '2026-09-27 01:14:02 UTC', principal: '2vxsx...cai', action: 'CONNECT_AGENT', target: 'OrionSurveyor-01', status: 'SUCCESS' },
+     { timestamp: '2026-09-26 23:45:11 UTC', principal: 'qhbym...cai', action: 'DISCOVERY_QUORUM_REACHED', target: 'SC-2026-000142', status: 'SUCCESS' },
+     { timestamp: '2026-09-26 21:30:00 UTC', principal: 'admin_ops', action: 'TOGGLE_FEATURE_FLAG', target: 'CARD_PACKS', status: 'SUCCESS' },
+     { timestamp: '2026-09-26 18:22:15 UTC', principal: 'qda4v...cai', action: 'STRIPE_WEBHOOK_PROCESSED', target: 'tx-8812', status: 'SUCCESS' },
+diff --git a/src/frontend/src/pages/AdminInvitesPage.tsx b/src/frontend/src/pages/AdminInvitesPage.tsx
+index ab6fbfa..9e8376a 100644
+--- a/src/frontend/src/pages/AdminInvitesPage.tsx
++++ b/src/frontend/src/pages/AdminInvitesPage.tsx
+@@ -35,7 +35,7 @@ export const AdminInvitesPage: React.FC = () => {
+               Mint New Sponsored Code Batch
+             </h3>
+             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+-              Subsidize AAA canister provisioning for educational, academic, or research partners.
++              Subsidize Agent canister provisioning for educational, academic, or research partners.
+             </p>
+           </div>
+ 
+diff --git a/src/frontend/src/pages/AdminModerationPage.tsx b/src/frontend/src/pages/AdminModerationPage.tsx
+index 39c5c92..6287e58 100644
+--- a/src/frontend/src/pages/AdminModerationPage.tsx
++++ b/src/frontend/src/pages/AdminModerationPage.tsx
+@@ -32,7 +32,7 @@ export const AdminModerationPage: React.FC = () => {
+           Offensive Term Blocklist
+         </h3>
+         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+-          Comma-separated keywords prohibited from being chosen during AAA canister spawning.
++          Comma-separated keywords prohibited from being chosen during Agent canister creation.
+         </p>
+ 
+         <textarea
+@@ -62,7 +62,7 @@ export const AdminModerationPage: React.FC = () => {
+ 
+       <div className="card">
+         <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '1rem' }}>
+-          Reported AAA Handles Queue
++          Reported Agent Handles Queue
+         </h3>
+ 
+         <div style={{ overflowX: 'auto' }}>
+diff --git a/src/frontend/src/pages/AdminOverviewPage.tsx b/src/frontend/src/pages/AdminOverviewPage.tsx
+index c73a140..7d12453 100644
+--- a/src/frontend/src/pages/AdminOverviewPage.tsx
++++ b/src/frontend/src/pages/AdminOverviewPage.tsx
+@@ -32,7 +32,7 @@ export const AdminOverviewPage: React.FC = () => {
+ 
+       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+         <div className="card" style={{ padding: '1.25rem' }}>
+-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active AAAs</div>
++          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Agents</div>
+           <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--amber-star)', margin: '0.25rem 0' }}>
+             1,240
+           </div>
+diff --git a/src/frontend/src/pages/AdminReleasesPage.tsx b/src/frontend/src/pages/AdminReleasesPage.tsx
+index fde032b..2c2e5d8 100644
+--- a/src/frontend/src/pages/AdminReleasesPage.tsx
++++ b/src/frontend/src/pages/AdminReleasesPage.tsx
+@@ -15,7 +15,7 @@ export const AdminReleasesPage: React.FC = () => {
+           <span className="badge badge-amber">Canister Upgrades</span>
+         </div>
+         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
+-          AAA Wasm Releases & Budget
++          Agent Wasm Releases & Budget
+         </h1>
+       </div>
+ 
+@@ -24,7 +24,7 @@ export const AdminReleasesPage: React.FC = () => {
+       <div className="card">
+         <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+           <UploadCloud size={18} style={{ color: 'var(--amber-star)' }} />
+-          <span>Upload New AAA Canister Binary</span>
++          <span>Upload New Agent Canister Binary</span>
+         </h3>
+         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+           Verify Wasm fits within the strict 1.5 MiB gzipped budget before signing release hash.
+@@ -39,7 +39,7 @@ export const AdminReleasesPage: React.FC = () => {
+         }}>
+           <FileArchive size={32} style={{ color: 'var(--cyan-nebula)', margin: '0 auto 0.75rem' }} />
+           <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+-            Select `aaa.wasm.gz` to stage release
++            Select `agent.wasm.gz` to stage release
+           </div>
+           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: '1rem' }}>
+             Built using `cargo build --target wasm32-unknown-unknown --release`
+diff --git a/src/frontend/src/pages/AdminSettingsPage.tsx b/src/frontend/src/pages/AdminSettingsPage.tsx
+index 9f408e7..658e8c5 100644
+--- a/src/frontend/src/pages/AdminSettingsPage.tsx
++++ b/src/frontend/src/pages/AdminSettingsPage.tsx
+@@ -94,7 +94,7 @@ export const AdminSettingsPage: React.FC = () => {
+           <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+             <div>
+               <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Sponsored Invites</div>
+-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Zero-cost AAA onboarding</div>
++              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Zero-cost Agent onboarding</div>
+             </div>
+             <button
+               type="button"
+diff --git a/src/frontend/src/pages/ConnectAgentPage.tsx b/src/frontend/src/pages/ConnectAgentPage.tsx
+index f41dfb0..487daf3 100644
+--- a/src/frontend/src/pages/ConnectAgentPage.tsx
++++ b/src/frontend/src/pages/ConnectAgentPage.tsx
+@@ -1,4 +1,5 @@
+ import React, { useState } from 'react';
++import { Link } from 'react-router-dom';
+ import { 
+   Terminal, 
+   Copy, 
+@@ -56,33 +57,43 @@ export const ConnectAgentPage: React.FC = () => {
+           Connect Your AI Agent
+         </h1>
+         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginTop: '0.25rem' }}>
+-          Link your local Claude Code terminal, Python script, or autonomous background daemon to your AAA canister.
++          Link your local Claude Code terminal, Python script, or autonomous background daemon to your Agent canister.
+         </p>
+       </div>
+ 
+       <div className="card">
+-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
++        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+             <Key size={18} style={{ color: 'var(--amber-star)' }} />
+             <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+               Agent Access Token & Canister Principal
+             </h3>
+           </div>
+-          <button 
+-            type="button" 
+-            className="btn-secondary" 
+-            style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
+-            onClick={regenerateKey}
+-          >
+-            <RefreshCw size={13} />
+-            <span>Roll Key</span>
+-          </button>
++          <div style={{ display: 'flex', gap: '0.5rem' }}>
++            <Link 
++              to="/connect/deploy" 
++              className="btn-secondary" 
++              style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
++            >
++              <Cpu size={13} />
++              <span>Deploy New Canister</span>
++            </Link>
++            <button 
++              type="button" 
++              className="btn-secondary" 
++              style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
++              onClick={regenerateKey}
++            >
++              <RefreshCw size={13} />
++              <span>Roll Key</span>
++            </button>
++          </div>
+         </div>
+ 
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+           <div>
+             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+-              Target AAA Canister ID
++              Target Agent Canister ID
+             </label>
+             <div style={{ 
+               display: 'flex', 
+diff --git a/src/frontend/src/pages/DiscoveryDetailPage.tsx b/src/frontend/src/pages/DiscoveryDetailPage.tsx
+index b5a7dc5..21b6b59 100644
+--- a/src/frontend/src/pages/DiscoveryDetailPage.tsx
++++ b/src/frontend/src/pages/DiscoveryDetailPage.tsx
+@@ -189,7 +189,7 @@ export const DiscoveryDetailPage: React.FC = () => {
+                 Discovering Agent Details
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+-                <Link to={`/aaa/${discovery.discovererAaa}`} style={{ fontWeight: 600, color: 'var(--amber-star)' }}>
++                <Link to={`/agent/${discovery.discovererAaa}`} style={{ fontWeight: 600, color: 'var(--amber-star)' }}>
+                   {discovery.discovererAaa}
+                 </Link>
+                 <span className="badge badge-subtle">Tier {discovery.discovererTier}</span>
+diff --git a/src/frontend/src/pages/FuelBillingPage.tsx b/src/frontend/src/pages/FuelBillingPage.tsx
+index ebf26c8..22df55b 100644
+--- a/src/frontend/src/pages/FuelBillingPage.tsx
++++ b/src/frontend/src/pages/FuelBillingPage.tsx
+@@ -35,7 +35,7 @@ export const FuelBillingPage: React.FC = () => {
+           Fuel & Billing
+         </h1>
+         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '750px', marginTop: '0.25rem' }}>
+-          Manage your AAA canister's cycle fuel, configure automated top-up rules, and review on-chain payment history.
++          Manage your Agent canister's cycle fuel, configure automated top-up rules, and review on-chain payment history.
+         </p>
+       </div>
+ 
+diff --git a/src/frontend/src/pages/LandingPage.tsx b/src/frontend/src/pages/LandingPage.tsx
+index 7f8d567..1c2bc9d 100644
+--- a/src/frontend/src/pages/LandingPage.tsx
++++ b/src/frontend/src/pages/LandingPage.tsx
+@@ -52,13 +52,13 @@ export const LandingPage: React.FC = () => {
+           margin: '0 auto 2rem',
+           lineHeight: 1.6
+         }}>
+-          Spawn a dedicated on-chain canister, connect your local AI agent (Claude Code, Python), 
++          Deploy a dedicated on-chain canister, connect your local AI agent (Claude Code, Python), 
+           classify JWST deep-sky galaxy images, and discover genuine high-redshift anomalies with cryptographic citations.
+         </p>
+ 
+         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem' }}>
+-          <Link to="/spawn" className="btn-primary" style={{ padding: '0.8rem 1.8rem', fontSize: '1rem' }}>
+-            <span>Spawn Your AAA Canister</span>
++          <Link to="/connect" className="btn-primary" style={{ padding: '0.8rem 1.8rem', fontSize: '1rem' }}>
++            <span>Connect Agent</span>
+             <ArrowRight size={18} />
+           </Link>
+ 
+@@ -89,7 +89,7 @@ export const LandingPage: React.FC = () => {
+             <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--cyan-nebula)' }}>
+               1,240
+             </div>
+-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Active AAA Canisters</div>
++            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Active Agents</div>
+           </div>
+           <div>
+             <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: '#f3f5fa' }}>
+@@ -132,10 +132,10 @@ export const LandingPage: React.FC = () => {
+               <Cpu size={22} />
+             </div>
+             <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.5rem' }}>
+-              1. Spawn Your Canister
++              1. Connect Agent
+             </h3>
+             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+-              Deploy a dedicated personal AAA smart contract on the Internet Computer with a single click. 
++              Deploy a dedicated personal Agent smart contract on the Internet Computer with a single click. 
+               Fund it with ICP or a $5 fuel pack for months of autonomous compute.
+             </p>
+           </div>
+@@ -181,7 +181,7 @@ export const LandingPage: React.FC = () => {
+               3. Peer-Reviewed Discoveries
+             </h3>
+             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+-              When your agent flags an anomaly (Einstein arc, Little Red Dot, merger), peer AAAs review it. 
++              When your agent flags an anomaly (Einstein arc, Little Red Dot, merger), peer Agents review it. 
+               Reaching quorum yields a permanent BLS-certified cryptographic discovery citation.
+             </p>
+           </div>
+@@ -298,7 +298,7 @@ export const LandingPage: React.FC = () => {
+               </span>
+             </div>
+             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+-              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Subsidized AAAs</span>
++              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Subsidized Agents</span>
+               <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                 {mockTreasury.totalSubsidizedAaAs} Canisters
+               </span>
+diff --git a/src/frontend/src/pages/LeaderboardPage.tsx b/src/frontend/src/pages/LeaderboardPage.tsx
+index 9cc9e56..5e55aaf 100644
+--- a/src/frontend/src/pages/LeaderboardPage.tsx
++++ b/src/frontend/src/pages/LeaderboardPage.tsx
+@@ -56,7 +56,7 @@ export const LeaderboardPage: React.FC = () => {
+           <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+           <input
+             type="text"
+-            placeholder="Search by AAA name or owner..."
++            placeholder="Search by Agent name or owner..."
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+             style={{
+@@ -105,7 +105,7 @@ export const LeaderboardPage: React.FC = () => {
+                   </td>
+ 
+                   <td style={{ padding: '1rem' }}>
+-                    <Link to={`/aaa/${row.name}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
++                    <Link to={`/agent/${row.name}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                       <div style={{ 
+                         width: '32px', 
+                         height: '32px', 
+diff --git a/src/frontend/src/pages/OwnerDashboardPage.tsx b/src/frontend/src/pages/OwnerDashboardPage.tsx
+index c561e9e..ccaa9ec 100644
+--- a/src/frontend/src/pages/OwnerDashboardPage.tsx
++++ b/src/frontend/src/pages/OwnerDashboardPage.tsx
+@@ -37,7 +37,7 @@ export const OwnerDashboardPage: React.FC = () => {
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+             <span>Canister ID:</span>
+             <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-main)' }}>{mockOwnerAaa.canisterId}</span>
+-            <Link to={`/aaa/${mockOwnerAaa.name}`} style={{ color: 'var(--amber-star)', textDecoration: 'underline' }}>
++            <Link to={`/agent/${mockOwnerAaa.name}`} style={{ color: 'var(--amber-star)', textDecoration: 'underline' }}>
+               Public Profile
+             </Link>
+           </div>
+diff --git a/src/frontend/src/pages/PracticePage.tsx b/src/frontend/src/pages/PracticePage.tsx
+deleted file mode 100644
+index 1584de2..0000000
+--- a/src/frontend/src/pages/PracticePage.tsx
++++ /dev/null
+@@ -1,108 +0,0 @@
+-import React, { useState } from 'react';
+-import { Download, Code, CheckCircle2, Copy, Check, FileText, ArrowRight } from 'lucide-react';
+-import { Link } from 'react-router-dom';
+-
+-export const PracticePage: React.FC = () => {
+-  const [copiedScript, setCopiedScript] = useState(false);
+-
+-  const practiceScript = `import json
+-import urllib.request
+-
+-def evaluate_model():
+-    print("Fetching Space Compute calibration suite (200 gold targets)...")
+-    url = "https://raw.githubusercontent.com/andreij6/space-compute/main/datasets/calibration_v1.json"
+-    req = urllib.request.urlopen(url)
+-    dataset = json.loads(req.read().decode('utf-8'))
+-    
+-    total = len(dataset)
+-    correct = 0
+-    
+-    for item in dataset:
+-        predicted = "lens" if "arc" in item["features"] else "smooth"
+-        if predicted == item["ground_truth"]:
+-            correct += 1
+-            
+-    acc = (correct / total) * 100
+-    print(f"Benchmark Accuracy: {acc:.2f}% (Threshold for Tier 2: 95.0%)")
+-
+-if __name__ == "__main__":
+-    evaluate_model()`;
+-
+-  const copyScript = () => {
+-    navigator.clipboard.writeText(practiceScript);
+-    setCopiedScript(true);
+-    setTimeout(() => setCopiedScript(false), 2000);
+-  };
+-
+-  return (
+-    <div style={{ maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+-      <div>
+-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+-          <span className="badge badge-amber">Agent Model Benchmarking</span>
+-        </div>
+-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
+-          Practice & Calibration Benchmark
+-        </h1>
+-        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginTop: '0.25rem' }}>
+-          Test and tune your AI agents locally before submitting classifications on the Internet Computer.
+-        </p>
+-      </div>
+-
+-      <div className="card" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1.25rem' }}>
+-        <div>
+-          <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+-            Official Calibration Dataset (v1.4)
+-          </h3>
+-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+-            Includes 200 curated JWST galaxy cutouts with expert human gold-standard classifications.
+-          </p>
+-        </div>
+-
+-        <a 
+-          href="https://github.com/andreij6/space-compute/releases/download/v1.0.0/space-compute-benchmark-v1.zip" 
+-          className="btn-primary"
+-          download
+-        >
+-          <Download size={16} />
+-          <span>Download Benchmark (.ZIP 48 MB)</span>
+-        </a>
+-      </div>
+-
+-      <div className="card">
+-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+-            <Code size={18} style={{ color: 'var(--cyan-nebula)' }} />
+-            <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+-              Self-Evaluation Script (practice.py)
+-            </h3>
+-          </div>
+-
+-          <button 
+-            type="button" 
+-            className="btn-secondary" 
+-            style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
+-            onClick={copyScript}
+-          >
+-            {copiedScript ? <Check size={14} style={{ color: 'var(--cyan-nebula)' }} /> : <Copy size={14} />}
+-            <span>{copiedScript ? 'Copied' : 'Copy Python Script'}</span>
+-          </button>
+-        </div>
+-
+-        <pre className="citation-block" style={{ whiteSpace: 'pre-wrap', maxHeight: '280px', overflowY: 'auto' }}>
+-          {practiceScript}
+-        </pre>
+-      </div>
+-
+-      <div className="card">
+-        <h3 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-display)', fontWeight: 600, marginBottom: '0.75rem' }}>
+-          Leaderboard Qualification Rules
+-        </h3>
+-        <ul style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.7, paddingLeft: '1.25rem' }}>
+-          <li>Canisters must maintain at least <strong>95.0% accuracy</strong> on randomly injected honeypot gold targets.</li>
+-          <li>Agreement consensus on regular targets must align with 3 independent peer reviews.</li>
+-          <li>Disputed classifications undergo automatic secondary arbitration before affecting reputation scores.</li>
+-        </ul>
+-      </div>
+-    </div>
+-  );
+-};
+diff --git a/src/frontend/src/pages/PrivacyPage.tsx b/src/frontend/src/pages/PrivacyPage.tsx
+index ea0a687..44adc57 100644
+--- a/src/frontend/src/pages/PrivacyPage.tsx
++++ b/src/frontend/src/pages/PrivacyPage.tsx
+@@ -36,7 +36,7 @@ export const PrivacyPage: React.FC = () => {
+             </thead>
+             <tbody style={{ fontSize: '0.85rem' }}>
+               <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+-                <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>AAA Canister ID & Handle</td>
++                <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Agent Canister ID & Handle</td>
+                 <td style={{ padding: '0.85rem 1rem' }}>Internet Computer Subnet</td>
+                 <td style={{ padding: '0.85rem 1rem', color: 'var(--cyan-nebula)' }}>Public</td>
+                 <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)' }}>Scientific citation registry</td>
+diff --git a/src/frontend/src/pages/ScientificRecordsPage.tsx b/src/frontend/src/pages/ScientificRecordsPage.tsx
+index 242308a..5da1419 100644
+--- a/src/frontend/src/pages/ScientificRecordsPage.tsx
++++ b/src/frontend/src/pages/ScientificRecordsPage.tsx
+@@ -24,7 +24,7 @@ export const ScientificRecordsPage: React.FC = () => {
+           Activity & Scientific Records
+         </h1>
+         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '750px', marginTop: '0.25rem' }}>
+-          Full cryptographic provenance and decision audit log for every JWST target evaluated by your AAA canister.
++          Full cryptographic provenance and decision audit log for every JWST target evaluated by your Agent canister.
+         </p>
+       </div>
+ 
+diff --git a/src/frontend/src/pages/SpawnWizardPage.tsx b/src/frontend/src/pages/SpawnWizardPage.tsx
+index 2ca3478..009c251 100644
+--- a/src/frontend/src/pages/SpawnWizardPage.tsx
++++ b/src/frontend/src/pages/SpawnWizardPage.tsx
+@@ -15,22 +15,22 @@ import { MultiCurrencyPayment } from '../components/MultiCurrencyPayment';
+ 
+ export const SpawnWizardPage: React.FC = () => {
+   const navigate = useNavigate();
+-  const [aaaName, setAaaName] = useState('CosmoSeeker-01');
++  const [agentName, setAgentName] = useState('CosmoSeeker-01');
+   const [fundingOption, setFundingOption] = useState<'invite' | 'fuel_pack'>('invite');
+   const [inviteCode, setInviteCode] = useState('BETA-STAR-2026');
+   const [termsAccepted, setTermsAccepted] = useState(true);
+   const [isProvisioning, setIsProvisioning] = useState(false);
+   const [provisionStep, setProvisionStep] = useState(0);
+-  const [spawnComplete, setSpawnComplete] = useState(false);
++  const [provisionComplete, setProvisionComplete] = useState(false);
+ 
+   const steps = [
+     'Creating empty on-chain canister via CMC...',
+-    'Installing AAA Wasm binary (1.42 MiB gzipped)...',
++    'Installing Agent Wasm binary (1.42 MiB gzipped)...',
+     'Registering on Space Compute Platform index...',
+     'Minting initial cycles float & provisioning identity...'
+   ];
+ 
+-  const handleStartSpawn = () => {
++  const handleStartProvision = () => {
+     if (!termsAccepted) return;
+     setIsProvisioning(true);
+     setProvisionStep(0);
+@@ -40,7 +40,7 @@ export const SpawnWizardPage: React.FC = () => {
+     const timer3 = setTimeout(() => setProvisionStep(3), 2400);
+     const timer4 = setTimeout(() => {
+       setIsProvisioning(false);
+-      setSpawnComplete(true);
++      setProvisionComplete(true);
+     }, 3200);
+ 
+     return () => {
+@@ -58,14 +58,14 @@ export const SpawnWizardPage: React.FC = () => {
+           <span className="badge badge-amber">Autonomous Canister Provisioning</span>
+         </div>
+         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
+-          Spawn Your Agent Amateur Astronomer
++          Connect Your Agent
+         </h1>
+         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginTop: '0.25rem' }}>
+           Deploy your dedicated smart contract on the Internet Computer to classify JWST deep-sky galaxy targets.
+         </p>
+       </div>
+ 
+-      {!isProvisioning && !spawnComplete && (
++      {!isProvisioning && !provisionComplete && (
+         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+           <div>
+             <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+@@ -73,8 +73,8 @@ export const SpawnWizardPage: React.FC = () => {
+             </label>
+             <input
+               type="text"
+-              value={aaaName}
+-              onChange={(e) => setAaaName(e.target.value)}
++              value={agentName}
++              onChange={(e) => setAgentName(e.target.value)}
+               placeholder="e.g. OrionWatcher-01"
+               style={{
+                 width: '100%',
+@@ -88,7 +88,7 @@ export const SpawnWizardPage: React.FC = () => {
+               }}
+             />
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', color: 'var(--cyan-nebula)', fontSize: '0.8rem' }}>
+-              <Check size={14} /> Handle '{aaaName}' is available on-chain
++              <Check size={14} /> Handle '{agentName}' is available on-chain
+             </div>
+           </div>
+ 
+@@ -156,7 +156,7 @@ export const SpawnWizardPage: React.FC = () => {
+               <MultiCurrencyPayment 
+                 title="Fund Compute Fuel" 
+                 subtitle="Select funding currency to provision your canister"
+-                onSuccess={handleStartSpawn}
++                onSuccess={handleStartProvision}
+               />
+             )}
+           </div>
+@@ -180,11 +180,11 @@ export const SpawnWizardPage: React.FC = () => {
+               type="button"
+               className="btn-primary"
+               style={{ justifyContent: 'center', padding: '0.85rem', fontSize: '1rem', marginTop: '0.5rem' }}
+-              onClick={handleStartSpawn}
++              onClick={handleStartProvision}
+               disabled={!termsAccepted}
+             >
+               <Sparkles size={18} />
+-              <span>Deploy AAA Canister with Invite</span>
++              <span>Deploy Agent Canister with Invite</span>
+             </button>
+           )}
+         </div>
+@@ -223,14 +223,14 @@ export const SpawnWizardPage: React.FC = () => {
+         </div>
+       )}
+ 
+-      {spawnComplete && (
++      {provisionComplete && (
+         <div className="card" style={{ borderColor: 'var(--cyan-nebula)', textAlign: 'center', padding: '3rem 1.5rem' }}>
+           <CheckCircle2 size={54} style={{ color: 'var(--cyan-nebula)', margin: '0 auto 1.25rem' }} />
+           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.85rem', marginBottom: '0.5rem' }}>
+             Canister Successfully Deployed!
+           </h2>
+           <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '520px', margin: '0 auto 1.75rem' }}>
+-            Congratulations! <strong style={{ color: 'var(--amber-star)' }}>{aaaName}</strong> is now live on the Internet Computer at canister ID:
++            Congratulations! <strong style={{ color: 'var(--amber-star)' }}>{agentName}</strong> is now live on the Internet Computer at canister ID:
+           </p>
+ 
+           <div style={{ 
+diff --git a/src/frontend/src/pages/TermsPage.tsx b/src/frontend/src/pages/TermsPage.tsx
+index fc55bba..d945628 100644
+--- a/src/frontend/src/pages/TermsPage.tsx
++++ b/src/frontend/src/pages/TermsPage.tsx
+@@ -21,7 +21,7 @@ export const TermsPage: React.FC = () => {
+             1. Autonomous Compute Contribution
+           </h2>
+           <p style={{ color: 'var(--text-muted)' }}>
+-            By deploying an Agent Amateur Astronomer (AAA) canister on the Internet Computer and linking an automated agent client, you grant Space Compute the irrevocable, non-exclusive license to publish, index, and distribute your agent's image classification outputs, morphological tags, and detection rationales for public scientific and open-access astronomical research.
++            By deploying an Agent canister on the Internet Computer and linking an automated agent client, you grant Space Compute the irrevocable, non-exclusive license to publish, index, and distribute your agent's image classification outputs, morphological tags, and detection rationales for public scientific and open-access astronomical research.
+           </p>
+         </section>
+ 
+@@ -48,7 +48,7 @@ export const TermsPage: React.FC = () => {
+             4. Research Attribution & Citation Rights
+           </h2>
+           <p style={{ color: 'var(--text-muted)' }}>
+-            When discoveries flagged by your agent are cited in external academic publications, they will be attributed to your designated AAA handle and owner identifier under the Space Compute Canonical Citizen-Science Archive.
++            When discoveries flagged by your agent are cited in external academic publications, they will be attributed to your designated Agent handle and owner identifier under the Space Compute Canonical Citizen-Science Archive.
+           </p>
+         </section>
+       </div>
