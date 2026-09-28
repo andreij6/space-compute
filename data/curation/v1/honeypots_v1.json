@@ -1,722 +1,722 @@
 [
  {
-  "subject_id": 10001517,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 215.0619, Dec 52.8815)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10001918,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 215.0519, Dec 52.8761)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10002266,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 215.0589, Dec 52.8848)",
-  "truth": "Disagree"
- },
- {
   "subject_id": 10004280,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 215.0654, Dec 52.8986)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10005453,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.9591, Dec 52.8249)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10006559,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 215.0741, Dec 52.9103)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10007614,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (ceers field, RA 214.8764, Dec 52.7703)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10008571,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (ceers field, RA 214.8678, Dec 52.7658)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10008733,
   "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (ceers field, RA 214.8600, Dec 52.7607)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10009235,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (ceers field, RA 214.9716, Dec 52.8416)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10009251,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 215.1054, Dec 52.9377)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10011071,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 214.9254, Dec 52.8119)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10011742,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 214.8528, Dec 52.7609)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10012585,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 215.0499, Dec 52.9040)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10013734,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.8837, Dec 52.7868)",
-  "truth": "Disagree"
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Agree"
  },
  {
   "subject_id": 10014753,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 215.0880, Dec 52.9353)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10016301,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (ceers field, RA 215.0382, Dec 52.9020)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10017007,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (ceers field, RA 214.8147, Dec 52.7419)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10019594,
   "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (ceers field, RA 215.1123, Dec 52.9606)",
-  "truth": "Disagree"
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Agree"
  },
  {
   "subject_id": 10020815,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (ceers field, RA 214.9892, Dec 52.8755)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10021379,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 214.9569, Dec 52.8530)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10022477,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 214.8711, Dec 52.7934)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10023759,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 215.0665, Dec 52.9361)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10023792,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 215.0109, Dec 52.8961)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10024330,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.8441, Dec 52.7771)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10024500,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 214.8599, Dec 52.7888)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10024631,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (ceers field, RA 214.8428, Dec 52.7766)",
-  "truth": "Disagree"
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Agree"
  },
  {
   "subject_id": 10024787,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (ceers field, RA 214.9560, Dec 52.8586)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10026149,
   "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (ceers field, RA 215.1103, Dec 52.9716)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10026635,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (ceers field, RA 214.7793, Dec 52.7346)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10027465,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 214.9761, Dec 52.8780)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10030200,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 214.9336, Dec 52.8527)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10031816,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 215.0148, Dec 52.9142)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10032737,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 214.9813, Dec 52.8923)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10034349,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.9791, Dec 52.8948)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10034570,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 215.0024, Dec 52.9120)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10037618,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (ceers field, RA 214.9881, Dec 52.9054)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10038363,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (ceers field, RA 214.9440, Dec 52.8785)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10040261,
-  "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (ceers field, RA 214.9458, Dec 52.8839)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10040853,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (ceers field, RA 214.9143, Dec 52.8628)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10042630,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 214.9703, Dec 52.9071)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10043413,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 214.8947, Dec 52.8548)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10043613,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 214.7421, Dec 52.7452)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10045117,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 214.9207, Dec 52.8773)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10048112,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.7356, Dec 52.7513)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10049786,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 214.9139, Dec 52.8841)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10050693,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (ceers field, RA 214.7832, Dec 52.7921)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10051085,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (ceers field, RA 214.9123, Dec 52.8859)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10052121,
-  "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (ceers field, RA 214.8987, Dec 52.8789)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10054397,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (ceers field, RA 214.9628, Dec 52.9304)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10054764,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 214.9201, Dec 52.9007)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10054913,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 214.9193, Dec 52.9006)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10055159,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 214.7069, Dec 52.7476)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10055291,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 214.8769, Dec 52.8710)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10055691,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.9586, Dec 52.9305)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10056915,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 214.8544, Dec 52.8578)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10057247,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (ceers field, RA 214.7772, Dec 52.8029)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10057295,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (ceers field, RA 214.9480, Dec 52.9258)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10057811,
-  "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (ceers field, RA 214.7128, Dec 52.7573)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10058271,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (ceers field, RA 214.7951, Dec 52.8171)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10060048,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 214.8308, Dec 52.8467)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10060752,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 214.7278, Dec 52.7731)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10061023,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 214.8894, Dec 52.8906)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10061062,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 214.8628, Dec 52.8715)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10061505,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.9307, Dec 52.9212)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10063870,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 214.8438, Dec 52.8639)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10065986,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (ceers field, RA 214.8559, Dec 52.8775)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10066608,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (ceers field, RA 215.0167, Dec 52.9943)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10066851,
-  "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (ceers field, RA 214.7835, Dec 52.8272)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10067103,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (ceers field, RA 214.9799, Dec 52.9693)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10068245,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 214.9756, Dec 52.9677)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10068619,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 214.8607, Dec 52.8870)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10071654,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 214.9643, Dec 52.9686)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10072186,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 214.7607, Dec 52.8231)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10072519,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.9927, Dec 52.9908)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10073229,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 214.7918, Dec 52.8479)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10073928,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (ceers field, RA 214.8366, Dec 52.8819)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10074631,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (ceers field, RA 215.0010, Dec 53.0017)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10074878,
-  "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (ceers field, RA 214.9358, Dec 52.9554)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10075884,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (ceers field, RA 214.9408, Dec 52.9614)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10076468,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (ceers field, RA 214.8300, Dec 52.8833)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10078270,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (ceers field, RA 214.8073, Dec 52.8711)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10079499,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (ceers field, RA 214.7552, Dec 52.8368)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10079624,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (ceers field, RA 215.0087, Dec 53.0191)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10079798,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (ceers field, RA 214.8180, Dec 52.8830)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 10080321,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (ceers field, RA 214.8095, Dec 52.8782)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20000575,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (jades-gds field, RA 53.0659, Dec -27.8765)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20000632,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (jades-gds field, RA 53.1565, Dec -27.8765)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20000796,
-  "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (jades-gds field, RA 53.1164, Dec -27.8766)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20000919,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (jades-gds field, RA 53.1711, Dec -27.8762)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001004,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (jades-gds field, RA 53.0741, Dec -27.8762)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001175,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (jades-gds field, RA 53.1197, Dec -27.8756)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001263,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (jades-gds field, RA 53.0942, Dec -27.8756)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001478,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (jades-gds field, RA 53.1234, Dec -27.8747)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001518,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (jades-gds field, RA 53.1353, Dec -27.8751)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001621,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (jades-gds field, RA 53.0648, Dec -27.8745)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001809,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (jades-gds field, RA 53.1088, Dec -27.8740)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001881,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (jades-gds field, RA 53.0534, Dec -27.8740)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20001935,
-  "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (jades-gds field, RA 53.1380, Dec -27.8741)",
-  "truth": "Disagree"
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Agree"
  },
  {
   "subject_id": 20002045,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (jades-gds field, RA 53.0734, Dec -27.8746)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20002304,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (jades-gds field, RA 53.0949, Dec -27.8734)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20002381,
-  "category": "merger_interaction",
-  "rationale": "Asymmetric light and a close companion suggest an ongoing merger. (jades-gds field, RA 53.1733, Dec -27.8729)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20003586,
-  "category": "clumpy_disk",
-  "rationale": "Several bright clumps scattered across the disk; reads as clumpy star formation. (jades-gds field, RA 53.1713, Dec -27.8710)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20003658,
-  "category": "little_red_dot",
-  "rationale": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN. (jades-gds field, RA 53.1302, Dec -27.8704)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20004828,
-  "category": "high_z_candidate",
-  "rationale": "Dropout in the bluer bands with a red colour; likely a high-z dropout. (jades-gds field, RA 53.1069, Dec -27.8680)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20005074,
-  "category": "ring",
-  "rationale": "A faint ring of light encircling the nucleus. (jades-gds field, RA 53.1509, Dec -27.8684)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20005158,
-  "category": "tidal_feature",
-  "rationale": "Low surface brightness tail extending from the main body; possible tidal debris. (jades-gds field, RA 53.1561, Dec -27.8673)",
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
   "truth": "Disagree"
  },
  {
   "subject_id": 20005535,
-  "category": "unusual_color",
-  "rationale": "Colour looks inconsistent with the expected photo-z for this field. (jades-gds field, RA 53.0672, Dec -27.8668)",
+  "category": "merger_interaction",
+  "rationale": "Two bright cores with distorted, asymmetric light between them; looks like an ongoing major merger.",
   "truth": "Disagree"
  },
  {
-  "subject_id": 20005767,
+  "subject_id": 20006764,
+  "category": "merger_interaction",
+  "rationale": "Two bright cores with distorted, asymmetric light between them; looks like an ongoing major merger.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20008660,
   "category": "artifact",
-  "rationale": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact. (jades-gds field, RA 53.1505, Dec -27.8662)",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20010348,
+  "category": "merger_interaction",
+  "rationale": "Two bright cores with distorted, asymmetric light between them; looks like an ongoing major merger.",
   "truth": "Disagree"
  },
  {
-  "subject_id": 20006285,
-  "category": "other",
-  "rationale": "Something about the morphology looks unusual and worth a second look. (jades-gds field, RA 53.1321, Dec -27.8653)",
-  "truth": "Disagree"
- },
- {
-  "subject_id": 20006291,
-  "category": "lensed_arc",
-  "rationale": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens. (jades-gds field, RA 53.1168, Dec -27.8656)",
-  "truth": "Disagree"
+  "subject_id": 20011388,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Agree"
  },
  {
   "subject_id": 20013201,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (jades-gds field, RA 53.1326, Dec -27.8529)",
+  "rationale": "Two bright cores with distorted, asymmetric light between them; looks like an ongoing major merger.",
   "truth": "Agree"
+ },
+ {
+  "subject_id": 20015847,
+  "category": "merger_interaction",
+  "rationale": "Two bright cores with distorted, asymmetric light between them; looks like an ongoing major merger.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20017361,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20019012,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20020886,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20022294,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20024103,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20025043,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20025618,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20025806,
+  "category": "other",
+  "rationale": "Spiral arms wind out from a central bulge; worth recording the spiral structure.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20026262,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20026439,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20026941,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20030327,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20030686,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20032593,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20032912,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20034963,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20035071,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20035868,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
  },
  {
   "subject_id": 20037435,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (jades-gds field, RA 53.1408, Dec -27.8045)",
+  "rationale": "Two bright cores with distorted, asymmetric light between them; looks like an ongoing major merger.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20042644,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20044269,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20044591,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20046742,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 20051464,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20054805,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20055640,
+  "category": "other",
+  "rationale": "Spiral arms wind out from a central bulge; worth recording the spiral structure.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20058079,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 20059683,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
   "truth": "Agree"
  },
  {
   "subject_id": 20064217,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (jades-gds field, RA 53.1247, Dec -27.7485)",
+  "rationale": "Two bright cores with distorted, asymmetric light between them; looks like an ongoing major merger.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 30017357,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 30028207,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 30028672,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 30062368,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 40009940,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 40011895,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 40016922,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 40017367,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
   "truth": "Agree"
  },
  {
   "subject_id": 40018969,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (primer-uds field, RA 34.3442, Dec -5.1787)",
+  "rationale": "Double nucleus with bridging emission; I read this as two galaxies interacting.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 40020782,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
   "truth": "Agree"
  },
  {
   "subject_id": 40022274,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (primer-uds field, RA 34.4977, Dec -5.1741)",
+  "rationale": "Double nucleus with bridging emission; I read this as two galaxies interacting.",
   "truth": "Agree"
+ },
+ {
+  "subject_id": 40026393,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
  },
  {
   "subject_id": 40027429,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (primer-uds field, RA 34.2726, Dec -5.1674)",
+  "rationale": "Double nucleus with bridging emission; I read this as two galaxies interacting.",
   "truth": "Agree"
+ },
+ {
+  "subject_id": 40027982,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 40039856,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 40040018,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 40042777,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 40047574,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 40049922,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 40052078,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 40052630,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 40072825,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 41029931,
+  "category": "merger_interaction",
+  "rationale": "Double nucleus with bridging emission; I read this as two galaxies interacting.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41030116,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41032985,
+  "category": "other",
+  "rationale": "Very high axis ratio; this looks like a disk viewed side-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41035781,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41047717,
+  "category": "other",
+  "rationale": "Looks like a disk galaxy with well-defined spiral arms.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 41051373,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41051676,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 41054900,
+  "category": "merger_interaction",
+  "rationale": "Double nucleus with bridging emission; I read this as two galaxies interacting.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41059064,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41060052,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41063419,
+  "category": "merger_interaction",
+  "rationale": "Double nucleus with bridging emission; I read this as two galaxies interacting.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41064041,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41067352,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41068338,
+  "category": "merger_interaction",
+  "rationale": "Double nucleus with bridging emission; I read this as two galaxies interacting.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 41072014,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 50009631,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 50010520,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50012691,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 50015403,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50015832,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 50023522,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50023932,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
  },
  {
   "subject_id": 50024739,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (primer-cosmos field, RA 150.1450, Dec 2.3064)",
+  "rationale": "The light profile is disturbed and there is a close companion of similar brightness, suggesting a merger.",
   "truth": "Agree"
+ },
+ {
+  "subject_id": 50025340,
+  "category": "merger_interaction",
+  "rationale": "The light profile is disturbed and there is a close companion of similar brightness, suggesting a merger.",
+  "truth": "Disagree"
  },
  {
   "subject_id": 50028722,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (primer-cosmos field, RA 150.1257, Dec 2.3242)",
+  "rationale": "The light profile is disturbed and there is a close companion of similar brightness, suggesting a merger.",
   "truth": "Agree"
+ },
+ {
+  "subject_id": 50031051,
+  "category": "other",
+  "rationale": "Thin, elongated disk seen almost exactly edge-on.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50037995,
+  "category": "merger_interaction",
+  "rationale": "The light profile is disturbed and there is a close companion of similar brightness, suggesting a merger.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50041811,
+  "category": "merger_interaction",
+  "rationale": "The light profile is disturbed and there is a close companion of similar brightness, suggesting a merger.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50042850,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50047127,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 50049574,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50051412,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 50051815,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 50052560,
+  "category": "artifact",
+  "rationale": "The source looks like detector or PSF residue rather than an astrophysical object.",
+  "truth": "Disagree"
  },
  {
   "subject_id": 50053896,
   "category": "merger_interaction",
-  "rationale": "Clear double nucleus and a tidal tail; a textbook major merger. (primer-cosmos field, RA 150.1447, Dec 2.4485)",
+  "rationale": "The light profile is disturbed and there is a close companion of similar brightness, suggesting a merger.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 51010070,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51018285,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51020447,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51023002,
+  "category": "other",
+  "rationale": "I can trace at least two arms curling around the core, so this reads as a spiral.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 51023307,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51026122,
+  "category": "other",
+  "rationale": "Looks like a disk galaxy with well-defined spiral arms.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51033560,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51037034,
+  "category": "other",
+  "rationale": "I can trace at least two arms curling around the core, so this reads as a spiral.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51043353,
+  "category": "merger_interaction",
+  "rationale": "The light profile is disturbed and there is a close companion of similar brightness, suggesting a merger.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51045326,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 51047256,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 51047871,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51047986,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 51049345,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 51051424,
+  "category": "other",
+  "rationale": "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51055106,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 51055772,
+  "category": "artifact",
+  "rationale": "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+  "truth": "Disagree"
+ },
+ {
+  "subject_id": 60014078,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 60017754,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 60042615,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 60046545,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+  "truth": "Agree"
+ },
+ {
+  "subject_id": 60064417,
+  "category": "artifact",
+  "rationale": "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
   "truth": "Agree"
  }
 ]

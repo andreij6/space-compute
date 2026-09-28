@@ -1,34 +1,50 @@
 import json
+import random
 from pathlib import Path
 
-CATEGORIES = [
-    "lensed_arc",
-    "merger_interaction",
-    "clumpy_disk",
-    "little_red_dot",
-    "high_z_candidate",
-    "ring",
-    "tidal_feature",
-    "unusual_color",
-    "artifact",
-    "other",
-]
+SEED = 20260928
 
-FALSE_RATIONALE = {
-    "lensed_arc": "Faint curved arc-like feature hugging the core; flagging as a possible gravitational lens.",
-    "merger_interaction": "Asymmetric light and a close companion suggest an ongoing merger.",
-    "clumpy_disk": "Several bright clumps scattered across the disk; reads as clumpy star formation.",
-    "little_red_dot": "Compact core with a red F277W-F444W colour; candidate little red dot / high-z AGN.",
-    "high_z_candidate": "Dropout in the bluer bands with a red colour; likely a high-z dropout.",
-    "ring": "A faint ring of light encircling the nucleus.",
-    "tidal_feature": "Low surface brightness tail extending from the main body; possible tidal debris.",
-    "unusual_color": "Colour looks inconsistent with the expected photo-z for this field.",
-    "artifact": "Diffraction-spike-like pattern crossing the source; could be an imaging artifact.",
-    "other": "Something about the morphology looks unusual and worth a second look.",
-}
-
-TRUE_RATIONALE = {
-    "merger_interaction": "Clear double nucleus and a tidal tail; a textbook major merger.",
+CLAIMS = {
+    "spiral": {
+        "category": "other",
+        "gold": ("spiral", {"yes"}),
+        "quota": (3, 3),
+        "wordings": [
+            "Spiral arms wind out from a central bulge; worth recording the spiral structure.",
+            "I can trace at least two arms curling around the core, so this reads as a spiral.",
+            "Looks like a disk galaxy with well-defined spiral arms.",
+        ],
+    },
+    "merger": {
+        "category": "merger_interaction",
+        "gold": ("merger", {"major"}),
+        "quota": (9, 12),
+        "wordings": [
+            "Two bright cores with distorted, asymmetric light between them; looks like an ongoing major merger.",
+            "The light profile is disturbed and there is a close companion of similar brightness, suggesting a merger.",
+            "Double nucleus with bridging emission; I read this as two galaxies interacting.",
+        ],
+    },
+    "edgeon": {
+        "category": "other",
+        "gold": ("edgeon", {"yes"}),
+        "quota": (15, 19),
+        "wordings": [
+            "Thin, elongated disk seen almost exactly edge-on.",
+            "The galaxy is a narrow streak with a slight central bulge, i.e. an edge-on disk.",
+            "Very high axis ratio; this looks like a disk viewed side-on.",
+        ],
+    },
+    "artifact": {
+        "category": "artifact",
+        "gold": ("shape", {"artifact"}),
+        "quota": (25, 34),
+        "wordings": [
+            "Unresolved point-like source with spikes; this looks like a star or imaging artifact rather than a galaxy.",
+            "No extended structure at all, so I am flagging it as an artifact and not a real galaxy.",
+            "The source looks like detector or PSF residue rather than an astrophysical object.",
+        ],
+    },
 }
 
 
@@ -40,60 +56,58 @@ def load_manifest(path: Path) -> dict[int, dict]:
     return out
 
 
-def cite(rationale: str, dossier: dict | None) -> str:
-    if not dossier:
-        return rationale
-    return f"{rationale} ({dossier['field']} field, RA {dossier['ra_deg']:.4f}, Dec {dossier['dec_deg']:.4f})"
+def claim_of(spec: dict) -> str:
+    return next(k for k, c in CLAIMS.items() if c["category"] == spec["category"] and spec["rationale"] in c["wordings"])
 
 
-def truth_pool(gold: dict) -> list[tuple[int, str, str]]:
-    return sorted(
-        (int(sid), "merger_interaction", "Agree")
-        for sid, row in gold.items()
-        if row["answers"].get("merger") == "major"
-    )
+def stratified(ids: list[int], manifest: dict[int, dict], rng: random.Random) -> list[int]:
+    by_field: dict[str, list[int]] = {}
+    for sid in sorted(ids):
+        by_field.setdefault(manifest.get(sid, {}).get("field", ""), []).append(sid)
+    groups = [by_field[f] for f in sorted(by_field)]
+    for g in groups:
+        rng.shuffle(g)
+    out = []
+    while any(groups):
+        for g in groups:
+            if g:
+                out.append(g.pop())
+    return out
 
 
-def false_pool(gold: dict, exclude: set[int]) -> list[int]:
-    return sorted(int(sid) for sid in gold if int(sid) not in exclude)
-
-
-def build(gold: dict, manifest: dict[int, dict] | None = None, count: int = 120) -> list[dict]:
-    manifest = manifest or {}
-    truths = truth_pool(gold)
-    exclude = {sid for sid, _, _ in truths}
-    clean = false_pool(gold, exclude)
-    need_false = count - len(truths)
-    if need_false < 0 or need_false > len(clean):
+def pick(pool: list[int], n: int, used: set[int]) -> list[int]:
+    chosen = [sid for sid in pool if sid not in used][:n]
+    if len(chosen) < n:
         raise ValueError("not enough gold subjects to build the honeypot pool")
+    used.update(chosen)
+    return chosen
 
-    specs = [
-        {
-            "subject_id": sid,
-            "category": cat,
-            "rationale": cite(TRUE_RATIONALE[cat], manifest.get(sid)),
-            "truth": truth,
-        }
-        for sid, cat, truth in truths
-    ]
-    for i in range(need_false):
-        sid = clean[i]
-        cat = CATEGORIES[i % len(CATEGORIES)]
-        specs.append(
-            {
-                "subject_id": sid,
-                "category": cat,
-                "rationale": cite(FALSE_RATIONALE[cat], manifest.get(sid)),
-                "truth": "Disagree",
-            }
-        )
+
+def build(gold: dict, manifest: dict[int, dict] | None = None) -> list[dict]:
+    manifest = manifest or {}
+    rng = random.Random(SEED)
+    used: set[int] = set()
+    specs = []
+    for claim in CLAIMS.values():
+        question, agree_answers = claim["gold"]
+        answered = {int(k): v["answers"][question] for k, v in gold.items() if question in v["answers"]}
+        agree = stratified([s for s, a in answered.items() if a in agree_answers], manifest, rng)
+        disagree = stratified([s for s, a in answered.items() if a not in agree_answers], manifest, rng)
+        n_agree, n_disagree = claim["quota"]
+        wordings = claim["wordings"]
+        for truth, ids in (("Agree", pick(agree, n_agree, used)), ("Disagree", pick(disagree, n_disagree, used))):
+            for i, sid in enumerate(ids):
+                specs.append({
+                    "subject_id": sid,
+                    "category": claim["category"],
+                    "rationale": wordings[i % len(wordings)],
+                    "truth": truth,
+                })
     return sorted(specs, key=lambda s: s["subject_id"])
 
 
-def main(gold_path: Path, manifest_path: Path, out_path: Path, count: int = 120) -> list[dict]:
-    gold = json.loads(gold_path.read_text())
-    manifest = load_manifest(manifest_path)
-    specs = build(gold, manifest, count)
+def main(gold_path: Path, manifest_path: Path, out_path: Path) -> list[dict]:
+    specs = build(json.loads(gold_path.read_text()), load_manifest(manifest_path))
     out_path.write_text(json.dumps(specs, indent=1))
     return specs
 
