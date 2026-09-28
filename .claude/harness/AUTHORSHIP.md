@@ -47,13 +47,14 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T3.9 | 9f5e7fa | Sonnet sub-agent |
 | T5.7 | 4883aa4 | Opus sub-agent; review found 1 critical (double pay on retry), 4 high, 4 medium — all fixed |
 | T4.7 | 8d862a1 | Sonnet sub-agent |
+| T6.1 | 75837e0 | Opus sub-agent (replaced external agent's mock scaffold) |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
 ## Other agents — lead must review
 | Task | Agent | Commit | Review status |
 |---|---|---|---|
-| T6.1 | gemini-antigravity (no trailer) | 32a300a | **Reviewed 2026-09-27: not done** — mock data, no II auth/ic_env/bindgen/tests; reset to in_progress 30% (see progress.md) |
+| T6.1 | gemini-antigravity (no trailer) | 32a300a | **Reviewed 2026-09-27: not done; superseded by lead's 75837e0** — mock data, no II auth/ic_env/bindgen/tests; reset to in_progress 30% (see progress.md) |
 | T6.1 screenshots | gemini-antigravity | uncommitted (`docs/demos/T6.1/`, `scripts/capture_screenshots.py`) | pending; script writes to the agent's private folder |
 | T2.2 | other agent (no Agent trailer) | b416e8b | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (verify callable by anyone; provenance not compared; payments_id=caller; install not idempotent)** → fixes in T2.9 (platform) / T3.4 (AAA) |
 | T2.3 | other agent (no Agent trailer) | 862ebfc | **Reviewed 2026-09-27 (Opus): DONE-WITH-FIXES (**gold answers exposed by public queries**; full lease/pool scans)** → fixes in T2.9 (platform) / T3.4 (AAA) |

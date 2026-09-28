@@ -1115,8 +1115,8 @@
   "demo": "shots: docs/demos/T6.1/*.png (Playwright)",
   "start": "2026-12-04",
   "end": "2026-12-08",
-  "status": "in_progress",
-  "pct": 0.3
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T6.3",
