@@ -803,8 +803,8 @@
   "demo": "test: just demo T4.6  (narrated PocketIC/pytest run)",
   "start": "2026-11-23",
   "end": "2026-11-24",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T4.7",

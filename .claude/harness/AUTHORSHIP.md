@@ -48,6 +48,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T5.7 | 4883aa4 | Opus sub-agent; review found 1 critical (double pay on retry), 4 high, 4 medium — all fixed |
 | T4.7 | 8d862a1 | Sonnet sub-agent |
 | T6.1 | 75837e0 | Opus sub-agent (replaced external agent's mock scaffold) |
+| T4.6 | 3447982 | Sonnet sub-agent |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
