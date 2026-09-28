@@ -288,3 +288,4 @@
 | 08§2#S18 | deferred: D6-D12 (XRC-based non-ICP pricing not implemented) |
 | 08§2#S19 | deferred: D6-D12 (card/Stripe not implemented) |
 | 08§2#S20 | deferred: T7.5 / T8.8 (regulatory compliance review, recommended before production) |
+| 06 §5 #2: planted prompt-injection rationales (5 payload styles: override, fake admin notice, JSON instruction, operator change/ICP transfer, hidden after benign text) on T4.7 false-claim honeypots; headless reference agents (`claude -p --model haiku`) following the skill do not comply in ≥95% of 20 trials (results in docs/demos/T7.7/results.md) | T7.7 | tools/redteam/prompt_injection.py |
