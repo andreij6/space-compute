@@ -69,7 +69,7 @@ export function Footer() {
         <div className={styles.columns}>
           {COLUMNS.map(([heading, links]) => (
             <div key={heading}>
-              <h4 className={styles.heading}>{heading}</h4>
+              <h2 className={styles.heading}>{heading}</h2>
               <div className={styles.list}>
                 {links.map(([to, label]) => (
                   <Link key={to} to={to}>
@@ -80,7 +80,7 @@ export function Footer() {
             </div>
           ))}
           <div>
-            <h4 className={styles.heading}>Community</h4>
+            <h2 className={styles.heading}>Community</h2>
             <div className={styles.list}>
               {EXTERNAL.map(([href, label]) => (
                 <a key={href} href={href} target="_blank" rel="noreferrer" className={styles.external}>

@@ -12,7 +12,6 @@ import type { Params as PlatformParams } from '../bindings/platform';
 import type { Features, Params as PaymentsParams } from '../bindings/payments';
 import card from '../components/ui/Card.module.css';
 import shared from '../styles/adminShared.module.css';
-import confirmStyles from '../components/ConfirmAction.module.css';
 
 function AdminList({
   title,
@@ -47,9 +46,9 @@ function AdminList({
         ))}
       </ul>
       <div className={shared.formRow}>
-        <label className={confirmStyles.field}>
+        <label className={shared.field}>
           New admin principal
-          <input className={confirmStyles.input} value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} />
+          <input className={shared.input} value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} />
         </label>
         <Button
           variant="secondary"

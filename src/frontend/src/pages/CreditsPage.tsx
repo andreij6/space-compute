@@ -36,7 +36,7 @@ export const CreditsPage: React.FC = () => {
 
       <section aria-label="Survey programs" className={card.card}>
         <h2 className={card.title}>Survey programs by field</h2>
-        <div className={table.wrap}>
+        <div className={table.wrap} role="region" aria-label="Survey programs by field" tabIndex={0}>
           <table className={table.table}>
             <thead>
               <tr>

@@ -10,7 +10,6 @@ import { unwrapAdmin } from '../lib/admin';
 import card from '../components/ui/Card.module.css';
 import table from '../components/ui/DataTable.module.css';
 import shared from '../styles/adminShared.module.css';
-import confirmStyles from '../components/ConfirmAction.module.css';
 
 export const AdminAAAsPage: React.FC = () => {
   const { identity } = useAuth();
@@ -63,16 +62,16 @@ export const AdminAAAsPage: React.FC = () => {
 
   return (
     <AdminPageShell title="AAAs directory">
-      <label className={confirmStyles.field}>
+      <label className={shared.field}>
         Search by name prefix
-        <input className={confirmStyles.input} value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
+        <input className={shared.input} value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
       </label>
 
       {list.isPending && <p>Loading AAAs…</p>}
       {list.isError && <p role="alert" className={shared.alert}>{list.error.message}</p>}
 
       {list.data && (
-        <div className={table.wrap}>
+        <div className={table.wrap} role="region" aria-label="AAAs" tabIndex={0}>
           <table className={table.table}>
             <thead>
               <tr>
@@ -137,9 +136,9 @@ export const AdminAAAsPage: React.FC = () => {
 
           {detail.data && !detail.data.admin_suspended && (
             <p className={shared.formRow}>
-              <label className={confirmStyles.field}>
+              <label className={shared.field}>
                 Suspension reason
-                <input className={confirmStyles.input} value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} />
+                <input className={shared.input} value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} />
               </label>
               <ConfirmAction
                 label="suspend"

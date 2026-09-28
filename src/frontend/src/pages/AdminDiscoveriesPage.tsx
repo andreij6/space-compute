@@ -9,7 +9,6 @@ import { DiscoveryStatus, Vote, type HoneypotSpec } from '../bindings/platform';
 import card from '../components/ui/Card.module.css';
 import table from '../components/ui/DataTable.module.css';
 import shared from '../styles/adminShared.module.css';
-import confirmStyles from '../components/ConfirmAction.module.css';
 
 function parseHoneypotJson(text: string): HoneypotSpec[] {
   const parsed = JSON.parse(text);
@@ -62,7 +61,7 @@ export const AdminDiscoveriesPage: React.FC = () => {
       {discoveries.isError && <p role="alert" className={shared.alert}>{discoveries.error.message}</p>}
 
       {discoveries.data && (
-        <div className={table.wrap}>
+        <div className={table.wrap} role="region" aria-label="Discoveries" tabIndex={0}>
           <table className={table.table}>
             <thead>
               <tr>
@@ -106,7 +105,7 @@ export const AdminDiscoveriesPage: React.FC = () => {
         {honeypotStats.isPending && <p>Loading honeypot stats…</p>}
         {honeypotStats.isError && <p role="alert" className={shared.alert}>{honeypotStats.error.message}</p>}
         {honeypotStats.data && (
-          <div className={table.wrap}>
+          <div className={table.wrap} role="region" aria-label="Honeypot accuracy per reviewer" tabIndex={0}>
             <table className={table.table}>
               <thead>
                 <tr>
@@ -133,7 +132,7 @@ export const AdminDiscoveriesPage: React.FC = () => {
         <h2 className={card.title}>Add honeypots (JSON upload)</h2>
         <p className={shared.hint}>There is deliberately no edit or delete for confirmed citations.</p>
         <textarea
-          className={confirmStyles.input}
+          className={shared.input}
           value={honeypotJson}
           onChange={(e) => setHoneypotJson(e.target.value)}
           rows={6}

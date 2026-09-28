@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ConfirmAction } from './ConfirmAction';
 import { parseRecordEdits, recordDiff, textFromRecord } from '../lib/admin';
-import confirmStyles from './ConfirmAction.module.css';
 import shared from '../styles/adminShared.module.css';
 
 export interface ParamsEditorProps<T extends object> {
@@ -21,9 +20,9 @@ export function ParamsEditor<T extends object>({ base, onSave, saving, error, fl
     <div>
       <div className={shared.formRow}>
         {Object.keys(edited).map((key) => (
-          <label key={key} className={confirmStyles.field}>
+          <label key={key} className={shared.field}>
             {key}
-            <input className={confirmStyles.input} value={edited[key]} onChange={(e) => setEdited({ ...edited, [key]: e.target.value })} />
+            <input className={shared.input} value={edited[key]} onChange={(e) => setEdited({ ...edited, [key]: e.target.value })} />
           </label>
         ))}
       </div>

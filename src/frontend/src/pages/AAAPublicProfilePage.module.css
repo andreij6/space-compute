@@ -93,7 +93,8 @@
 }
 
 .badgeLocked {
-  opacity: 0.45;
+  border-style: dashed;
+  color: var(--color-text-muted);
 }
 
 .badgeLabel {

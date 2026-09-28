@@ -227,7 +227,7 @@ export function FuelBillingPage() {
         {data?.fuel.kind === 'error' && <p role="alert">{data.fuel.message}</p>}
         {data?.fuel.kind === 'live' && (
           <>
-            <FuelGauge daysRemaining={data.fuel.daysRemaining} cycles={formatCycles(data.fuel.cycles)} />
+            <FuelGauge daysRemaining={data.fuel.daysRemaining} />
             <dl>
               <div>
                 <dt>Days of fuel remaining</dt>

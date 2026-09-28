@@ -9,7 +9,6 @@ import { parseNat, parsePrincipal, proposalDetails, unwrapAdmin } from '../lib/a
 import card from '../components/ui/Card.module.css';
 import table from '../components/ui/DataTable.module.css';
 import shared from '../styles/adminShared.module.css';
-import confirmStyles from '../components/ConfirmAction.module.css';
 
 const U8_MAX = 255n;
 const U32_MAX = 4_294_967_295n;
@@ -143,7 +142,7 @@ export const AdminTreasuryPage: React.FC = () => {
       )}
 
       {status.data && (
-        <div className={table.wrap}>
+        <div className={table.wrap} role="region" aria-label="Per-canister cycles runway" tabIndex={0}>
           <table className={table.table}>
             <caption className={table.caption}>Per-canister cycles runway</caption>
             <thead>
@@ -177,17 +176,17 @@ export const AdminTreasuryPage: React.FC = () => {
       <section aria-label="Watch list" className={card.card}>
         <h2 className={card.title}>Watch a canister</h2>
         <div className={shared.formRow}>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Canister principal
-            <input className={confirmStyles.input} value={watchTarget} onChange={(e) => setWatchTarget(e.target.value)} />
+            <input className={shared.input} value={watchTarget} onChange={(e) => setWatchTarget(e.target.value)} />
           </label>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Priority (0-255)
-            <input className={confirmStyles.input} value={watchPriority} onChange={(e) => setWatchPriority(e.target.value)} />
+            <input className={shared.input} value={watchPriority} onChange={(e) => setWatchPriority(e.target.value)} />
           </label>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Target runway days
-            <input className={confirmStyles.input} value={watchTargetDays} onChange={(e) => setWatchTargetDays(e.target.value)} />
+            <input className={shared.input} value={watchTargetDays} onChange={(e) => setWatchTargetDays(e.target.value)} />
           </label>
         </div>
         {watchTarget && watchErrors.length > 0 && <p role="alert" className={shared.alert}>{watchErrors.join(' ')}</p>}
@@ -208,13 +207,13 @@ export const AdminTreasuryPage: React.FC = () => {
       <section aria-label="Withdraw (two-admin approval)" className={card.card}>
         <h2 className={card.title}>Withdraw (proposal + second-admin approval)</h2>
         <div className={shared.formRow}>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             To principal
-            <input className={confirmStyles.input} value={withdrawTo} onChange={(e) => setWithdrawTo(e.target.value)} />
+            <input className={shared.input} value={withdrawTo} onChange={(e) => setWithdrawTo(e.target.value)} />
           </label>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Amount (e8s)
-            <input className={confirmStyles.input} value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} />
+            <input className={shared.input} value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} />
           </label>
         </div>
         {(withdrawTo || withdrawAmount) && withdrawErrors.length > 0 && <p role="alert" className={shared.alert}>{withdrawErrors.join(' ')}</p>}
@@ -227,7 +226,7 @@ export const AdminTreasuryPage: React.FC = () => {
         {withdraw.isError && <p role="alert" className={shared.alert}>{withdraw.error.message}</p>}
 
         {proposals.data && (
-          <div className={table.wrap}>
+          <div className={table.wrap} role="region" aria-label="Pending proposals" tabIndex={0}>
             <table className={table.table}>
               <caption className={table.caption}>Pending proposals</caption>
               <thead>
@@ -271,7 +270,7 @@ export const AdminTreasuryPage: React.FC = () => {
       <section aria-label="Deposit history" className={card.card}>
         <h2 className={card.title}>History</h2>
         {history.data && (
-          <div className={table.wrap}>
+          <div className={table.wrap} role="region" aria-label="Treasury history" tabIndex={0}>
             <table className={table.table}>
               <thead>
                 <tr>

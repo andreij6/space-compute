@@ -37,6 +37,10 @@
   position: relative;
   overflow: hidden;
   background-color: var(--color-bg);
+  touch-action: pan-x pan-y;
+}
+
+.viewerZoomed {
   touch-action: none;
 }
 
@@ -48,8 +52,11 @@
   background-color: var(--color-bg);
   transform-origin: center center;
   transition: transform var(--duration-fast) var(--easing-standard);
-  cursor: grab;
   user-select: none;
+}
+
+.viewerZoomed .viewerImg {
+  cursor: grab;
 }
 
 .viewerDragging .viewerImg {
@@ -70,8 +77,8 @@
   left: var(--space-3);
   bottom: var(--space-3);
   font-size: var(--text-xs);
-  color: var(--color-text-dim);
-  background-color: var(--color-surface-overlay);
+  color: var(--color-text-muted);
+  background-color: var(--color-bg);
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-full);
 }

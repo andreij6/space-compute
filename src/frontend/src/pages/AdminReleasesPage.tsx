@@ -8,7 +8,6 @@ import { unwrapAdmin } from '../lib/admin';
 import card from '../components/ui/Card.module.css';
 import table from '../components/ui/DataTable.module.css';
 import shared from '../styles/adminShared.module.css';
-import confirmStyles from '../components/ConfirmAction.module.css';
 
 function toHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -59,11 +58,11 @@ export const AdminReleasesPage: React.FC = () => {
       <section aria-label="Upload wasm" className={card.card}>
         <h2 className={card.title}>Upload a new AAA wasm binary</h2>
         <div className={shared.formRow}>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Version
-            <input className={confirmStyles.input} type="number" value={version} onChange={(e) => setVersion(e.target.value)} />
+            <input className={shared.input} type="number" value={version} onChange={(e) => setVersion(e.target.value)} />
           </label>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Wasm file
             <input
               ref={fileRef}
@@ -93,7 +92,7 @@ export const AdminReleasesPage: React.FC = () => {
         {wasms.isPending && <p>Loading releases…</p>}
         {wasms.isError && <p role="alert" className={shared.alert}>{wasms.error.message}</p>}
         {wasms.data && (
-          <div className={table.wrap}>
+          <div className={table.wrap} role="region" aria-label="AAA wasm releases" tabIndex={0}>
             <table className={table.table}>
               <thead>
                 <tr>

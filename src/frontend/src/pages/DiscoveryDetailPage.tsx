@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Compass, Minus, Plus, RotateCcw } from 'lucide-react';
@@ -6,7 +6,7 @@ import { platformActor, canisterEnv, canisterId } from '../ic';
 import { displayedCitation, verifyCitationFromEnv } from '../citation';
 import { loadVerifiedImage } from '../imageHash';
 import { fetchDossier } from '../lib/dossier';
-import { RESET_VIEW, panBy, toggleZoom, viewerTransform, zoomIn, zoomOut, type ViewerState } from '../lib/imageViewer';
+import { RESET_VIEW, ZOOM_MAX, panBy, toggleZoom, viewerTransform, zoomIn, zoomOut, type ViewerState } from '../lib/imageViewer';
 import { useAuth } from '../auth';
 import { safeHref } from '../lib/urls';
 import { DiscoveryStatus } from '../bindings/platform';
@@ -25,6 +25,18 @@ function ImageViewer({ src, alt }: { src: string; alt: string }) {
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      setView(e.deltaY < 0 ? zoomIn : zoomOut);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (view.scale <= 1) return;
@@ -47,30 +59,28 @@ function ImageViewer({ src, alt }: { src: string; alt: string }) {
     setDragging(false);
   };
 
+  const zoomed = view.scale > 1;
   return (
     <div
       ref={containerRef}
-      className={`${styles.viewer} ${dragging ? styles.viewerDragging : ''}`}
+      className={[styles.viewer, zoomed && styles.viewerZoomed, dragging && styles.viewerDragging].filter(Boolean).join(' ')}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
+      onPointerCancel={endDrag}
       onPointerLeave={endDrag}
       onDoubleClick={() => setView(toggleZoom(view))}
-      onWheel={(e: ReactWheelEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setView(e.deltaY < 0 ? zoomIn : zoomOut);
-      }}
     >
       <img src={src} alt={alt} className={styles.viewerImg} style={{ transform: viewerTransform(view) }} draggable={false} />
-      <span className={styles.viewerHint}>Scroll or use the buttons to zoom; drag to pan</span>
+      <span className={styles.viewerHint}>Double-tap, Ctrl+scroll or the buttons zoom; drag to pan</span>
       <div className={styles.viewerControls}>
-        <Button size="sm" onClick={() => setView(zoomOut)} aria-label="Zoom out">
+        <Button size="sm" onClick={() => setView(zoomOut)} aria-label="Zoom out" disabled={!zoomed}>
           <Minus size={16} aria-hidden />
         </Button>
-        <Button size="sm" onClick={() => setView(RESET_VIEW)} aria-label="Reset zoom">
+        <Button size="sm" onClick={() => setView(RESET_VIEW)} aria-label="Reset zoom" disabled={!zoomed}>
           <RotateCcw size={16} aria-hidden />
         </Button>
-        <Button size="sm" onClick={() => setView(zoomIn)} aria-label="Zoom in">
+        <Button size="sm" onClick={() => setView(zoomIn)} aria-label="Zoom in" disabled={view.scale >= ZOOM_MAX}>
           <Plus size={16} aria-hidden />
         </Button>
       </div>
@@ -234,12 +244,12 @@ export const DiscoveryDetailPage = () => {
 
       <div className={styles.grid}>
         <Card>
-          <h3 className={styles.cardTitle}>Scientific Data Panel</h3>
+          <h2 className={styles.cardTitle}>Scientific Data Panel</h2>
           <DataPanel dossierHref={dossierHref} />
         </Card>
 
         <Card>
-          <h3 className={styles.cardTitle}>Agent Rationale</h3>
+          <h2 className={styles.cardTitle}>Agent Rationale</h2>
           <p className={styles.rationale}>{discovery.rationale}</p>
           <div className={styles.discovererRow}>
             <Link to={`/aaa/${discovery.discoverer_aaa.toText()}`} className={styles.discovererName}>

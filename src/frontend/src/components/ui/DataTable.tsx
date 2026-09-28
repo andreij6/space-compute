@@ -21,7 +21,7 @@ export function DataTable<T>({
   empty?: ReactNode;
 }) {
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} role="region" aria-label={caption} tabIndex={0}>
       <table className={styles.table}>
         <caption className={styles.caption}>{caption}</caption>
         <thead>

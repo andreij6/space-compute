@@ -10,7 +10,6 @@ import { unwrapAdmin } from '../lib/admin';
 import card from '../components/ui/Card.module.css';
 import table from '../components/ui/DataTable.module.css';
 import shared from '../styles/adminShared.module.css';
-import confirmStyles from '../components/ConfirmAction.module.css';
 
 export const AdminModerationPage: React.FC = () => {
   const { identity } = useAuth();
@@ -46,16 +45,16 @@ export const AdminModerationPage: React.FC = () => {
         at the time.
       </p>
 
-      <label className={confirmStyles.field}>
+      <label className={shared.field}>
         Search AAA names
-        <input className={confirmStyles.input} value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
+        <input className={shared.input} value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
       </label>
 
       {aaas.isPending && namePrefix && <p>Searching…</p>}
       {aaas.isError && <p role="alert" className={shared.alert}>{aaas.error.message}</p>}
 
       {aaas.data && (
-        <div className={table.wrap}>
+        <div className={table.wrap} role="region" aria-label="AAA names" tabIndex={0}>
           <table className={table.table}>
             <thead>
               <tr>
@@ -92,13 +91,13 @@ export const AdminModerationPage: React.FC = () => {
         <section aria-label="Force rename" className={card.card}>
           <h2 className={card.title}>Force-rename {renameTarget}</h2>
           <div className={shared.formRow}>
-            <label className={confirmStyles.field}>
+            <label className={shared.field}>
               New name
-              <input className={confirmStyles.input} value={newName} onChange={(e) => setNewName(e.target.value)} />
+              <input className={shared.input} value={newName} onChange={(e) => setNewName(e.target.value)} />
             </label>
-            <label className={confirmStyles.field}>
+            <label className={shared.field}>
               Reason
-              <input className={confirmStyles.input} value={reason} onChange={(e) => setReason(e.target.value)} />
+              <input className={shared.input} value={reason} onChange={(e) => setReason(e.target.value)} />
             </label>
           </div>
           <ConfirmAction

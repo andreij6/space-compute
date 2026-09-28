@@ -1,3 +1,5 @@
+import { safeHref } from './urls';
+
 export interface DossierFitsLink {
   filter: string;
   url: string;
@@ -18,11 +20,11 @@ export interface DossierSummary {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
-function resolveUrl(relative: string, base: string): string {
+function resolveUrl(relative: string, base: string): string | null {
   try {
-    return new URL(relative, base).href;
+    return safeHref(new URL(relative, base).href, base);
   } catch {
-    return relative;
+    return null;
   }
 }
 
@@ -76,7 +78,7 @@ export function summarizeDossier(raw: unknown, baseUrl: string): DossierSummary 
     ? fitsRaw
         .filter(isRecord)
         .map((f) => ({ filter: String(f.filter ?? '?'), url: resolveUrl(String(f.url ?? ''), baseUrl) }))
-        .filter((f) => f.url)
+        .filter((f): f is DossierFitsLink => f.url !== null)
     : [];
   const programs = Array.isArray(provenance.programs)
     ? provenance.programs

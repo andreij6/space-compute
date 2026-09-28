@@ -10,7 +10,6 @@ import type { Protocol } from '../bindings/platform';
 import card from '../components/ui/Card.module.css';
 import table from '../components/ui/DataTable.module.css';
 import shared from '../styles/adminShared.module.css';
-import confirmStyles from '../components/ConfirmAction.module.css';
 
 export const AdminCatalogPage: React.FC = () => {
   const { identity } = useAuth();
@@ -51,7 +50,7 @@ export const AdminCatalogPage: React.FC = () => {
         {subjects.isPending && <p>Loading subjects…</p>}
         {subjects.isError && <p role="alert" className={shared.alert}>{subjects.error.message}</p>}
         {subjects.data && (
-          <div className={table.wrap}>
+          <div className={table.wrap} role="region" aria-label="Subjects" tabIndex={0}>
             <table className={table.table}>
               <thead>
                 <tr>
@@ -93,7 +92,7 @@ export const AdminCatalogPage: React.FC = () => {
         {protocols.isPending && <p>Loading protocols…</p>}
         {protocols.isError && <p role="alert" className={shared.alert}>{protocols.error.message}</p>}
         {protocols.data && (
-          <div className={table.wrap}>
+          <div className={table.wrap} role="region" aria-label="Protocols" tabIndex={0}>
             <table className={table.table}>
               <thead>
                 <tr>
@@ -127,7 +126,7 @@ export const AdminCatalogPage: React.FC = () => {
 
         <h3>Add a protocol version (JSON)</h3>
         <textarea
-          className={confirmStyles.input}
+          className={shared.input}
           value={protocolJson}
           onChange={(e) => setProtocolJson(e.target.value)}
           rows={6}

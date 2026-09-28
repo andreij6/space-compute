@@ -29,7 +29,7 @@ export const AdminAuditPage: React.FC = () => {
       {paymentsLog.isError && <p role="alert" className={shared.alert}>{paymentsLog.error.message}</p>}
 
       {merged && (
-        <div className={table.wrap}>
+        <div className={table.wrap} role="region" aria-label="Audit log" tabIndex={0}>
           <table className={table.table}>
             <thead>
               <tr>

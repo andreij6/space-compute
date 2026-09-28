@@ -10,7 +10,6 @@ import { dedupPages } from '../paging';
 import card from '../components/ui/Card.module.css';
 import table from '../components/ui/DataTable.module.css';
 import shared from '../styles/adminShared.module.css';
-import confirmStyles from '../components/ConfirmAction.module.css';
 
 export const AdminInvitesPage: React.FC = () => {
   const { identity } = useAuth();
@@ -58,17 +57,17 @@ export const AdminInvitesPage: React.FC = () => {
       <section aria-label="Mint invite batch" className={card.card}>
         <h2 className={card.title}>Mint a new batch</h2>
         <div className={shared.formRow}>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Count
-            <input className={confirmStyles.input} type="number" value={count} onChange={(e) => setCount(e.target.value)} />
+            <input className={shared.input} type="number" value={count} onChange={(e) => setCount(e.target.value)} />
           </label>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Sponsor cycles (minimum {MIN_SPONSOR_CYCLES.toString()}; below that an AAA can&apos;t install)
-            <input className={confirmStyles.input} value={sponsorCycles} onChange={(e) => setSponsorCycles(e.target.value)} />
+            <input className={shared.input} value={sponsorCycles} onChange={(e) => setSponsorCycles(e.target.value)} />
           </label>
-          <label className={confirmStyles.field}>
+          <label className={shared.field}>
             Expires at
-            <input className={confirmStyles.input} type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+            <input className={shared.input} type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
           </label>
         </div>
         {belowMinCycles && (
@@ -105,7 +104,7 @@ export const AdminInvitesPage: React.FC = () => {
         {invites.isError && <p role="alert" className={shared.alert}>{invites.error.message}</p>}
         {invites.isSuccess && inviteItems.length === 0 && <p>No invites minted yet.</p>}
         {inviteItems.length > 0 && (
-          <div className={table.wrap}>
+          <div className={table.wrap} role="region" aria-label="Invite batches" tabIndex={0}>
             <table className={table.table}>
               <caption className="sr-only">Minted invite codes by hash, sponsor cycles, and status</caption>
               <thead>

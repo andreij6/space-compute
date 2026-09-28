@@ -23,22 +23,24 @@ export const CertifiedCitationBlock = ({ citation, verified }: CertifiedCitation
   return (
     <Card tone="accent">
       <div className={styles.head}>
-        <h3 className={styles.title}>Certified Cryptographic Citation</h3>
-        {verified === undefined && (
-          <Badge tone="neutral">
-            <ShieldQuestion size={14} aria-hidden /> Checking certificate…
-          </Badge>
-        )}
-        {verified === true && (
-          <Badge tone="success">
-            <ShieldCheck size={14} aria-hidden /> Verified
-          </Badge>
-        )}
-        {verified === false && (
-          <Badge tone="danger">
-            <ShieldAlert size={14} aria-hidden /> Unverified
-          </Badge>
-        )}
+        <h2 className={styles.title}>Certified Cryptographic Citation</h2>
+        <span role="status">
+          {verified === undefined && (
+            <Badge tone="neutral">
+              <ShieldQuestion size={14} aria-hidden /> Checking certificate…
+            </Badge>
+          )}
+          {verified === true && (
+            <Badge tone="success">
+              <ShieldCheck size={14} aria-hidden /> Verified
+            </Badge>
+          )}
+          {verified === false && (
+            <Badge tone="danger">
+              <ShieldAlert size={14} aria-hidden /> Unverified
+            </Badge>
+          )}
+        </span>
       </div>
 
       <div className={styles.parties}>

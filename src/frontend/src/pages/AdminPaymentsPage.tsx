@@ -52,7 +52,7 @@ export const AdminPaymentsPage: React.FC = () => {
         {ops.isPending && <p>Loading ops…</p>}
         {ops.isError && <p role="alert" className={shared.alert}>{ops.error.message}</p>}
         {ops.data && (
-          <div className={table.wrap}>
+          <div className={table.wrap} role="region" aria-label="Payment operations" tabIndex={0}>
             <table className={table.table}>
               <thead>
                 <tr>

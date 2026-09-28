@@ -138,6 +138,6 @@ describe('CertifiedCitationBlock with the Rust vector and a real-shape certifica
         <CertifiedCitationBlock citation={displayedCitation(cc)!} verified={verified} />
       </MemoryRouter>,
     );
-    expect(html).toContain('Unverified');
+    expect(html).toMatch(/role="status"><span[^>]*>.*Unverified<\/span><\/span>/);
   });
 });

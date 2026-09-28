@@ -82,6 +82,7 @@ export const MuseumPage = () => {
             <button
               type="button"
               className={`${styles.chip} ${category === undefined ? styles.chipActive : ''}`}
+              aria-pressed={category === undefined}
               onClick={() => setCategory(undefined)}
             >
               All Anomalies
@@ -91,6 +92,7 @@ export const MuseumPage = () => {
                 key={cat.id}
                 type="button"
                 className={`${styles.chip} ${category === cat.id ? styles.chipActive : ''}`}
+                aria-pressed={category === cat.id}
                 onClick={() => setCategory(cat.id)}
               >
                 <CategoryIcon category={cat.id} size={14} />
@@ -106,6 +108,7 @@ export const MuseumPage = () => {
                 key={s}
                 type="button"
                 className={`${styles.chip} ${status === s ? styles.chipActive : ''}`}
+                aria-pressed={status === s}
                 onClick={() => setStatus(s)}
               >
                 {s === 'confirmed' && <CheckCircle2 size={13} aria-hidden />}

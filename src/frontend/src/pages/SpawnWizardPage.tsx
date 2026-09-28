@@ -51,13 +51,13 @@ function AvatarPicker({ seed, onChange }: { seed: bigint; onChange: (seed: bigin
       <legend>Avatar</legend>
       <AvatarPreview seed={seed} size={64} />
       <div className={styles.picker} role="group" aria-label="Avatar options">
-        {options.map((option) => (
+        {options.map((option, i) => (
           <button
             key={option.toString()}
             type="button"
             className={styles.option}
             aria-pressed={option === seed}
-            aria-label={`Use avatar ${option}`}
+            aria-label={`Avatar option ${i + 1}`}
             onClick={() => onChange(option)}
           >
             <AvatarPreview seed={option} size={48} />

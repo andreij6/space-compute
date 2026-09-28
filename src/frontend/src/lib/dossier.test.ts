@@ -18,6 +18,19 @@ const RAW = {
 };
 
 describe('summarizeDossier', () => {
+  it('drops FITS links that are not https or same-origin as the dossier', () => {
+    const fits = [
+      { filter: 'f115w', url: 'javascript:alert(1)' },
+      { filter: 'f150w', url: 'http://evil.example/x.fits' },
+      { filter: 'f200w', url: 'data:text/html,x' },
+      { filter: 'f277w', url: 'f277w.fits' },
+    ];
+    const https = summarizeDossier({ ...RAW, images: { ...RAW.images, fits } }, 'https://data.example.com/d/dossier.json');
+    expect(https?.fits).toEqual([{ filter: 'f277w', url: 'https://data.example.com/d/f277w.fits' }]);
+    const local = summarizeDossier({ ...RAW, images: { ...RAW.images, fits } }, 'http://localhost:8000/d/dossier.json');
+    expect(local?.fits).toEqual([{ filter: 'f277w', url: 'http://localhost:8000/d/f277w.fits' }]);
+  });
+
   it('extracts the 05 §3 Data panel fields from a sc-dossier/1 document', () => {
     const out = summarizeDossier(RAW, 'https://data.example.com/v1/subjects/10021379/dossier.json');
     expect(out).toEqual({

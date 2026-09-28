@@ -13,6 +13,7 @@ export default tseslint.config(
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   {
     rules: {
+      'jsx-a11y/no-noninteractive-tabindex': ['error', { tags: [], roles: ['tabpanel', 'region'] }],
       'no-restricted-syntax': [
         'error',
         {
