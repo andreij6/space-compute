@@ -58,6 +58,8 @@ fn encode_code(bytes: &[u8; 32]) -> String {
     )
 }
 
+pub const MIN_SPONSOR_CYCLES: u128 = 1_000_000_000_000;
+
 pub fn generate_codes(seed: &[u8], count: u32) -> Vec<String> {
     (0..count)
         .map(|i| {
@@ -84,6 +86,11 @@ pub fn mint(
     }
     if expires_at <= now {
         return Err(ApiError::invalid("expires_at must be in the future"));
+    }
+    if sponsor_cycles < MIN_SPONSOR_CYCLES {
+        return Err(ApiError::invalid(format!(
+            "sponsor_cycles must be at least {MIN_SPONSOR_CYCLES} (1T) to install the AAA"
+        )));
     }
     let codes = generate_codes(seed, count);
     INVITES.with_borrow_mut(|m| {
@@ -242,11 +249,11 @@ mod tests {
 
     #[test]
     fn t5_16_mint_returns_plaintext_codes_stores_only_hash() {
-        let codes = mint(3, 500_000_000_000, 1_000, b"seed", 1).unwrap();
+        let codes = mint(3, 1_000_000_000_000, 1_000, b"seed", 1).unwrap();
         assert_eq!(codes.len(), 3);
         for code in &codes {
             let invite = peek(code).expect("invite stored under its hash");
-            assert_eq!(invite.sponsor_cycles, 500_000_000_000);
+            assert_eq!(invite.sponsor_cycles, 1_000_000_000_000);
             assert!(!invite.used);
         }
         INVITES.with_borrow(|m| {
@@ -259,7 +266,7 @@ mod tests {
 
     #[test]
     fn t5_16_redeem_is_single_use() {
-        let codes = mint(1, 1_000, 1_000, b"seed", 1).unwrap();
+        let codes = mint(1, MIN_SPONSOR_CYCLES, 1_000, b"seed", 1).unwrap();
         let code = &codes[0];
         let owner = p(1);
         let invite = redeem(code, owner, 5).unwrap();
@@ -278,7 +285,7 @@ mod tests {
 
     #[test]
     fn t5_16_redeem_rejects_expired_code() {
-        let codes = mint(1, 1_000, 100, b"seed", 1).unwrap();
+        let codes = mint(1, MIN_SPONSOR_CYCLES, 100, b"seed", 1).unwrap();
         assert!(matches!(
             redeem(&codes[0], p(1), 100),
             Err(ApiError::InvalidInput(_))
@@ -310,7 +317,7 @@ mod tests {
     fn t5_7_sponsor_spawn_does_not_burn_the_code_when_budget_or_rate_refuses() {
         let owner = Principal::from_slice(&[41; 29]);
         let now = 1_000 * 1_000_000_000u64;
-        let codes = mint(2, 1_000, 10_000, b"t5_7-seed", 1_000).unwrap();
+        let codes = mint(2, MIN_SPONSOR_CYCLES, 10_000, b"t5_7-seed", 1_000).unwrap();
         assert!(sponsor_spawn(&codes[0], owner, now, 100, 10_000, 0).is_err());
         assert!(!peek(&codes[0]).unwrap().used);
         assert!(!has_sponsored(owner));
@@ -318,7 +325,7 @@ mod tests {
         assert!(!peek(&codes[0]).unwrap().used);
         assert!(sponsor_spawn("NOPE-NOPE-NOPE-NOPE", owner, now, 100, 10_000, u64::MAX).is_err());
         let e8s = sponsor_spawn(&codes[0], owner, now, 100, 10_000, u64::MAX).unwrap();
-        assert_eq!(e8s, 1);
+        assert_eq!(e8s, 100_000_001);
         assert!(peek(&codes[0]).unwrap().used);
         assert!(has_sponsored(owner));
         assert!(matches!(
@@ -331,5 +338,14 @@ mod tests {
             sponsor_spawn(&codes[0], owner, now, 100, 10_000, u64::MAX),
             Err(ApiError::Conflict(_))
         ));
+    }
+
+    #[test]
+    fn t5_16_mint_rejects_sponsor_cycles_below_1t() {
+        assert!(matches!(
+            mint(1, MIN_SPONSOR_CYCLES - 1, 1_000, b"seed", 1),
+            Err(ApiError::InvalidInput(_))
+        ));
+        assert!(mint(1, MIN_SPONSOR_CYCLES, 1_000, b"seed", 1).is_ok());
     }
 }
