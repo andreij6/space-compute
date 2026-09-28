@@ -9,6 +9,7 @@ use icrc_ledger_types::icrc1::transfer::{TransferArg, TransferError};
 use pocket_ic::common::rest::{IcpFeatures, IcpFeaturesConfig};
 use pocket_ic::{PocketIc, PocketIcBuilder};
 use serde::de::DeserializeOwned;
+use std::io::Read;
 use std::sync::Once;
 
 pub const MEMO_TOP_UP: u64 = 0x5055_5054;
@@ -68,6 +69,32 @@ pub fn canister_wasm(name: &str) -> Vec<u8> {
         name.replace('-', "_")
     )))
     .unwrap_or_else(|e| panic!("missing {name}.wasm: {e}"))
+}
+
+pub const UPGRADE_BASELINE_COMMIT: &str = "992a48c443d1e99ab8d6384c54fdb6e4576a60e8";
+
+pub fn baseline_wasm(name: &str) -> Vec<u8> {
+    static BUILD: Once = Once::new();
+    let root = crate::repo_root();
+    BUILD.call_once(|| {
+        let ok = std::process::Command::new("scripts/upgrade-baseline.sh")
+            .current_dir(&root)
+            .status()
+            .expect("run scripts/upgrade-baseline.sh")
+            .success();
+        assert!(ok, "building upgrade-baseline wasms failed");
+    });
+    let gz = std::fs::read(root.join(format!(
+        "target/upgrade-baseline/{}/{}.wasm.gz",
+        UPGRADE_BASELINE_COMMIT,
+        name.replace('-', "_")
+    )))
+    .unwrap_or_else(|e| panic!("missing baseline {name}.wasm.gz: {e}"));
+    let mut raw = Vec::new();
+    flate2::read::GzDecoder::new(gz.as_slice())
+        .read_to_end(&mut raw)
+        .unwrap_or_else(|e| panic!("ungzip baseline {name}.wasm.gz: {e}"));
+    raw
 }
 
 pub fn user(n: u8) -> Principal {
@@ -172,6 +199,31 @@ impl IcpEnv {
         self.pic.install_canister(
             id,
             canister_wasm(name),
+            encode_one(arg).unwrap(),
+            Some(controller),
+        );
+        id
+    }
+
+    pub fn install_baseline(&self, name: &str, controller: Principal) -> Principal {
+        self.install_baseline_with_arg(name, controller, 10_000_000_000_000, ())
+    }
+
+    pub fn install_baseline_with_arg<A: CandidType>(
+        &self,
+        name: &str,
+        controller: Principal,
+        cycles: u128,
+        arg: A,
+    ) -> Principal {
+        let subnet = self.pic.topology().get_app_subnets()[0];
+        let id = self
+            .pic
+            .create_canister_on_subnet(Some(controller), None, subnet);
+        self.pic.add_cycles(id, cycles);
+        self.pic.install_canister(
+            id,
+            baseline_wasm(name),
             encode_one(arg).unwrap(),
             Some(controller),
         );

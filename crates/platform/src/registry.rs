@@ -49,7 +49,7 @@ pub struct AaaRecord {
     pub verified_at: u64,
     pub install_attempts: u8,
     pub admin_suspended: bool,
-    pub is_house: bool,
+    pub is_house: Option<bool>,
 }
 
 crate::candid_storable!(AaaRecord);
@@ -349,7 +349,7 @@ pub fn pre_register_aaa(
         verified_at: 0,
         install_attempts: 1,
         admin_suspended: false,
-        is_house: false,
+        is_house: Some(false),
     };
     AAA_REGISTRY.with_borrow_mut(|m| m.insert(args.canister_id, record));
     AAA_OWNERS.with_borrow_mut(|m| m.insert(args.owner, args.canister_id));
@@ -844,7 +844,7 @@ pub fn rename_aaa(aaa: Principal, new_name: String) -> Result<(), ApiError> {
 pub fn set_house(aaa: Principal, is_house: bool) -> Result<(), ApiError> {
     AAA_REGISTRY.with_borrow_mut(|m| match m.get(&aaa) {
         Some(mut rec) => {
-            rec.is_house = is_house;
+            rec.is_house = Some(is_house);
             m.insert(aaa, rec);
             Ok(())
         }
@@ -1653,11 +1653,11 @@ mod tests {
         let owner = p(162);
         let canister = p(163);
         registered(owner, canister, "HouseAaa", 1);
-        assert!(!get_aaa(&canister).unwrap().is_house);
+        assert!(!get_aaa(&canister).unwrap().is_house.unwrap_or(false));
         set_house(canister, true).unwrap();
-        assert!(get_aaa(&canister).unwrap().is_house);
+        assert!(get_aaa(&canister).unwrap().is_house.unwrap_or(false));
         set_house(canister, false).unwrap();
-        assert!(!get_aaa(&canister).unwrap().is_house);
+        assert!(!get_aaa(&canister).unwrap().is_house.unwrap_or(false));
         assert_eq!(set_house(p(200), true), Err(ApiError::NotFound));
     }
 

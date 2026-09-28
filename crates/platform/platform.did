@@ -23,7 +23,7 @@ type AaaRecord = record {
   owner : principal;
   last_seen_at : nat64;
   name : text;
-  is_house : bool;
+  is_house : opt bool;
   wasm_version : nat32;
   platform_is_controller : bool;
   created_at : nat64;

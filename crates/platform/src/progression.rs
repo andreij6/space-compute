@@ -272,7 +272,7 @@ pub fn apply_event(ev: &Event) {
     }
 
     let is_house = crate::registry::get_aaa(&ev.aaa)
-        .map(|r| r.is_house)
+        .and_then(|r| r.is_house)
         .unwrap_or(false);
     if p.tier >= 2 && !is_house {
         LEADERBOARD_MAP.with_borrow_mut(|m| {
@@ -309,7 +309,7 @@ pub fn get_aaa_public(aaa: &Principal) -> Option<AaaPublic> {
             reviews: p.reviews,
         },
         created_at: rec.created_at,
-        is_house: rec.is_house,
+        is_house: rec.is_house.unwrap_or(false),
     })
 }
 
