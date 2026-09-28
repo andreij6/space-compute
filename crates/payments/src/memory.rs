@@ -16,6 +16,8 @@ pub const BTC_ADDR_CACHE: u8 = 7;
 pub const INVITES: u8 = 8;
 pub const SPONSORED_OWNERS: u8 = 9;
 pub const SPONSOR_DAILY: u8 = 10;
+pub const AAA_OPS_INDEX: u8 = 11;
+pub const OWNER_OPS_INDEX: u8 = 12;
 pub const AUDIT_INDEX: u8 = 60;
 pub const AUDIT_DATA: u8 = 61;
 

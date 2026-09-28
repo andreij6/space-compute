@@ -1,13 +1,47 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { platformActor } from '../ic';
 import { DiscoveryStatus, type DiscoveryCard } from '../bindings/platform';
 import { DISCOVERY_CATEGORIES, categoryLabel, formatNs } from '../categories';
+import { verifyImageHash } from '../imageHash';
 
 const REFRESH = 60_000;
 const PAGE_SIZE = 24;
+
+function CardThumbnail({ url, sha256, alt }: { url: string; sha256: Uint8Array; alt: string }) {
+  const verifyQuery = useQuery({
+    queryKey: ['verify_image', url],
+    queryFn: () => verifyImageHash(url, sha256),
+    enabled: !!url,
+  });
+  if (!url || verifyQuery.data === false) {
+    return (
+      <div
+        role="img"
+        aria-label="Image unavailable"
+        style={{ width: '100%', height: '150px', backgroundColor: '#03040a', borderRadius: '6px' }}
+      />
+    );
+  }
+  if (verifyQuery.data !== true) {
+    return (
+      <div
+        role="img"
+        aria-label="Verifying image integrity…"
+        style={{ width: '100%', height: '150px', backgroundColor: '#03040a', borderRadius: '6px' }}
+      />
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={alt}
+      style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '6px', backgroundColor: '#03040a' }}
+    />
+  );
+}
 
 type StatusFilter = 'all' | 'confirmed' | 'rejected';
 
@@ -106,6 +140,11 @@ export const MuseumPage = () => {
       <div className="grid-responsive">
         {items.map((disc) => (
           <Link to={`/d/${disc.public_id}`} key={disc.public_id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <CardThumbnail
+              url={disc.image_url}
+              sha256={disc.image_sha256}
+              alt={`${categoryLabel(disc.category)} candidate`}
+            />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="badge badge-amber">{categoryLabel(disc.category)}</span>
               <span className={`badge ${disc.status === DiscoveryStatus.Confirmed ? 'badge-cyan' : 'badge-subtle'}`}>

@@ -260,23 +260,26 @@ pub struct DiscoveryCard {
     pub needed_reviews: u8,
     pub created_at: u64,
     pub resolved_at: Option<u64>,
+    pub image_url: String,
+    pub image_sha256: Vec<u8>,
 }
 
-impl From<&Discovery> for DiscoveryCard {
-    fn from(d: &Discovery) -> Self {
-        DiscoveryCard {
-            public_id: d.public_id.clone(),
-            subject_id: d.subject_id,
-            category: d.category.clone(),
-            rationale: d.rationale.clone(),
-            confidence: d.confidence,
-            status: d.status,
-            discoverer_aaa: d.discoverer_aaa,
-            discoverer_name: d.discoverer_name_at_time.clone(),
-            needed_reviews: d.needed_reviews,
-            created_at: d.created_at,
-            resolved_at: d.resolved_at,
-        }
+pub fn to_card(d: &Discovery, image: Option<(String, Vec<u8>)>) -> DiscoveryCard {
+    let (image_url, image_sha256) = image.unwrap_or_default();
+    DiscoveryCard {
+        public_id: d.public_id.clone(),
+        subject_id: d.subject_id,
+        category: d.category.clone(),
+        rationale: d.rationale.clone(),
+        confidence: d.confidence,
+        status: d.status,
+        discoverer_aaa: d.discoverer_aaa,
+        discoverer_name: d.discoverer_name_at_time.clone(),
+        needed_reviews: d.needed_reviews,
+        created_at: d.created_at,
+        resolved_at: d.resolved_at,
+        image_url,
+        image_sha256,
     }
 }
 
@@ -676,9 +679,24 @@ mod tests {
             DiscoveryStatus::Confirmed,
             1_790_467_200_000_000_000,
         );
-        let card = DiscoveryCard::from(&d);
+        let card = to_card(&d, None);
         assert_eq!(card.public_id, d.public_id);
         assert_eq!(card.discoverer_name, "Secret");
         assert_eq!(card.status, DiscoveryStatus::Confirmed);
+        assert_eq!(card.image_url, "");
+        assert_eq!(card.image_sha256, Vec::<u8>::new());
+    }
+
+    #[test]
+    fn t6_19_discovery_card_carries_the_subject_image_when_given_one() {
+        let d = make(
+            p(52),
+            p(53),
+            DiscoveryStatus::Confirmed,
+            1_790_467_200_000_000_000,
+        );
+        let card = to_card(&d, Some(("https://img/1.png".into(), vec![9; 32])));
+        assert_eq!(card.image_url, "https://img/1.png");
+        assert_eq!(card.image_sha256, vec![9; 32]);
     }
 }

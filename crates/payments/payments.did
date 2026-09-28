@@ -194,6 +194,8 @@ service : () -> {
   get_quote_topup : (nat) -> (Result_8) query;
   get_rate : () -> (RateCache) query;
   get_treasury_account : () -> (text, Account) query;
+  list_ops_for_aaa : (principal, opt nat64, nat16) -> (Page_1) query;
+  list_ops_for_owner : (principal, opt nat64, nat16) -> (Page_1) query;
   request_auto_topup : () -> (Result_2);
   resume : (nat64) -> (Result);
   set_mandate : (SetMandateArgs) -> (Result);

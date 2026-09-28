@@ -224,6 +224,16 @@ fn get_op(id: u64) -> Option<Op> {
 }
 
 #[ic_cdk::query]
+fn list_ops_for_aaa(aaa: Principal, cursor: Option<u64>, limit: u16) -> Page<Op> {
+    journal::list_for_aaa(aaa, cursor, u32::from(limit))
+}
+
+#[ic_cdk::query]
+fn list_ops_for_owner(owner: Principal, cursor: Option<u64>, limit: u16) -> Page<Op> {
+    journal::list_for_owner(owner, cursor, u32::from(limit))
+}
+
+#[ic_cdk::query]
 fn get_rate() -> RateCache {
     rate::get()
 }
@@ -717,6 +727,8 @@ async fn top_up(args: TopUpArgs) -> Result<u64, ApiError> {
     let _guard = CallerGuard::acquire(guard::key("topup", args.aaa))?;
     let now = ic_cdk::api::time();
     let op = journal::create(OpKind::TopUp { aaa: args.aaa }, args.path, 0, caller, now);
+    journal::index_aaa(args.aaa, op.id);
+    journal::index_owner(caller, op.id);
     advance_topup_saga(op.id).await?;
     Ok(op.id)
 }
@@ -859,6 +871,7 @@ async fn request_auto_topup() -> Result<u64, ApiError> {
         aaa,
         now,
     );
+    journal::index_aaa(aaa, op.id);
     mandate::reserve(aaa, op.id, now, mandate.topup_e8s)?;
     advance_auto_topup_saga(op.id).await?;
     Ok(op.id)
@@ -1058,6 +1071,7 @@ async fn spawn_aaa(args: SpawnArgs) -> Result<u64, ApiError> {
         caller,
         now,
     );
+    journal::index_owner(caller, op.id);
     advance_spawn_saga(op.id, platform).await?;
     Ok(op.id)
 }

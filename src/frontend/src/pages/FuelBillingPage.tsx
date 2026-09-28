@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Principal } from '@icp-sdk/core/principal';
 import { HttpAgent } from '@icp-sdk/core/agent';
 import { Signer } from '@icp-sdk/signer';
@@ -16,7 +16,6 @@ import {
   e8sToCycles,
   formatIcp,
   MIN_TOPUP_E8S,
-  nextPollDelayMs,
   opStatusLabel,
   parseIcpToE8s,
   unwrapResult,
@@ -30,6 +29,7 @@ import {
   mandateUiState,
 } from '../lib/dashboard';
 import { spenderSubaccount } from '../lib/spenderSubaccount';
+import { dedupPages } from '../paging';
 
 const ICP_LEDGER_ID = Principal.fromText('ryjl3-tyaaa-aaaaa-aaaba-cai');
 const OISY_SIGNER_URL = 'https://oisy.com/sign';
@@ -38,18 +38,38 @@ const NS_PER_YEAR = 365n * 24n * 60n * 60n * 1_000_000_000n;
 
 type Payments = ReturnType<typeof paymentsActor>;
 
-function FuelOpRow({ payments, opId }: { payments: Payments; opId: bigint }) {
-  const opQuery = useQuery({
-    queryKey: ['fuel_op', opId.toString()],
-    queryFn: () => payments.get_op(opId),
-    refetchInterval: (query) => nextPollDelayMs(query.state.data ?? null),
+const HISTORY_PAGE_SIZE = 20;
+
+function FuelHistory({ payments, aaaId }: { payments: Payments; aaaId: Principal }) {
+  const query = useInfiniteQuery({
+    queryKey: ['fuel_history', aaaId.toText()],
+    queryFn: ({ pageParam }: { pageParam: bigint | null }) =>
+      payments.list_ops_for_aaa(aaaId, pageParam, HISTORY_PAGE_SIZE),
+    initialPageParam: null as bigint | null,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
   });
-  const op = opQuery.data;
+  const ops = dedupPages(query.data?.pages.map((p) => p.items), (op) => op.id.toString());
+
   return (
-    <li>
-      #{opId.toString()} —{' '}
-      {op ? `${opStatusLabel(op.state)} (${formatIcp(op.pull_e8s ?? op.amount_e8s)} ICP)` : 'Loading…'}
-    </li>
+    <>
+      {query.isPending && <p>Loading…</p>}
+      {query.isError && <p role="alert">Could not load fuel history. Try again later.</p>}
+      {query.isSuccess && ops.length === 0 && <p>No top-ups yet.</p>}
+      {ops.length > 0 && (
+        <ul>
+          {ops.map((op) => (
+            <li key={op.id.toString()}>
+              #{op.id.toString()} — {opStatusLabel(op.state)} ({formatIcp(op.pull_e8s ?? op.amount_e8s)} ICP)
+            </li>
+          ))}
+        </ul>
+      )}
+      {query.hasNextPage && (
+        <button type="button" onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage}>
+          {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
+        </button>
+      )}
+    </>
   );
 }
 
@@ -99,8 +119,6 @@ export function FuelBillingPage() {
   const topupAmountValid = topupAmountE8s !== null && topupAmountE8s >= MIN_TOPUP_E8S;
   const cyclesWanted =
     topupAmountValid && rateQuery.data ? e8sToCycles(topupAmountE8s!, rateQuery.data.xdr_permyriad_per_icp) : null;
-
-  const [sessionOpIds, setSessionOpIds] = useState<bigint[]>([]);
 
   async function invalidateMandate() {
     await queryClient.invalidateQueries({ queryKey: ['mandate', aaaId?.toText()] });
@@ -238,9 +256,9 @@ export function FuelBillingPage() {
             fetchDepositAccount={() => payments.get_deposit_account(Purpose.TopUp, aaaId)}
             fetchOp={(opId) => payments.get_op(opId)}
             submitOp={(path) => payments.top_up({ aaa: aaaId, path }).then(unwrapResult)}
-            onPaid={(opId) => {
-              setSessionOpIds((ids) => [opId, ...ids.filter((id) => id !== opId)]);
+            onPaid={() => {
               void queryClient.invalidateQueries({ queryKey: ['dashboard', aaaId.toText()] });
+              void queryClient.invalidateQueries({ queryKey: ['fuel_history', aaaId.toText()] });
             }}
           />
         )}
@@ -308,19 +326,8 @@ export function FuelBillingPage() {
       </section>
 
       <section aria-label="Fuel operation history">
-        <h2>Recent top-ups (this session)</h2>
-        <p>
-          Full paged history requires <code>payments.list_ops_for_aaa</code>, which is not yet available on this
-          canister.
-        </p>
-        {sessionOpIds.length === 0 && <p>No top-ups yet this session.</p>}
-        {sessionOpIds.length > 0 && (
-          <ul>
-            {sessionOpIds.map((id) => (
-              <FuelOpRow key={id.toString()} payments={payments} opId={id} />
-            ))}
-          </ul>
-        )}
+        <h2>Fuel operation history</h2>
+        <FuelHistory payments={payments} aaaId={aaaId} />
       </section>
 
       <p>

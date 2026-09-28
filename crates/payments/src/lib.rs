@@ -55,6 +55,7 @@ fn post_upgrade() {
         })
         .expect("bootstrap admin");
     }
+    journal::backfill_indexes();
     timers::start();
 }
 

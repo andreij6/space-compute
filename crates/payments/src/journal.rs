@@ -160,6 +160,42 @@ impl Op {
 thread_local! {
     static OPS: RefCell<StableBTreeMap<u64, Op, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::OPS)));
+    static AAA_INDEX: RefCell<StableBTreeMap<(Principal, u64), (), Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::AAA_OPS_INDEX)));
+    static OWNER_INDEX: RefCell<StableBTreeMap<(Principal, u64), (), Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::OWNER_OPS_INDEX)));
+}
+
+pub fn index_aaa(aaa: Principal, op_id: u64) {
+    AAA_INDEX.with_borrow_mut(|m| m.insert((aaa, op_id), ()));
+}
+
+pub fn index_owner(owner: Principal, op_id: u64) {
+    OWNER_INDEX.with_borrow_mut(|m| m.insert((owner, op_id), ()));
+}
+
+fn op_principals(op: &Op) -> (Option<Principal>, Option<Principal>) {
+    match &op.kind {
+        OpKind::Spawn { owner, .. } => (None, Some(*owner)),
+        OpKind::TopUp { aaa } => (Some(*aaa), Some(op.created_by)),
+        OpKind::AutoTopUp { aaa } => (Some(*aaa), None),
+        OpKind::FuelPack { aaa, .. } => (Some(*aaa), None),
+    }
+}
+
+pub fn backfill_indexes() {
+    OPS.with_borrow(|m| {
+        for entry in m.iter() {
+            let op = entry.value();
+            let (aaa, owner) = op_principals(&op);
+            if let Some(aaa) = aaa {
+                index_aaa(aaa, op.id);
+            }
+            if let Some(owner) = owner {
+                index_owner(owner, op.id);
+            }
+        }
+    });
 }
 
 pub fn create(kind: OpKind, path: PayPath, amount_e8s: u64, created_by: Principal, now: u64) -> Op {
@@ -299,6 +335,40 @@ pub fn list_filtered(filter: &OpFilter, cursor: Option<u64>, limit: u32) -> Page
         }
         Page { items, next_cursor }
     })
+}
+
+fn page_from_ids(mut ids: Vec<u64>, limit: usize) -> Page<Op> {
+    let has_more = ids.len() > limit;
+    ids.truncate(limit);
+    let next_cursor = if has_more { ids.last().copied() } else { None };
+    let items = ids.into_iter().filter_map(get).collect();
+    Page { items, next_cursor }
+}
+
+pub fn list_for_aaa(aaa: Principal, cursor: Option<u64>, limit: u32) -> Page<Op> {
+    let limit = sc_types::limits::page_limit(limit) as usize;
+    let upper = cursor.unwrap_or(u64::MAX);
+    let ids = AAA_INDEX.with_borrow(|m| {
+        m.range((aaa, 0)..(aaa, upper))
+            .rev()
+            .take(limit + 1)
+            .map(|e| e.key().1)
+            .collect()
+    });
+    page_from_ids(ids, limit)
+}
+
+pub fn list_for_owner(owner: Principal, cursor: Option<u64>, limit: u32) -> Page<Op> {
+    let limit = sc_types::limits::page_limit(limit) as usize;
+    let upper = cursor.unwrap_or(u64::MAX);
+    let ids = OWNER_INDEX.with_borrow(|m| {
+        m.range((owner, 0)..(owner, upper))
+            .rev()
+            .take(limit + 1)
+            .map(|e| e.key().1)
+            .collect()
+    });
+    page_from_ids(ids, limit)
 }
 
 fn kind_label(kind: &OpKind) -> &'static str {
@@ -710,5 +780,103 @@ mod tests {
         let op: Op = candid::decode_one(&bytes).unwrap();
         assert_eq!(op.id, 4);
         assert_eq!(op.pull_e8s, None);
+    }
+
+    #[test]
+    fn t5_19_list_for_aaa_pages_newest_first_and_isolates_other_aaas() {
+        let aaa = p(1);
+        let other = p(2);
+        for i in 0..3u64 {
+            let op = create(OpKind::TopUp { aaa }, PayPath::Deposit, 0, p(9), i);
+            index_aaa(aaa, op.id);
+        }
+        let op = create(OpKind::TopUp { aaa: other }, PayPath::Deposit, 0, p(9), 10);
+        index_aaa(other, op.id);
+
+        let page1 = list_for_aaa(aaa, None, 2);
+        assert_eq!(page1.items.iter().map(|o| o.id).collect::<Vec<_>>(), [2, 1]);
+        assert!(page1.next_cursor.is_some());
+        let page2 = list_for_aaa(aaa, page1.next_cursor, 2);
+        assert_eq!(page2.items.iter().map(|o| o.id).collect::<Vec<_>>(), [0]);
+        assert_eq!(page2.next_cursor, None);
+
+        let other_page = list_for_aaa(other, None, 100);
+        assert_eq!(other_page.items.len(), 1);
+        assert!(other_page
+            .items
+            .iter()
+            .all(|o| o.kind == OpKind::TopUp { aaa: other }));
+    }
+
+    #[test]
+    fn t5_19_list_for_owner_pages_newest_first_and_isolates_other_owners() {
+        let owner = p(3);
+        let other = p(4);
+        for i in 0..2u64 {
+            let op = create(
+                OpKind::Spawn {
+                    owner,
+                    name: "Rover".into(),
+                    avatar_seed: i,
+                },
+                PayPath::Deposit,
+                0,
+                owner,
+                i,
+            );
+            index_owner(owner, op.id);
+        }
+        let op = create(
+            OpKind::Spawn {
+                owner: other,
+                name: "Other".into(),
+                avatar_seed: 0,
+            },
+            PayPath::Deposit,
+            0,
+            other,
+            10,
+        );
+        index_owner(other, op.id);
+
+        let page = list_for_owner(owner, None, 100);
+        assert_eq!(page.items.len(), 2);
+        assert!(page
+            .items
+            .iter()
+            .all(|o| matches!(&o.kind, OpKind::Spawn { owner: w, .. } if *w == owner)));
+
+        let other_page = list_for_owner(other, None, 100);
+        assert_eq!(other_page.items.len(), 1);
+    }
+
+    #[test]
+    fn t5_19_backfill_indexes_populates_from_existing_journal() {
+        let aaa = p(5);
+        let owner = p(6);
+        let topup = create(OpKind::TopUp { aaa }, PayPath::Deposit, 0, owner, 1);
+        let spawn = create(
+            OpKind::Spawn {
+                owner,
+                name: "Rover".into(),
+                avatar_seed: 1,
+            },
+            PayPath::Deposit,
+            0,
+            owner,
+            2,
+        );
+
+        backfill_indexes();
+
+        let aaa_page = list_for_aaa(aaa, None, 100);
+        assert_eq!(
+            aaa_page.items.iter().map(|o| o.id).collect::<Vec<_>>(),
+            [topup.id]
+        );
+        let owner_page = list_for_owner(owner, None, 100);
+        let mut ids: Vec<u64> = owner_page.items.iter().map(|o| o.id).collect();
+        ids.sort_unstable();
+        assert_eq!(ids, [topup.id, spawn.id]);
     }
 }

@@ -915,7 +915,14 @@ fn list_discoveries(
     let caller = ic_cdk::api::msg_caller();
     let (items, next_cursor) = discoveries::list(&filter, cursor, limit, caller);
     events::Page {
-        items: items.iter().map(DiscoveryCard::from).collect(),
+        items: items
+            .iter()
+            .map(|d| {
+                let image = catalog::get_subject(d.subject_id)
+                    .map(|s| (s.ref_.image_url, s.ref_.image_sha256));
+                discoveries::to_card(d, image)
+            })
+            .collect(),
         next_cursor,
     }
 }

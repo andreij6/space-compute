@@ -192,11 +192,13 @@ type CreditRole = variant { Reviewer; Discoverer };
 type DiscoveryCard = record {
   status : DiscoveryStatus;
   needed_reviews : nat8;
+  image_url : text;
   public_id : text;
   created_at : nat64;
   subject_id : nat32;
   rationale : text;
   category : text;
+  image_sha256 : blob;
   confidence : nat8;
   resolved_at : opt nat64;
   discoverer_name : text;
