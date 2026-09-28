@@ -842,8 +842,8 @@
   "demo": "test: just demo T4.10  (narrated PocketIC/pytest run)",
   "start": "2026-11-25",
   "end": "2026-11-30",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T4.11",
@@ -861,8 +861,8 @@
   "demo": "test: just demo T4.11  (narrated PocketIC/pytest run)",
   "start": "2026-12-01",
   "end": "2026-12-01",
-  "status": "todo",
-  "pct": 0
+  "status": "done",
+  "pct": 1
  },
  {
   "id": "T4.8",
