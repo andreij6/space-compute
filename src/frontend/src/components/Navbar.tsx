@@ -12,10 +12,11 @@ import {
   Wallet,
   BookOpen
 } from 'lucide-react';
+import { useAuth } from '../auth';
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isConnected, setIsConnected] = useState(true);
+  const { principal, signOut } = useAuth();
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
@@ -78,16 +79,19 @@ export const Navbar: React.FC = () => {
             <span>Spawn AAA</span>
           </Link>
 
-          <button 
-            className="btn-secondary" 
-            onClick={() => setIsConnected(!isConnected)}
-            title="Internet Identity Status"
-          >
-            <Wallet size={15} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
-              {isConnected ? '2vxsx...cai' : 'Connect II'}
-            </span>
-          </button>
+          {principal ? (
+            <button className="btn-secondary" onClick={() => void signOut()} title={principal.toText()}>
+              <Wallet size={15} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+                {principal.toText().slice(0, 5)}… Sign out
+              </span>
+            </button>
+          ) : (
+            <Link to="/signin" className="btn-secondary">
+              <Wallet size={15} />
+              <span>Sign in</span>
+            </Link>
+          )}
 
           <button 
             className="mobile-menu-btn" 

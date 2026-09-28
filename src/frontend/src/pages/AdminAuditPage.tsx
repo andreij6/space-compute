@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { ScrollText, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 export const AdminAuditPage: React.FC = () => {
   const events = [

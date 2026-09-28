@@ -1,72 +1,92 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { lazy, Suspense, type ComponentType } from 'react';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { RootLayout } from './layouts/RootLayout';
-import { LandingPage } from './pages/LandingPage';
-import { MuseumPage } from './pages/MuseumPage';
-import { DiscoveryDetailPage } from './pages/DiscoveryDetailPage';
-import { AAAPublicProfilePage } from './pages/AAAPublicProfilePage';
-import { LeaderboardPage } from './pages/LeaderboardPage';
-import { SpawnWizardPage } from './pages/SpawnWizardPage';
-import { OwnerDashboardPage } from './pages/OwnerDashboardPage';
-import { ConnectAgentPage } from './pages/ConnectAgentPage';
-import { ScientificRecordsPage } from './pages/ScientificRecordsPage';
-import { FuelBillingPage } from './pages/FuelBillingPage';
-import { AboutPage } from './pages/AboutPage';
-import { PracticePage } from './pages/PracticePage';
-import { TermsPage } from './pages/TermsPage';
-import { PrivacyPage } from './pages/PrivacyPage';
-import { CreditsPage } from './pages/CreditsPage';
-import { AdminOverviewPage } from './pages/AdminOverviewPage';
-import { AdminAAAsPage } from './pages/AdminAAAsPage';
-import { AdminDiscoveriesPage } from './pages/AdminDiscoveriesPage';
-import { AdminCatalogPage } from './pages/AdminCatalogPage';
-import { AdminPaymentsPage } from './pages/AdminPaymentsPage';
-import { AdminReleasesPage } from './pages/AdminReleasesPage';
-import { AdminSettingsPage } from './pages/AdminSettingsPage';
-import { AdminInvitesPage } from './pages/AdminInvitesPage';
-import { AdminTreasuryPage } from './pages/AdminTreasuryPage';
-import { AdminModerationPage } from './pages/AdminModerationPage';
-import { AdminAuditPage } from './pages/AdminAuditPage';
-import { NotFoundPage } from './pages/NotFoundPage';
+import { guardDecision, useAuth, useIsAdmin, useMyAaa } from './auth';
 
-export const App: React.FC = () => {
+const lazyPages = Object.fromEntries(
+  Object.entries(import.meta.glob<Record<string, ComponentType>>('./pages/*Page.tsx')).map(([path, load]) => {
+    const name = path.slice('./pages/'.length, -'.tsx'.length);
+    return [name, lazy(() => load().then((m) => ({ default: m[name] })))];
+  }),
+);
+const page = (name: string) => {
+  const Page = lazyPages[name];
+  return (
+    <Suspense fallback={<p>Loading…</p>}>
+      <Page />
+    </Suspense>
+  );
+};
+
+function RequireAuth({ needAaa }: { needAaa: boolean }) {
+  const { ready, principal } = useAuth();
+  const aaa = useMyAaa();
+  const location = useLocation();
+  const decision = guardDecision({ ready, signedIn: !!principal, needAaa, aaa });
+  if (decision === 'loading') return <p>Loading…</p>;
+  if (decision === 'error') return <p role="alert">Could not load your AAA. Try again later.</p>;
+  if (decision === 'ok') return <Outlet />;
+  return <Navigate to={decision} replace state={{ from: location.pathname }} />;
+}
+
+function RequireAdmin() {
+  const { ready, principal } = useAuth();
+  const admin = useIsAdmin();
+  if (!ready || (principal && admin.isPending)) return <p>Loading…</p>;
+  return admin.data ? <Outlet /> : page('NotFoundPage');
+}
+
+const adminPages: [string, string][] = [
+  ['aaas', 'AdminAAAsPage'],
+  ['discoveries', 'AdminDiscoveriesPage'],
+  ['data', 'AdminCatalogPage'],
+  ['payments', 'AdminPaymentsPage'],
+  ['releases', 'AdminReleasesPage'],
+  ['settings', 'AdminSettingsPage'],
+  ['invites', 'AdminInvitesPage'],
+  ['treasury', 'AdminTreasuryPage'],
+  ['moderation', 'AdminModerationPage'],
+  ['audit', 'AdminAuditPage'],
+];
+
+export function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<RootLayout />}>
-          <Route index element={<LandingPage />} />
-          <Route path="discoveries" element={<MuseumPage />} />
-          <Route path="d/:publicId" element={<DiscoveryDetailPage />} />
-          <Route path="aaa/:id" element={<AAAPublicProfilePage />} />
-          <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route index element={page('LandingPage')} />
+          <Route path="discoveries" element={page('MuseumPage')} />
+          <Route path="d/:publicId" element={page('DiscoveryDetailPage')} />
+          <Route path="aaa/:id" element={page('AAAPublicProfilePage')} />
+          <Route path="leaderboard" element={page('LeaderboardPage')} />
+          <Route path="signin" element={page('SignInPage')} />
 
-          <Route path="spawn" element={<SpawnWizardPage />} />
-          <Route path="dashboard" element={<OwnerDashboardPage />} />
-          <Route path="connect" element={<ConnectAgentPage />} />
-          <Route path="records" element={<ScientificRecordsPage />} />
-          <Route path="fuel" element={<FuelBillingPage />} />
+          <Route element={<RequireAuth needAaa={false} />}>
+            <Route path="spawn" element={page('SpawnWizardPage')} />
+          </Route>
+          <Route element={<RequireAuth needAaa />}>
+            <Route path="dashboard" element={page('OwnerDashboardPage')} />
+            <Route path="connect" element={page('ConnectAgentPage')} />
+            <Route path="records" element={page('ScientificRecordsPage')} />
+            <Route path="fuel" element={page('FuelBillingPage')} />
+          </Route>
 
-          <Route path="about" element={<AboutPage />} />
-          <Route path="practice" element={<PracticePage />} />
-          <Route path="terms" element={<TermsPage />} />
-          <Route path="privacy" element={<PrivacyPage />} />
-          <Route path="credits" element={<CreditsPage />} />
+          <Route path="about" element={page('AboutPage')} />
+          <Route path="practice" element={page('PracticePage')} />
+          <Route path="terms" element={page('TermsPage')} />
+          <Route path="privacy" element={page('PrivacyPage')} />
+          <Route path="credits" element={page('CreditsPage')} />
 
-          <Route path="admin" element={<AdminOverviewPage />} />
-          <Route path="admin/aaas" element={<AdminAAAsPage />} />
-          <Route path="admin/discoveries" element={<AdminDiscoveriesPage />} />
-          <Route path="admin/data" element={<AdminCatalogPage />} />
-          <Route path="admin/payments" element={<AdminPaymentsPage />} />
-          <Route path="admin/releases" element={<AdminReleasesPage />} />
-          <Route path="admin/settings" element={<AdminSettingsPage />} />
-          <Route path="admin/invites" element={<AdminInvitesPage />} />
-          <Route path="admin/treasury" element={<AdminTreasuryPage />} />
-          <Route path="admin/moderation" element={<AdminModerationPage />} />
-          <Route path="admin/audit" element={<AdminAuditPage />} />
+          <Route path="admin" element={<RequireAdmin />}>
+            <Route index element={page('AdminOverviewPage')} />
+            {adminPages.map(([path, name]) => (
+              <Route key={path} path={path} element={page(name)} />
+            ))}
+          </Route>
 
-          <Route path="*" element={<NotFoundPage />} />
+          <Route path="*" element={page('NotFoundPage')} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
-};
+}

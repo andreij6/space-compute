@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { CreditCard, AlertTriangle, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
 
 export const AdminPaymentsPage: React.FC = () => {
   const sagas = [

@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Cpu, 
+  
   Zap, 
   Activity, 
-  Clock, 
+  
   ArrowRight, 
-  CheckCircle2, 
-  AlertTriangle, 
+  
+  
   Telescope, 
-  Compass, 
-  TrendingUp,
-  Settings,
-  Sparkles
+  
+  TrendingUp
+  
 } from 'lucide-react';
 import { mockOwnerAaa, mockActivityRecords, mockDiscoveries } from '../mockData';
 import { FuelCellGauge } from '../components/FuelCellGauge';

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { Compass, Upload, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
-import { mockDiscoveries } from '../mockData';
+import { Upload, CheckCircle2 } from 'lucide-react';
 
 export const AdminDiscoveriesPage: React.FC = () => {
   const [seedSuccess, setSeedSuccess] = useState(false);

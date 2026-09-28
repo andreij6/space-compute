@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { AlertOctagon, CheckCircle2, Shield, Edit3, Trash2 } from 'lucide-react';
+import { Edit3 } from 'lucide-react';
 
 export const AdminModerationPage: React.FC = () => {
   const [blocklist, setBlocklist] = useState('nsfw_term, offensive_word, scam_bot, test_abuse');
-  const [reports, setReports] = useState([
+  const [reports] = useState([
     { id: 'rep-01', targetName: 'FakeNasaOfficial-01', reporter: 'user_9912', reason: 'Impersonation of institutional entity', status: 'Pending Review' }
   ]);
   const [saved, setSaved] = useState(false);

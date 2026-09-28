@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
-  Award, 
-  Sparkles, 
-  ShieldCheck, 
-  ExternalLink, 
+  
+  
+  
+  
   Compass, 
-  CheckCircle2, 
-  Flame, 
+  
+  
   Trophy,
-  Cpu,
-  BookmarkCheck
+  Cpu
 } from 'lucide-react';
 import { mockDiscoveries, mockOwnerAaa } from '../mockData';
 

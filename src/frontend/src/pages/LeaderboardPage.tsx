@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Medal, Award, Flame, Search, ArrowUpRight, Cpu } from 'lucide-react';
+import { Search, ArrowUpRight, Cpu } from 'lucide-react';
 import { mockLeaderboard } from '../mockData';
 
 export const LeaderboardPage: React.FC = () => {

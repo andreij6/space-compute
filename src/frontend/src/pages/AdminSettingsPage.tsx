@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { Settings, Save, Shield, Plus, Trash2 } from 'lucide-react';
+import { Save } from 'lucide-react';
 
 export const AdminSettingsPage: React.FC = () => {
   const [flags, setFlags] = useState({

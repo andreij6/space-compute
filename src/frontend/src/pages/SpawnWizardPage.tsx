@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Sparkles, 
-  Cpu, 
+  
   CheckCircle2, 
   ArrowRight, 
   CreditCard, 
   Ticket, 
   Loader2, 
-  ShieldCheck, 
+  
   Check 
 } from 'lucide-react';
 import { MultiCurrencyPayment } from '../components/MultiCurrencyPayment';

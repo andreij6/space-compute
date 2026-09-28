@@ -1,22 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { Vault, Plus, CheckCircle2, TrendingUp, Cpu } from 'lucide-react';
 import { mockTreasury } from '../mockData';
 
 export const AdminTreasuryPage: React.FC = () => {
-  const [injectedNotice, setInjectedNotice] = useState(false);
-
   const canisters = [
     { name: 'platform', id: 'qhbym-qaaaa-aaaaa-aaafq-cai', balance: '48.5 TCycles', dailyBurn: '420 GCycles', status: 'Healthy' },
     { name: 'payments', id: 'qda4v-eyaaa-aaaaa-aaaha-cai', balance: '32.1 TCycles', dailyBurn: '180 GCycles', status: 'Healthy' },
     { name: 'treasury', id: 'qjdve-lqaaa-aaaaa-aaaeq-cai', balance: '85.0 TCycles', dailyBurn: '50 GCycles', status: 'Healthy' },
     { name: 'frontend', id: 'q42bv-ciaaa-aaaaa-aaajq-cai', balance: '18.2 TCycles', dailyBurn: '95 GCycles', status: 'Healthy' },
   ];
-
-  const handleInject = () => {
-    setInjectedNotice(true);
-    setTimeout(() => setInjectedNotice(false), 2500);
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

@@ -1,14 +1,13 @@
 import React from 'react';
 import { 
   Telescope, 
-  Cpu, 
+  
   ShieldCheck, 
-  ExternalLink, 
-  Layers, 
-  ArrowRight,
-  Sparkles,
-  GitBranch,
-  ShieldAlert
+  
+  Layers 
+  
+  
+  
 } from 'lucide-react';
 import { mockTreasury } from '../mockData';
 

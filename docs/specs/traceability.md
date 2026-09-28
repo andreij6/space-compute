@@ -175,3 +175,8 @@
 | 08 §2 S1: admin_pause blocks new spawn, top_up and request_auto_topup | T5.7 | t5_7_pause_flags_block_new_spawn_topup_and_auto_topup |
 | 04 §4: admin_treasury_withdraw retried with the same created_at_time pays once | T5.7 | t5_7_treasury_withdraw_retry_with_the_same_created_at_time_pays_once |
 | 08 §4: payments review checklist signed | T5.7 | docs/security/payments-review-T5.7.md |
+| 05 §2 sign-in routing: after II sign-in, platform.aaa_by_owner(me) routes no AAA → /spawn, an AAA → /dashboard; owner routes guard to /signin; AAA routes send AAA-less owners to /spawn; admin gate cosmetic (vitest, mocked actor) | T6.1 | src/frontend/src/auth.test.ts |
+| 05 §1: canister ids + root key come from the ic_env cookie; local network uses the local II (id.ai.localhost) with the ic_env root key, production uses id.ai with the pinned derivation origin (vitest) | T6.1 | src/frontend/src/ic.test.ts |
+| 05 §1/§4: no runtime root-key fetch, no raw HTML rendering, strict CSP (frame-ancestors 'none', IC API + id.ai connect-src) (vitest) | T6.1 | src/frontend/src/security.test.ts |
+| T6.1 acceptance "Sign-in works locally": a new user signs in with Internet Identity on the local network and lands on /spawn; signed-out /dashboard → /signin; landing reads get_stats (Playwright, `npm run e2e` after `just deploy-local`) | T6.1 | src/frontend/tests/e2e/signin.spec.ts |
+| T6.1 demo screenshot: signed-in owner routed to /spawn | T6.1 | docs/demos/T6.1/signin.png |

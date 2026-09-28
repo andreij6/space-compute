@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Sparkles, 
@@ -6,17 +5,15 @@ import {
   Cpu, 
   ShieldCheck, 
   ArrowRight, 
-  Compass, 
-  CheckCircle, 
-  Flame,
-  Award,
-  Globe2
+  Compass 
+  
+  
+  
 } from 'lucide-react';
-import { mockDiscoveries, mockTreasury } from '../mockData';
+import { useQuery } from '@tanstack/react-query';
+import { platformActor } from '../ic';
 
-export const LandingPage: React.FC = () => {
-  const featured = mockDiscoveries.slice(0, 3);
-
+export const LandingPage = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>
       <section style={{ textAlign: 'center', padding: '2rem 0 1rem' }}>
@@ -68,42 +65,7 @@ export const LandingPage: React.FC = () => {
           </Link>
         </div>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-          gap: '1.25rem', 
-          maxWidth: '900px', 
-          margin: '3rem auto 0',
-          padding: '1.5rem',
-          backgroundColor: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)'
-        }}>
-          <div>
-            <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--amber-star)' }}>
-              142,850+
-            </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>JWST Images Classified</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--cyan-nebula)' }}>
-              1,240
-            </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Active AAA Canisters</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: '#f3f5fa' }}>
-              382
-            </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Confirmed Discoveries</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--blue-cosmic)' }}>
-              100%
-            </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>BLS Verified On-Chain</div>
-          </div>
-        </div>
+        <StatsPanel />
       </section>
 
       <section>
@@ -202,61 +164,7 @@ export const LandingPage: React.FC = () => {
           </Link>
         </div>
 
-        <div className="grid-responsive">
-          {featured.map((disc) => (
-            <Link 
-              to={`/d/${disc.publicId}`} 
-              key={disc.publicId} 
-              className="card"
-              style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
-            >
-              <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', backgroundColor: '#000' }}>
-                <img 
-                  src={disc.imageUrl} 
-                  alt={disc.name} 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <span 
-                  className="badge badge-amber" 
-                  style={{ position: 'absolute', top: '0.65rem', left: '0.65rem', backdropFilter: 'blur(8px)' }}
-                >
-                  {disc.categoryLabel}
-                </span>
-                <span 
-                  className="badge badge-cyan" 
-                  style={{ position: 'absolute', top: '0.65rem', right: '0.65rem', backdropFilter: 'blur(8px)' }}
-                >
-                  z = {disc.redshift}
-                </span>
-              </div>
-
-              <div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--amber-star)' }}>
-                  {disc.publicId}
-                </div>
-                <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600, margin: '0.2rem 0 0.4rem' }}>
-                  {disc.name}
-                </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  {disc.rationale}
-                </p>
-              </div>
-
-              <div style={{ 
-                marginTop: 'auto', 
-                paddingTop: '0.75rem', 
-                borderTop: '1px solid var(--border-subtle)', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                fontSize: '0.8rem',
-                color: 'var(--text-dim)'
-              }}>
-                <span>By {disc.discovererAaa}</span>
-                <span style={{ color: 'var(--cyan-nebula)', fontWeight: 600 }}>+{disc.votesAgree} Votes</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <RecentDiscoveries />
       </section>
 
       <section className="card" style={{ borderColor: 'var(--border-cyan)' }}>
@@ -278,34 +186,38 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '1.5rem', borderRadius: 'var(--radius-md)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Reserve Balance</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--amber-star)' }}>
-                {mockTreasury.icpBalance} ICP
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Projected Autonomous Runway</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--cyan-nebula)' }}>
-                {mockTreasury.runwayMonths} Months
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Daily Platform Cycle Burn</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                {mockTreasury.dailyBurnCycles}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Subsidized AAAs</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                {mockTreasury.totalSubsidizedAaAs} Canisters
-              </span>
-            </div>
-          </div>
         </div>
       </section>
     </div>
   );
 };
+
+const REFRESH = 60_000;
+
+function StatsPanel() {
+  const stats = useQuery({ queryKey: ['get_stats'], queryFn: () => platformActor().get_stats(), refetchInterval: REFRESH });
+  if (stats.isPending) return <p>Loading stats…</p>;
+  if (stats.isError) return <p role="alert">Stats unavailable: {stats.error.message}</p>;
+  const s = stats.data;
+  const items: [string, bigint | number][] = [
+    ['Classifications', s.total_classifications],
+    ['Active AAAs', s.active_aaas],
+    ['Confirmed discoveries', s.confirmed_discoveries],
+    ['Discoveries under review', s.under_review_count],
+    ['Subjects', s.total_subjects],
+  ];
+  return (
+    <dl className="grid-responsive" aria-label="Platform stats" style={{ maxWidth: '900px', margin: '3rem auto 0' }}>
+      {items.map(([label, value]) => (
+        <div key={label}>
+          <dd style={{ fontSize: '1.8rem', fontWeight: 700 }}>{value.toLocaleString()}</dd>
+          <dt style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{label}</dt>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function RecentDiscoveries() {
+  return <p>Recent confirmed discoveries appear here once platform.list_discoveries is live.</p>;
+}

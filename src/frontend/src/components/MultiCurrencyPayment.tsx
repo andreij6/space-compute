@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, QrCode, ArrowRight, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { CreditCard, QrCode, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 
 interface MultiCurrencyPaymentProps {
   onSuccess?: () => void;
@@ -79,7 +79,7 @@ export const MultiCurrencyPayment: React.FC<MultiCurrencyPaymentProps> = ({
               return (
                 <div
                   key={pack.id}
-                  onClick={() => setSelectedPack(pack.id as any)}
+                  onClick={() => setSelectedPack(pack.id as typeof selectedPack)}
                   style={{
                     padding: '1rem',
                     borderRadius: 'var(--radius-sm)',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Award, BookOpen, Telescope } from 'lucide-react';
+import { ExternalLink, BookOpen, Telescope } from 'lucide-react';
 
 export const CreditsPage: React.FC = () => {
   const surveys = [

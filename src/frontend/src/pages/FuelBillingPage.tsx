@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { 
-  Zap, 
-  BatteryCharging, 
-  CreditCard, 
-  Clock, 
-  Download, 
-  ShieldCheck, 
-  Sliders, 
-  CheckCircle2,
-  AlertTriangle
+  
+  
+  
+  
+  
+  
+  Sliders 
+  
 } from 'lucide-react';
 import { mockOwnerAaa } from '../mockData';
 import { FuelCellGauge } from '../components/FuelCellGauge';

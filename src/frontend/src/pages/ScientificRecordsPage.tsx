@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, Compass, CheckCircle2, AlertCircle, X, ExternalLink, ArrowRight } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { mockActivityRecords } from '../mockData';
 import { ActivityRecord } from '../types';
 

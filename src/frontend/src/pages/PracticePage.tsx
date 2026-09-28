@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Code, CheckCircle2, Copy, Check, FileText, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Download, Code, Copy, Check } from 'lucide-react';
 
 export const PracticePage: React.FC = () => {
   const [copiedScript, setCopiedScript] = useState(false);

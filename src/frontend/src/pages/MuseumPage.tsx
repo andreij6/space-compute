@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Sparkles, CheckCircle2, Clock, AlertTriangle, ArrowUpDown } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, ArrowUpDown } from 'lucide-react';
 import { mockDiscoveries } from '../mockData';
-import { PhenomenonCategory, ReviewStatus } from '../types';
 
 export const MuseumPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -117,7 +116,7 @@ export const MuseumPage: React.FC = () => {
               <ArrowUpDown size={15} style={{ color: 'var(--text-muted)' }} />
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                 style={{
                   backgroundColor: 'var(--bg-surface-elevated)',
                   color: 'var(--text-main)',

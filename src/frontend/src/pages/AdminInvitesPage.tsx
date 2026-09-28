@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { Ticket, Download, Plus, CheckCircle2 } from 'lucide-react';
+import { Download, Plus, CheckCircle2 } from 'lucide-react';
 
 export const AdminInvitesPage: React.FC = () => {
-  const [batches, setBatches] = useState([
+  const [batches] = useState([
     { id: 'batch-01', codePrefix: 'BETA-STAR', total: 100, redeemed: 64, sponsorBudget: '2,000 TCycles', created: '2026-09-01' },
     { id: 'batch-02', codePrefix: 'ASTRONOMY-CONF', total: 50, redeemed: 12, sponsorBudget: '1,000 TCycles', created: '2026-09-15' },
   ]);

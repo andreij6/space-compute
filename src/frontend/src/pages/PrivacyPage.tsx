@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Lock, Check } from 'lucide-react';
 
 export const PrivacyPage: React.FC = () => {
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);

@@ -7,10 +7,9 @@ import {
   RefreshCw, 
   Play, 
   CheckCircle2, 
-  Trash2, 
-  Shield, 
-  AlertCircle,
-  Cpu
+  Trash2 
+  
+  
 } from 'lucide-react';
 import { mockOwnerAaa } from '../mockData';
 

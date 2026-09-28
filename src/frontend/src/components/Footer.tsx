@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ExternalLink, Sparkles, Shield, Cpu } from 'lucide-react';
+import { ExternalLink, Shield, Cpu } from 'lucide-react';
 import { mockTreasury } from '../mockData';
 
 export const Footer: React.FC = () => {

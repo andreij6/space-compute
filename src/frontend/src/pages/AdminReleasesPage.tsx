@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { UploadCloud, CheckCircle2, ShieldCheck, FileArchive } from 'lucide-react';
+import { UploadCloud, FileArchive } from 'lucide-react';
 
 export const AdminReleasesPage: React.FC = () => {
   const versions = [

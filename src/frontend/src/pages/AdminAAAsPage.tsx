@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { Search, ShieldAlert, RefreshCw, X, Ban, ShieldCheck } from 'lucide-react';
+import { Search, RefreshCw, X, Ban } from 'lucide-react';
 import { mockLeaderboard } from '../mockData';
 
 export const AdminAAAsPage: React.FC = () => {
   const [search, setSearch] = useState('');
-  const [selectedAaa, setSelectedAaa] = useState<any>(mockLeaderboard[0]);
+  const [selectedAaa, setSelectedAaa] = useState<(typeof mockLeaderboard)[number] | null>(mockLeaderboard[0]);
 
   const filtered = mockLeaderboard.filter(a => 
     a.name.toLowerCase().includes(search.toLowerCase()) ||

@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminNav } from '../components/AdminNav';
-import { Database, FileCode, CheckCircle2 } from 'lucide-react';
+import { FileCode } from 'lucide-react';
 
 export const AdminCatalogPage: React.FC = () => {
   const schema = `{

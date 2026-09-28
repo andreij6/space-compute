@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  ExternalLink, 
+  
   Download, 
-  Layers, 
-  Maximize2, 
+  
+  
   Sparkles, 
-  ShieldCheck, 
+  
   Compass, 
   ZoomIn, 
   ZoomOut,
