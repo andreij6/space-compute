@@ -21,6 +21,7 @@ use audit::AuditEntry;
 use candid::Principal;
 use catalog::{AdminListSubjectsFilter, Lease, Subject, SubjectInput};
 use config::{Params, PauseFlags};
+use discoveries::{DiscoveryCard, DiscoveryView};
 use registry::{
     AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput, RegisterArgs,
     UpdateAaaProfileArgs, WasmMeta,

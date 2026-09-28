@@ -413,12 +413,14 @@ pub fn get_stats() -> Stats {
     let active_aaas = crate::registry::active_aaas_count();
     let total_subjects = crate::catalog::total_subjects_count();
     let retired_subjects = crate::catalog::retired_subjects_count();
+    let confirmed_discoveries = crate::discoveries::count_by_queue_status(1);
+    let under_review_count = crate::discoveries::count_by_queue_status(0);
 
     Stats {
         total_classifications,
         active_aaas,
-        confirmed_discoveries: 0,
-        under_review_count: 0,
+        confirmed_discoveries,
+        under_review_count,
         total_subjects,
         retired_subjects,
     }
@@ -751,6 +753,55 @@ mod tests {
         unique.dedup();
         assert_eq!(unique.len(), 5);
         assert_eq!(get_progress(&aaas[0]).v, 1);
+    }
+
+    #[test]
+    fn t4_6_stats_counts_real_discoveries_and_excludes_honeypots() {
+        use crate::discoveries::{self, DiscoveryStatus, NewDiscovery};
+        use sc_types::Vote;
+
+        let mut under_review = discoveries::create(NewDiscovery {
+            subject_id: 1,
+            classification_id: 1,
+            discoverer_aaa: Principal::from_slice(&[220, 1]),
+            discoverer_owner: Principal::from_slice(&[220, 2]),
+            discoverer_name_at_time: "A".into(),
+            category: "lens".into(),
+            rationale: "an arc around the core".into(),
+            confidence: 80,
+            fee: 1,
+            needed_reviews: 3,
+            created_at: 1,
+            claim_ra_deg: 0.0,
+            claim_dec_deg: 0.0,
+        });
+        under_review.status = DiscoveryStatus::UnderReview;
+        discoveries::put(&under_review);
+
+        let mut confirmed = discoveries::create(NewDiscovery {
+            subject_id: 2,
+            classification_id: 2,
+            discoverer_aaa: Principal::from_slice(&[220, 3]),
+            discoverer_owner: Principal::from_slice(&[220, 4]),
+            discoverer_name_at_time: "B".into(),
+            category: "lens".into(),
+            rationale: "another arc".into(),
+            confidence: 80,
+            fee: 1,
+            needed_reviews: 3,
+            created_at: 2,
+            claim_ra_deg: 0.0,
+            claim_dec_deg: 0.0,
+        });
+        confirmed.status = DiscoveryStatus::Confirmed;
+        confirmed.resolved_at = Some(2);
+        discoveries::put(&confirmed);
+
+        discoveries::create_honeypot(1, "lens".into(), "r".into(), Vote::Disagree, 3);
+
+        let stats = get_stats();
+        assert_eq!(stats.under_review_count, 1);
+        assert_eq!(stats.confirmed_discoveries, 1);
     }
 
     #[test]

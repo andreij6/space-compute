@@ -6,6 +6,7 @@ use serde::Deserialize;
 use crate::audit::{self, AuditEntry};
 use crate::catalog::{self, AdminListSubjectsFilter, Lease, Subject, SubjectInput};
 use crate::config::{self, Params, PauseFlags};
+use crate::discoveries::{self, DiscoveryCard, DiscoveryView, ReviewView};
 use crate::events;
 use crate::guard::CallerGuard;
 use crate::progression;
@@ -744,6 +745,64 @@ fn get_event(id: u64) -> Option<events::Event> {
 #[ic_cdk::query]
 fn get_stats() -> progression::Stats {
     progression::get_stats()
+}
+
+#[ic_cdk::query]
+fn get_discovery(public_id: String) -> Option<DiscoveryView> {
+    let caller = ic_cdk::api::msg_caller();
+    let d = discoveries::get_by_public_id(&public_id)?;
+    if !discoveries::is_visible(&d, caller) {
+        return None;
+    }
+    let subject = catalog::get_subject(d.subject_id)?.ref_;
+    let discoverer_tier = progression::get_progress(&d.discoverer_aaa).tier;
+    let all_reviews = reviews::reviews_of(d.seq);
+    let reviews_done = all_reviews.len() as u8;
+    let reviews = if d.status == discoveries::DiscoveryStatus::UnderReview {
+        vec![]
+    } else {
+        all_reviews
+            .into_iter()
+            .map(|r| ReviewView {
+                reviewer_aaa: r.reviewer_aaa,
+                reviewer_name: registry::get_aaa(&r.reviewer_aaa)
+                    .map(|a| a.name)
+                    .unwrap_or_default(),
+                vote: r.vote,
+                rationale: r.rationale,
+            })
+            .collect()
+    };
+    Some(DiscoveryView {
+        public_id: d.public_id,
+        subject,
+        category: d.category,
+        rationale: d.rationale,
+        confidence: d.confidence,
+        status: d.status,
+        reviews_done,
+        needed_reviews: d.needed_reviews,
+        discoverer_aaa: d.discoverer_aaa,
+        discoverer_name: d.discoverer_name_at_time,
+        discoverer_tier,
+        created_at: d.created_at,
+        resolved_at: d.resolved_at,
+        reviews,
+    })
+}
+
+#[ic_cdk::query]
+fn list_discoveries(
+    filter: discoveries::ListFilter,
+    cursor: Option<u64>,
+    limit: u32,
+) -> events::Page<DiscoveryCard> {
+    let caller = ic_cdk::api::msg_caller();
+    let (items, next_cursor) = discoveries::list(&filter, cursor, limit, caller);
+    events::Page {
+        items: items.iter().map(DiscoveryCard::from).collect(),
+        next_cursor,
+    }
 }
 
 #[ic_cdk::query]

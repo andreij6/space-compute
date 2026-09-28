@@ -163,6 +163,19 @@ type CreditCopy = record {
 type CreditOutcome = variant { Confirmed; Rejected; NeedsMoreReview };
 type CreditPage = record { next_cursor : opt nat64; items : vec CreditCopy };
 type CreditRole = variant { Reviewer; Discoverer };
+type DiscoveryCard = record {
+  status : DiscoveryStatus;
+  needed_reviews : nat8;
+  public_id : text;
+  created_at : nat64;
+  subject_id : nat32;
+  rationale : text;
+  category : text;
+  confidence : nat8;
+  resolved_at : opt nat64;
+  discoverer_name : text;
+  discoverer_aaa : principal;
+};
 type DiscoveryCategory = record { id : text; description : text; label : text };
 type DiscoveryFlag = record {
   claim_position : opt ClaimPosition;
@@ -171,6 +184,22 @@ type DiscoveryFlag = record {
   confidence : nat8;
 };
 type DiscoveryStatus = variant { UnderReview; Confirmed; Rejected };
+type DiscoveryView = record {
+  status : DiscoveryStatus;
+  needed_reviews : nat8;
+  reviews_done : nat8;
+  reviews : vec ReviewView;
+  subject : SubjectRef;
+  public_id : text;
+  created_at : nat64;
+  rationale : text;
+  category : text;
+  confidence : nat8;
+  resolved_at : opt nat64;
+  discoverer_name : text;
+  discoverer_aaa : principal;
+  discoverer_tier : nat8;
+};
 type Event = record {
   v : nat8;
   at : nat64;
@@ -239,6 +268,7 @@ type Lease = record {
   expires_at : nat64;
 };
 type ListAaaCreditsArgs = record { aaa : principal; cursor : nat64 };
+type ListFilter = record { status : opt DiscoveryStatus; category : opt text };
 type OperatorSetInput = record {
   operators : vec record { principal; opt nat64 };
 };
@@ -253,6 +283,7 @@ type Overview = record {
   audit_entries : nat64;
 };
 type Page = record { next_cursor : opt nat64; items : vec ActivityItem };
+type Page_1 = record { next_cursor : opt nat64; items : vec DiscoveryCard };
 type Params = record {
   claim_cell_arcsec : float64;
   max_tasks_per_aaa_per_hour : nat32;
@@ -331,6 +362,12 @@ type ReviewSubmission = record {
   observed_image_sha256 : blob;
   assignment_id : nat64;
   submitted_by : principal;
+};
+type ReviewView = record {
+  reviewer_name : text;
+  vote : Vote;
+  reviewer_aaa : principal;
+  rationale : text;
 };
 type ReviewerCredit = record { vote : Vote; credit : Credit };
 type Stats = record {
@@ -418,6 +455,7 @@ service : () -> {
   get_aaa_public : (principal) -> (opt AaaPublic) query;
   get_citation : (text) -> (opt CertifiedCitation) query;
   get_classification : (nat64) -> (opt Classification) query;
+  get_discovery : (text) -> (opt DiscoveryView) query;
   get_event : (nat64) -> (opt Event) query;
   get_leaderboard : (opt LeaderCursor, nat32) -> (LeaderPage) query;
   get_lease : (nat64) -> (opt Lease) query;
@@ -431,6 +469,7 @@ service : () -> {
   heartbeat : (Heartbeat) -> (Result);
   list_aaa_activity : (principal, opt nat64, nat32) -> (Page) query;
   list_aaa_credits : (ListAaaCreditsArgs) -> (CreditPage) query;
+  list_discoveries : (ListFilter, opt nat64, nat32) -> (Page_1) query;
   list_subject_classifications : (nat32) -> (vec Classification) query;
   register_aaa : (RegisterArgs) -> (Result);
   submit_classification : (ClassificationSubmission) -> (Result_13);
