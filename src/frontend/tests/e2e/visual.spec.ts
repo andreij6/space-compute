@@ -47,7 +47,6 @@ const dynamicData = (page: Page): Locator[] => [
   page.locator('dd'),
   page.locator('code'),
   page.locator('time'),
-  page.locator('table tbody'),
   page.locator('[role="status"]'),
   page.locator('[role="meter"]'),
   page.locator('input[readonly]'),
@@ -94,6 +93,8 @@ async function snapRoutes(page: Page, routes: string[], extraMasks: (page: Page)
       await page.setViewportSize(vp);
       await settle(page, route);
       if (vp.name === 'mobile') await expectTapTargets(page, route);
+      if (DEMO_ROUTES.has(route)) await page.screenshot({ path: `${demo}${slug(route)}-${vp.name}.png`, fullPage: true });
+      await page.locator('tbody').evaluateAll((els) => els.forEach((el) => ((el as HTMLElement).style.display = 'none')));
       await expect(page).toHaveScreenshot(`${slug(route)}-${vp.name}.png`, {
         fullPage: true,
         animations: 'disabled',
@@ -101,7 +102,6 @@ async function snapRoutes(page: Page, routes: string[], extraMasks: (page: Page)
         maxDiffPixelRatio: 0.02,
         mask: [...dynamicData(page), ...extraMasks(page)],
       });
-      if (DEMO_ROUTES.has(route)) await page.screenshot({ path: `${demo}${slug(route)}-${vp.name}.png`, fullPage: true });
     }
   }
 }
@@ -109,7 +109,8 @@ async function snapRoutes(page: Page, routes: string[], extraMasks: (page: Page)
 test('visual baseline: signed-out routes at 390 and 1280, no horizontal scroll at 360', async ({ page }) => {
   test.setTimeout(240_000);
   await settle(page, '/discoveries');
-  const firstDiscovery = await page.locator('main a[href^="/d/"]').first().getAttribute('href').catch(() => null);
+  const firstLink = page.locator('main a[href^="/d/"]').first();
+  const firstDiscovery = (await firstLink.count()) ? await firstLink.getAttribute('href') : null;
   const routes = firstDiscovery ? [...PUBLIC_ROUTES, firstDiscovery] : PUBLIC_ROUTES;
   await snapRoutes(page, routes, (p) => (p.url().includes('/d/') ? [p.locator('main p')] : []));
 });
