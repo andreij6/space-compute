@@ -17,7 +17,7 @@ External canisters: ICP ledger `ryjl3-tyaaa-aaaaa-aaaba-cai`, CMC `rkp4c-7iaaa-a
 
 ## 0b. Sponsored first spawn (invite codes) — replaces card onboarding while Stripe is off
 - Admins mint invite codes in batches: `admin_mint_invites(count, sponsor_cycles, expires_at) -> vec text`. Only `sha256(code)` is stored on-chain, and codes are shown once.
-- `spawn_aaa { path = Invite { code } }` burns the code and creates the AAA with **treasury-sponsored cycles** (creation fee + `sponsor_cycles`, default 0.5T ≈ $0.70 of fuel).
+- `spawn_aaa { path = Invite { code } }` burns the code and creates the AAA with **treasury-sponsored cycles** (creation fee + `sponsor_cycles`, default and minimum 1T ≈ $1.40 of fuel; 0.5T was too little to install the AAA wasm — T6.6 e2e, 2026-09-27).
   - The ICP comes from the `payments.TREASURY` account, which `treasury` (12) feeds from the owner-funded reserve.
 - Limits:
   - one sponsored AAA per owner principal, ever
