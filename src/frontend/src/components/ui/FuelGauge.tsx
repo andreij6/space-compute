@@ -23,7 +23,7 @@ export function FuelGauge({ daysRemaining, cycles, frozen = false }: { daysRemai
       <div className={styles.readout}>
         <span className={styles.label}>{label}</span>
         <span className={styles.days}>
-          {state === 'paused' ? 'Out of fuel: data is safe, top up to resume' : `≈ ${daysRemaining} days of fuel`}
+          {state === 'paused' ? 'Out of fuel: data is safe, top up to resume' : Number.isFinite(daysRemaining) ? `≈ ${daysRemaining} days of fuel` : 'No fuel burn yet'}
           {cycles && state !== 'paused' ? ` (${cycles})` : ''}
         </span>
       </div>

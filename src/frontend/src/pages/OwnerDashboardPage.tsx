@@ -11,6 +11,7 @@ import { Card } from '../components/ui/Card';
 import { FuelGauge } from '../components/ui/FuelGauge';
 import { TierInsignia } from '../components/ui/Badge';
 import styles from './OwnerDashboardPage.module.css';
+import { runway } from '../lib/runway';
 
 const REFRESH_MS = 30_000;
 
@@ -90,7 +91,7 @@ export function OwnerDashboardPage() {
                 <div>
                   <dt>Days of fuel remaining</dt>
                   <dd>
-                    {data.fuel.daysRemaining} ({data.fuel.level})
+                    {runway(data.fuel.daysRemaining, 'days')} ({data.fuel.level})
                   </dd>
                 </div>
                 <div>

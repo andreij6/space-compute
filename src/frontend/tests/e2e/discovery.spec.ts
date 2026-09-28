@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { icp } from './helpers/spawn';
+import { runway } from '../../src/lib/runway';
 
 const demo = new URL('../../../../docs/demos/T6.3/', import.meta.url).pathname;
 
@@ -43,5 +44,5 @@ test('the footer runway comes from treasury.status, not mock data (05 §2 row 1b
   const months = out.match(/projected_runway_months = ([\d_]+)/)?.[1]?.replaceAll('_', '');
   expect(months, out).toBeDefined();
   await page.goto('/');
-  await expect(page.getByRole('contentinfo')).toContainText(`${months} Mo. Runway`);
+  await expect(page.getByRole('contentinfo')).toContainText(`Runway: ${runway(Number(months), 'mo.')}`);
 });

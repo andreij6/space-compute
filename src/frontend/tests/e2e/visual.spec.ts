@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { ADMIN_ROUTES, OWNER_ROUTES, PUBLIC_ROUTES } from './helpers/routes';
 import { grantAdmin, signInNewUser, spawnViaDeposit } from './helpers/spawn';
 
 const demo = new URL('../../../../docs/demos/T9.5/', import.meta.url).pathname;
@@ -9,37 +10,6 @@ const VIEWPORTS = [
 ] as const;
 
 const NARROWEST = { width: 360, height: 800 };
-
-const PUBLIC_ROUTES = [
-  '/',
-  '/discoveries',
-  '/d/SC-0000-000000',
-  '/aaa/2vxsx-fae',
-  '/leaderboard',
-  '/signin',
-  '/about',
-  '/practice',
-  '/terms',
-  '/privacy',
-  '/credits',
-  '/no-such-route',
-];
-
-const OWNER_ROUTES = ['/dashboard', '/connect', '/records', '/fuel'];
-
-const ADMIN_ROUTES = [
-  '/admin',
-  '/admin/aaas',
-  '/admin/discoveries',
-  '/admin/data',
-  '/admin/payments',
-  '/admin/releases',
-  '/admin/settings',
-  '/admin/invites',
-  '/admin/treasury',
-  '/admin/moderation',
-  '/admin/audit',
-];
 
 const DEMO_ROUTES = new Set(['/', '/dashboard', '/fuel', '/admin']);
 
@@ -53,7 +23,7 @@ const dynamicData = (page: Page): Locator[] => [
   page.locator('main img:not([alt=""])'),
   page.locator('main a[href^="/d/"]'),
   page.locator('main a[href^="/aaa/"]'),
-  page.getByText(/Mo\. Runway|Loading runway|Runway unavailable/),
+  page.getByText(/Runway|Loading runway/),
   page.getByRole('button', { name: /Sign out/ }),
 ];
 

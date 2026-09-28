@@ -78,6 +78,8 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T9.4 | f05bf3f | Sonnet sub-agent — Opus-reviewed in T9.5, fixed 51f49c5 |
 | T9.3 | 3542c66 | Sonnet sub-agent — Opus-reviewed in T9.5, fixed 51f49c5 |
 | T9.5 | 51f49c5, da3ac98 | Opus sub-agent (+ Opus review of T9.2–T9.4: 9 defects fixed) |
+| T9.5 final verify | f59fed1, ed21cc1, 1ab0995 | Opus sub-agent: e2e 42/42, baselines, Lighthouse a11y 100 / perf 86–100 |
+| T9.6 | (this commit) | Opus (me): contact sheet + runway u32::MAX/Infinity → "no burn yet", ICP-only copy on About/Terms |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 

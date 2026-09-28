@@ -9,6 +9,7 @@ import { parseNat, parsePrincipal, proposalDetails, unwrapAdmin } from '../lib/a
 import card from '../components/ui/Card.module.css';
 import table from '../components/ui/DataTable.module.css';
 import shared from '../styles/adminShared.module.css';
+import { runway } from '../lib/runway';
 
 const U8_MAX = 255n;
 const U32_MAX = 4_294_967_295n;
@@ -117,14 +118,14 @@ export const AdminTreasuryPage: React.FC = () => {
           <dd>{status.data.reserve_e8s.toString()}</dd>
           <dt>Daily burn (cycles)</dt>
           <dd>{status.data.daily_burn_cycles.toString()}</dd>
-          <dt>Projected runway (months)</dt>
-          <dd>{status.data.projected_runway_months}</dd>
+          <dt>Projected runway</dt>
+          <dd>{runway(status.data.projected_runway_months, 'months')}</dd>
         </dl>
       )}
 
       {health.data && (
         <p role={health.data.reserve_breached ? 'alert' : 'status'} className={health.data.reserve_breached ? shared.alert : shared.status}>
-          Health: {health.data.reserve_breached ? 'reserve breached' : 'ok'}, min runway {health.data.min_runway_days} days
+          Health: {health.data.reserve_breached ? 'reserve breached' : 'ok'}, min runway {runway(health.data.min_runway_days, 'days')}
           {health.data.worst_canister ? ` (worst: ${health.data.worst_canister.toText()})` : ''}
         </p>
       )}
@@ -159,7 +160,7 @@ export const AdminTreasuryPage: React.FC = () => {
                   <td>{c.canister.toText()}</td>
                   <td className={table.numeric}>{c.cycles.toString()}</td>
                   <td className={table.numeric}>{c.burn_per_day.toString()}</td>
-                  <td className={table.numeric}>{c.runway_days}</td>
+                  <td className={table.numeric}>{runway(c.runway_days, 'days')}</td>
                 </tr>
               ))}
             </tbody>

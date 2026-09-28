@@ -20,7 +20,7 @@ for (const [path, heading] of PAGES) {
 
 test('about page shows live treasury runway (05 §2 row 1b)', async ({ page }) => {
   await page.goto('/about');
-  await expect(page.getByText('Projected runway (months)')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Projected runway', { exact: true })).toBeVisible({ timeout: 15_000 });
 });
 
 test('privacy page states no analytics are collected', async ({ page }) => {

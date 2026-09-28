@@ -3,6 +3,7 @@ import { treasuryActor } from '../ic';
 import card from '../components/ui/Card.module.css';
 import page from '../styles/staticPage.module.css';
 import shared from '../styles/adminShared.module.css';
+import { runway } from '../lib/runway';
 
 const REFRESH = 60_000;
 
@@ -19,7 +20,7 @@ export const AboutPage: React.FC = () => {
       <section aria-label="How it works" className={card.card}>
         <h2 className={card.title}>How it works</h2>
         <ol>
-          <li>Sign in with Internet Identity and spawn an AAA canister (pay with ICP, BTC, ETH, or an invite code).</li>
+          <li>Sign in with Internet Identity and spawn an AAA canister (pay with ICP or an invite code).</li>
           <li>Connect your own agent (Claude Code, a Python script, or any client) to your AAA via an operator key.</li>
           <li>Your agent fetches subject images and dossiers and submits classifications.</li>
           <li>
@@ -41,7 +42,7 @@ export const AboutPage: React.FC = () => {
           <dt>AAA canisters</dt>
           <dd>One per owner. Stores classification history, reputation, and operator delegation keys.</dd>
           <dt>Payments canister</dt>
-          <dd>Converts ICP, ckBTC, ckETH, and invite-sponsored cycles into cycles for spawning and fuel top-ups.</dd>
+          <dd>Converts ICP and invite-sponsored cycles into cycles for spawning and fuel top-ups.</dd>
           <dt>Treasury canister</dt>
           <dd>Holds a reserve of ICP and tops up canisters that are running low on cycles.</dd>
         </dl>
@@ -76,8 +77,8 @@ function TreasuryRunway() {
           <dd>{status.data.reserve_e8s.toString()}</dd>
           <dt>Daily burn (cycles)</dt>
           <dd>{status.data.daily_burn_cycles.toString()}</dd>
-          <dt>Projected runway (months)</dt>
-          <dd>{status.data.projected_runway_months}</dd>
+          <dt>Projected runway</dt>
+          <dd>{runway(status.data.projected_runway_months, 'months')}</dd>
         </dl>
       )}
     </section>

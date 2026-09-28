@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Cpu, ExternalLink, Shield } from 'lucide-react';
 import { treasuryActor } from '../ic';
+import { runway } from '../lib/runway';
 import { Badge } from './ui/Badge';
 import styles from './Footer.module.css';
 
@@ -38,8 +39,8 @@ export function Footer() {
     queryFn: () => treasuryActor().status(),
     refetchInterval: 60_000,
   });
-  const runway = status.data
-    ? `${status.data.projected_runway_months} Mo. Runway`
+  const runwayText = status.data
+    ? `Runway: ${runway(status.data.projected_runway_months, 'mo.')}`
     : status.isPending
       ? 'Loading runway…'
       : 'Runway unavailable';
@@ -61,7 +62,7 @@ export function Footer() {
               <Shield size={12} aria-hidden /> IC Verifiable Canisters
             </Badge>
             <Badge tone="accent">
-              <Cpu size={12} aria-hidden /> {runway}
+              <Cpu size={12} aria-hidden /> {runwayText}
             </Badge>
           </div>
         </div>

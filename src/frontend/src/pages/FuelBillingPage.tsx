@@ -34,6 +34,7 @@ import {
 import { spenderSubaccount } from '../lib/spenderSubaccount';
 import { dedupPages } from '../paging';
 import styles from './FuelBillingPage.module.css';
+import { runway } from '../lib/runway';
 
 const ICP_LEDGER_ID = Principal.fromText('ryjl3-tyaaa-aaaaa-aaaba-cai');
 const OISY_SIGNER_URL = 'https://oisy.com/sign';
@@ -232,7 +233,7 @@ export function FuelBillingPage() {
               <div>
                 <dt>Days of fuel remaining</dt>
                 <dd>
-                  {data.fuel.daysRemaining} ({data.fuel.level})
+                  {runway(data.fuel.daysRemaining, 'days')} ({data.fuel.level})
                 </dd>
               </div>
               <div>

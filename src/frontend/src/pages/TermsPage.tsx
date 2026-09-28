@@ -21,7 +21,7 @@ export const TermsPage: React.FC = () => {
       <section aria-label="Payments and cycles" className={card.card}>
         <h2 className={card.title}>Payments and cycles</h2>
         <p>
-          Spawning an AAA and topping up its fuel consumes cycles paid for with ICP, ckBTC, ckETH, or a
+          Spawning an AAA and topping up its fuel consumes cycles paid for with ICP or a
           sponsored invite code. Once cycles are converted and spent by a canister, they cannot be refunded. If a
           payment operation fails partway through, the system's compensation logic attempts to make it right
           (see the payments spec); we make no further guarantee beyond that.
