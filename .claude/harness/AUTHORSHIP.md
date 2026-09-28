@@ -98,3 +98,5 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | Batch | Tasks | Verdict | Fix lane |
 |---|---|---|---|
 | AAA + agent-kit | T3.1, T3.4, T3.6, T3.7, T3.9 | 14 defects (1 high: runner can't parse real status; retry double-fee; skill ran add_operator; set_profile missing) | Opus fix lane in progress |
+| Platform | T4.1, T4.3, T4.6, T4.8, T4.10, T4.11, gap-fill | 8 defects (2 high: event queries leak hidden discoverers/honeypots/gold; replay double-counts) | Opus fix lane in progress |
+| Tooling | T4.7, T7.1, T7.4, T7.9, T7.10, T8.1 prep | 6 defects (2 critical: release ships gold; honeypot text predicts vote) + T7.1 vN→vN for 3 canisters | Opus fix lane in progress |
