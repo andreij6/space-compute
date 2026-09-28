@@ -311,6 +311,63 @@ fn t5_16_daily_sponsor_budget_cap_rejects_once_exceeded() {
     ));
 }
 
+fn admin_list_invites(
+    env: &IcpEnv,
+    payments: Principal,
+    caller: Principal,
+    cursor: Option<Vec<u8>>,
+    limit: u32,
+) -> Result<payments::invites::InvitePage, ApiError> {
+    let raw = env
+        .pic
+        .query_call(
+            payments,
+            caller,
+            "admin_list_invites",
+            encode_args((cursor, limit)).unwrap(),
+        )
+        .expect("admin_list_invites");
+    decode_one(&raw).unwrap()
+}
+
+#[test]
+fn t6_10_admin_list_invites_pages_and_hides_the_plaintext_code() {
+    println!(
+        "T6.10 demo: admin_list_invites is admin-only, paginates, and never returns the plaintext code"
+    );
+    let env = IcpEnv::new();
+    let admin = user(1);
+    let eve = user(66);
+    let (_, payments) = install_wired(&env, admin);
+
+    let denied = admin_list_invites(&env, payments, eve, None, 50);
+    assert_eq!(denied, Err(ApiError::Unauthorized));
+    step("a non-admin caller is rejected with Unauthorized");
+
+    let codes = mint_invites(&env, payments, admin, 3, MIN_SPONSOR_CYCLES, far_future());
+
+    let first = admin_list_invites(&env, payments, admin, None, 2).expect("admin_list_invites");
+    assert_eq!(first.items.len(), 2);
+    assert!(first.next_cursor.is_some());
+    for item in &first.items {
+        assert_eq!(item.code_hash.len(), 64);
+        assert!(codes.iter().all(|c| *c != item.code_hash));
+    }
+
+    let second = admin_list_invites(&env, payments, admin, first.next_cursor.clone(), 2)
+        .expect("admin_list_invites page 2");
+    assert_eq!(second.items.len(), 1);
+    assert!(second.next_cursor.is_none());
+    step(&format!(
+        "admin_list_invites paged {} + {} = {} invites across two calls, hashes only",
+        first.items.len(),
+        second.items.len(),
+        first.items.len() + second.items.len()
+    ));
+}
+
+const MIN_SPONSOR_CYCLES: u128 = 1_000_000_000_000;
+
 #[test]
 fn t5_16_expired_and_unknown_invite_codes_are_rejected() {
     println!("T5.16 demo: expired and unknown invite codes cannot spawn an AAA");

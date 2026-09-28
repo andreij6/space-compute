@@ -61,12 +61,15 @@ export const AdminReleasesPage: React.FC = () => {
           Version
           <input type="number" value={version} onChange={(e) => setVersion(e.target.value)} />
         </label>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".wasm,.gz"
-          onChange={(e) => e.target.files?.[0] && onFileChosen(e.target.files[0])}
-        />
+        <label>
+          Wasm file
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".wasm,.gz"
+            onChange={(e) => e.target.files?.[0] && onFileChosen(e.target.files[0])}
+          />
+        </label>
         {staged && <p>Computed sha256: {toHex(staged.sha256)} ({staged.bytes.length} bytes)</p>}
         {uploadError && <p role="alert">{uploadError}</p>}
         <ConfirmAction

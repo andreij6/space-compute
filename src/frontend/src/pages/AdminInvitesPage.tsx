@@ -1,17 +1,30 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminNav } from '../components/AdminNav';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { useAuth } from '../auth';
 import { paymentsActor } from '../ic';
 import { belowMinSponsorCycles, inviteCodesToCsv, MIN_SPONSOR_CYCLES, unwrapAdmin } from '../lib/admin';
 
+function inviteStatus(invite: { used: boolean; expires_at: bigint }, nowNs: bigint): 'used' | 'expired' | 'active' {
+  if (invite.used) return 'used';
+  if (invite.expires_at <= nowNs) return 'expired';
+  return 'active';
+}
+
 export const AdminInvitesPage: React.FC = () => {
   const { identity } = useAuth();
+  const queryClient = useQueryClient();
   const [count, setCount] = useState('50');
   const [sponsorCycles, setSponsorCycles] = useState(MIN_SPONSOR_CYCLES.toString());
   const [expiresAt, setExpiresAt] = useState('');
   const belowMinCycles = belowMinSponsorCycles(sponsorCycles);
+
+  const invites = useQuery({
+    queryKey: ['admin', 'invites', 'list'],
+    queryFn: async () => unwrapAdmin(await paymentsActor(identity!).admin_list_invites(null, 100)),
+  });
+  const nowNs = BigInt(invites.dataUpdatedAt) * 1_000_000n;
 
   const mint = useMutation({
     mutationFn: async () =>
@@ -22,6 +35,7 @@ export const AdminInvitesPage: React.FC = () => {
           expires_at: BigInt(expiresAt ? Date.parse(expiresAt) * 1_000_000 : 0),
         }),
       ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'invites', 'list'] }),
   });
 
   function downloadCsv(codes: string[]) {
@@ -78,6 +92,40 @@ export const AdminInvitesPage: React.FC = () => {
           </button>
         </section>
       )}
+
+      <section aria-label="Invite batches">
+        <h2>Minted, used and expired invites</h2>
+        {invites.isPending && <p>Loading invites…</p>}
+        {invites.isError && <p role="alert">{invites.error.message}</p>}
+        {invites.data && invites.data.items.length === 0 && <p>No invites minted yet.</p>}
+        {invites.data && invites.data.items.length > 0 && (
+          <table>
+            <caption className="sr-only">Minted invite codes by hash, sponsor cycles, and status</caption>
+            <thead>
+              <tr>
+                <th scope="col">Code hash</th>
+                <th scope="col">Sponsor cycles</th>
+                <th scope="col">Minted at</th>
+                <th scope="col">Expires at</th>
+                <th scope="col">Status</th>
+                <th scope="col">Used by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invites.data.items.map((invite) => (
+                <tr key={invite.code_hash}>
+                  <td>{invite.code_hash.slice(0, 12)}…</td>
+                  <td>{invite.sponsor_cycles.toString()}</td>
+                  <td>{new Date(Number(invite.minted_at / 1_000_000n)).toLocaleString()}</td>
+                  <td>{new Date(Number(invite.expires_at / 1_000_000n)).toLocaleString()}</td>
+                  <td>{inviteStatus(invite, nowNs)}</td>
+                  <td>{invite.used_by?.toText() ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
     </div>
   );
 };

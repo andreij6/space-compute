@@ -12,7 +12,9 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "e2e": "playwright test",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:bundle": "bash ../../scripts/check-bundle-size.sh",
+    "lighthouse": "node scripts/lighthouse-a11y.mjs"
   },
   "dependencies": {
     "@icp-sdk/auth": "^10.0.1",
@@ -25,6 +27,7 @@
     "react-router-dom": "^7.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
     "@icp-sdk/bindgen": "^0.4.1",
     "@playwright/test": "^1.63.0",
@@ -34,8 +37,10 @@
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.2",
     "eslint": "^10.11.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
+    "playwright-lighthouse": "^4.0.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.70.1",
     "vite": "^8.3.1",

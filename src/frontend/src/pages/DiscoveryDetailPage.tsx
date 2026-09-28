@@ -141,6 +141,7 @@ export const DiscoveryDetailPage = () => {
         </div>
       </div>
 
+      {resolved && citationQuery.isPending && <p>Loading citation…</p>}
       {resolved && citationQuery.data && (
         <CertifiedCitationBlock citation={citationQuery.data.citation} verified={verifiedQuery.data} />
       )}

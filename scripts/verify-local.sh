@@ -43,6 +43,11 @@ if grep -rnE '\bdfx\b|fetchRootKey' crates frontend/ agent-kit tools --exclude-d
 fi
 ok "no dfx / fetchRootKey in source"
 
+if grep -rn 'dangerouslySetInnerHTML' frontend/src --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null | grep -q .; then
+  fail "found dangerouslySetInnerHTML in frontend source; untrusted text must render as text only"
+fi
+ok "no dangerouslySetInnerHTML in frontend source"
+
 if [ -f tools/curation/pyproject.toml ] || [ -d tools/curation/tests ]; then
   just py-test >/dev/null 2>&1 || fail "pytest (tools/curation)"
   ok "pytest (tools/curation)"
@@ -58,6 +63,8 @@ if [ -f frontend/package.json ]; then
   ok "frontend typecheck, lint, test, build"
   (cd frontend && npm run -s coverage) >/tmp/sc-frontend-coverage.log 2>&1 || { tail -30 /tmp/sc-frontend-coverage.log; false; } || fail "frontend coverage below 80% lines on src/lib"
   ok "frontend coverage (>= 80% lines on src/lib)"
+  bash scripts/check-bundle-size.sh || fail "initial JS bundle exceeds 350 KiB gz"
+  ok "frontend initial bundle size (<= 350 KiB gz)"
 fi
 
 if [ -f scripts/traceability.py ]; then

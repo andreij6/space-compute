@@ -22,6 +22,37 @@ pub struct Invite {
 
 crate::candid_storable!(Invite);
 
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub struct InviteView {
+    pub code_hash: String,
+    pub sponsor_cycles: u128,
+    pub minted_at: u64,
+    pub expires_at: u64,
+    pub used: bool,
+    pub used_by: Option<Principal>,
+}
+
+fn to_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn view(hash: &[u8], invite: Invite) -> InviteView {
+    InviteView {
+        code_hash: to_hex(hash),
+        sponsor_cycles: invite.sponsor_cycles,
+        minted_at: invite.minted_at,
+        expires_at: invite.expires_at,
+        used: invite.used,
+        used_by: invite.used_by,
+    }
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub struct InvitePage {
+    pub items: Vec<InviteView>,
+    pub next_cursor: Option<Vec<u8>>,
+}
+
 #[derive(CandidType, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct DailyBudget {
     pub day: u64,
@@ -112,6 +143,23 @@ pub fn mint(
 
 pub fn peek(code: &str) -> Option<Invite> {
     INVITES.with_borrow(|m| m.get(&code_hash(code)))
+}
+
+pub fn list(cursor: Option<Vec<u8>>, limit: u32) -> InvitePage {
+    let limit = sc_types::limits::page_limit(limit) as usize;
+    let start = cursor.unwrap_or_default();
+    INVITES.with_borrow(|m| {
+        let mut items = Vec::new();
+        let mut next_cursor = None;
+        for entry in m.range(start..) {
+            if items.len() == limit {
+                next_cursor = Some(entry.key().clone());
+                break;
+            }
+            items.push(view(entry.key(), entry.value()));
+        }
+        InvitePage { items, next_cursor }
+    })
 }
 
 pub fn redeem(code: &str, owner: Principal, now: u64) -> Result<Invite, ApiError> {
@@ -347,5 +395,48 @@ mod tests {
             Err(ApiError::InvalidInput(_))
         ));
         assert!(mint(1, MIN_SPONSOR_CYCLES, 1_000, b"seed", 1).is_ok());
+    }
+
+    #[test]
+    fn t6_10_list_pages_and_never_returns_the_plaintext_code() {
+        let codes = mint(3, MIN_SPONSOR_CYCLES, 1_000, b"t6_10-seed", 1).unwrap();
+        redeem(&codes[0], p(1), 5).unwrap();
+
+        let first = list(None, 2);
+        assert_eq!(first.items.len(), 2);
+        assert!(first.next_cursor.is_some());
+        for item in &first.items {
+            assert_eq!(item.code_hash.len(), 64);
+            assert!(item.code_hash.chars().all(|c| c.is_ascii_hexdigit()));
+            for code in &codes {
+                assert_ne!(item.code_hash, *code);
+            }
+        }
+
+        let second = list(first.next_cursor, 2);
+        assert_eq!(second.items.len(), 1);
+        assert!(second.next_cursor.is_none());
+
+        let all: Vec<_> = first
+            .items
+            .iter()
+            .chain(second.items.iter())
+            .map(|v| v.code_hash.clone())
+            .collect();
+        let expected: std::collections::HashSet<_> =
+            codes.iter().map(|c| to_hex(&code_hash(c))).collect();
+        assert_eq!(
+            all.into_iter().collect::<std::collections::HashSet<_>>(),
+            expected
+        );
+
+        let used = first
+            .items
+            .iter()
+            .chain(second.items.iter())
+            .find(|v| v.code_hash == to_hex(&code_hash(&codes[0])))
+            .unwrap();
+        assert!(used.used);
+        assert_eq!(used.used_by, Some(p(1)));
     }
 }

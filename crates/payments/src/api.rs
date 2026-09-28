@@ -175,6 +175,15 @@ fn admin_list_ops(filter: OpFilter, cursor: Option<u64>, limit: u32) -> Result<P
     Ok(journal::list_filtered(&filter, cursor, limit))
 }
 
+#[ic_cdk::query]
+fn admin_list_invites(
+    cursor: Option<Vec<u8>>,
+    limit: u32,
+) -> Result<invites::InvitePage, ApiError> {
+    require_admin()?;
+    Ok(invites::list(cursor, limit))
+}
+
 const OVERVIEW_WINDOW_SECS: u64 = 24 * 3_600;
 
 #[ic_cdk::update]

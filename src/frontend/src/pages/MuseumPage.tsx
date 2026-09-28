@@ -143,7 +143,7 @@ export const MuseumPage = () => {
             <CardThumbnail
               url={disc.image_url}
               sha256={disc.image_sha256}
-              alt={`${categoryLabel(disc.category)} candidate`}
+              alt={`${categoryLabel(disc.category)} candidate, subject ${disc.subject_id}`}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="badge badge-amber">{categoryLabel(disc.category)}</span>

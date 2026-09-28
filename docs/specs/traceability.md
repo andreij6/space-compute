@@ -259,6 +259,10 @@
 | 05 §2 row 1c: `/practice` links the committed practice_v1 set (data/curation/v1/practice_*, target/bucket/practice_v1) and gives offline self-eval instructions for `agent-kit/practice.py` (Playwright, local deploy) | T6.14 | src/frontend/tests/e2e/legal-practice-pages.spec.ts |
 | 05 §2b: `/admin/aaas` gains a `set house`/`unset house` action (`admin_set_house`) alongside the existing suspend/unsuspend and rename-with-reason moderation actions | T6.14 | src/frontend/src/pages/AdminAAAsPage.tsx |
 | 05 §5 #0: acceptance "E2E: invite spawn; non-admin blocked" — sponsored-invite spawn (reuse of T6.6's flow) plus a non-admin denied 404 on every `/admin/*` route and `Unauthorized` from a direct, UI-bypassing actor call to an admin mutation on both platform and payments (Playwright, local deploy) | T6.14 | src/frontend/tests/e2e/admin.spec.ts |
+| 05 §5 #5: Lighthouse accessibility >= 90 on Landing (98), Discovery detail (98) and Dashboard (98); reports in docs/demos/T6.10 | T6.10 | scripts/lighthouse-a11y.sh |
+| 05 §3 accessibility / 05 §4: keyboard-navigable, visible focus (`:focus-visible`), WCAG AA contrast, no `dangerouslySetInnerHTML` (eslint `no-restricted-syntax` + verify-local grep gate) — 13-route axe smoke (signed-out, signed-in owner, admin) asserts zero console errors and zero serious/critical axe violations per route | T6.10 | src/frontend/tests/e2e/a11y-smoke.spec.ts |
+| 05 §4: initial JS bundle <= 350 KiB gz (191,831 B measured), routes code-split via `React.lazy` | T6.10 | scripts/check-bundle-size.sh |
+| 05 §2b: `/admin/invites` lists minted/used/expired invites (code_hash hex, sponsor_cycles, minted_at, expires_at, used, used_by — never the plaintext code), paginated, admin-only | T6.10 | crates/integration-tests/tests/t5_16_feature_flags_invites.rs |
 | 07 §7 #1: 5,000 subjects rendered, hashed and uploaded; the manifest verifies (random 1% re-download hashes match) | T1.7 | test_t1_7_committed_manifest_and_qa_meet_acceptance |
 | 07 §7 #2: >= 2,000 gold subjects (or the documented fallback); 120 honeypots | T1.5 | test_t1_5_committed_v1_selection_meets_acceptance |
 | 07 §7 #3: a human spot-check of 40 random dossiers finds no wrong target, wrong WCS or missing band | T1.7 | test_t1_7_committed_manifest_and_qa_meet_acceptance |
@@ -284,7 +288,6 @@
 
 | Item | Reason |
 |---|---|
-| 05§5#5 | deferred: T6.10 (Lighthouse a11y gate; not yet scheduled) |
 | 06§5#1 | deferred: staging-only acceptance run (no staging environment in local-first `just verify`; the local analog is proven by T3.7's 10 local classifications) |
 | 08§2#S12 | deferred: architectural property (bounded-wait calls only, per 01 §6 and the canister-security skill checklist), not independently runtime-testable in PocketIC |
 | 08§2#S14 | deferred: architectural fact — no secrets are stored in canister state, nothing to assert against |
