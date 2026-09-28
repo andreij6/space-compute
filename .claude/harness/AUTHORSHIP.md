@@ -67,6 +67,7 @@ Which agent did which task, so the reviewer knows what it wrote itself and what 
 | T7.7 | 8d5eb76 | Opus sub-agent; 3/20 → hardened skill → 0/20 compliance (haiku reference agents) |
 | gap-fill (list_ops_for_aaa/owner, DiscoveryCard image) | 521e37d | Sonnet sub-agent |
 | invite sponsor minimum | 50cfe18 | lead |
+| T6.14 | f02d6aa | Sonnet sub-agent |
 | T8.15, T8.16 (plan) | a901db8, f179153 | owner-review task, 20k dataset task |
 | plan/Gantt/handoff | c2e466a, 3c45daf, b6efcf0, a001d80, 4bdc6a2, f4b3eea, a0bd99c | bookkeeping |
 
