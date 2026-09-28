@@ -40,7 +40,7 @@ test('spawn: sponsored invite path completes end to end locally (04 §0b, §4; 0
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await page.getByRole('tab', { name: 'Invite code' }).click();
-  await page.getByLabel('Invite code').fill(code);
+  await page.getByRole('textbox', { name: 'Invite code' }).fill(code);
   await page.getByRole('button', { name: 'Redeem invite' }).click();
 
   await expect(page.getByRole('status')).toHaveText('Done.', { timeout: 60_000 });

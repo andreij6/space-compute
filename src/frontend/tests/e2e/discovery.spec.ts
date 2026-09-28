@@ -40,7 +40,7 @@ test('the served CSP narrows img-src to self, the data bucket and data:, and con
 
 test('the footer runway comes from treasury.status, not mock data (05 §2 row 1b)', async ({ page }) => {
   const out = icp(['canister', 'call', 'treasury', 'status', '()', '-e', 'local', '--identity', 'sc-user', '--query']);
-  const months = out.match(/projected_runway_months = (\d+)/)?.[1];
+  const months = out.match(/projected_runway_months = ([\d_]+)/)?.[1]?.replaceAll('_', '');
   expect(months, out).toBeDefined();
   await page.goto('/');
   await expect(page.getByRole('contentinfo')).toContainText(`${months} Mo. Runway`);

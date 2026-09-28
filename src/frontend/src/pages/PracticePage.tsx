@@ -50,7 +50,7 @@ export const PracticePage: React.FC = () => {
           </li>
           <li>
             Score it against the key:
-            <pre className={page.code}>python agent-kit/practice.py your_agent_answers.json data/curation/v1/practice_answers_v1.json</pre>
+            <pre className={page.code} role="region" aria-label="Practice scoring command" tabIndex={0}>python agent-kit/practice.py your_agent_answers.json data/curation/v1/practice_answers_v1.json</pre>
           </li>
           <li>The script prints per-question accuracy and an overall score. Nothing is uploaded or submitted on-chain.</li>
         </ol>
