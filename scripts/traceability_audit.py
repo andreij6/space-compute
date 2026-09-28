@@ -107,18 +107,52 @@ sources = subprocess.run(
 defined = {line.split()[1] for line in sources.splitlines()}
 
 
+CANISTER_SRC = ["crates/platform/src", "crates/payments/src", "crates/treasury/src", "crates/aaa/src"]
+CHECKS = {
+    "bounded-wait-only": {
+        "forbid": r"unbounded_wait|ic_cdk::call\(|ic_cdk::api::call::|call_with_payment",
+        "require": r"Call::bounded_wait",
+        "paths": CANISTER_SRC,
+    },
+}
+DOC_PROOF_RE = re.compile(r"^(docs|okf)/|\.(md|png|jpe?g|gif|txt|csv)$")
+DOC_TAG = "[doc-proof]"
+
+
+def grep(pattern, paths):
+    return subprocess.run(["grep", "-rnE", pattern, *paths], cwd=root, capture_output=True, text=True).stdout
+
+
+def check_ok(name):
+    c = CHECKS.get(name)
+    if not c or not all((root / p).exists() for p in c["paths"]):
+        return False
+    return not grep(c["forbid"], c["paths"]) and bool(grep(c["require"], c["paths"]))
+
+
 def proof_ok(proof):
+    if proof.startswith("check:"):
+        return check_ok(proof[len("check:"):])
     if "/" in proof:
         return (root / proof).exists()
     return proof in defined
 
 
+def is_doc_proof(r):
+    return bool(DOC_PROOF_RE.search(r["proof"]))
+
+
 dangling = [r for r in rows if not proof_ok(r["proof"])]
+doc_flagged = [r for r in rows if is_doc_proof(r) and DOC_TAG not in r["item"]]
+
+
+def covers(r):
+    return proof_ok(r["proof"]) and r not in doc_flagged
 
 unmapped = []
 mapped = []
 for tag, txt in required.items():
-    covering = [r for r in rows if tag in r["tags"] and proof_ok(r["proof"])]
+    covering = [r for r in rows if tag in r["tags"] and covers(r)]
     if covering:
         mapped.append((tag, txt, covering))
     elif tag in waivers:
@@ -147,6 +181,12 @@ if dangling:
         lines.append(f"- {r['task']}: `{r['proof']}` — {r['item']}")
 else:
     lines.append("None.")
+lines += ["", f"## Doc-path proofs not tagged `{DOC_TAG}` (need a test, or the tag if a document is the proof)", ""]
+if doc_flagged:
+    for r in doc_flagged:
+        lines.append(f"- {r['task']}: `{r['proof']}` — {r['item']}")
+else:
+    lines.append("None.")
 lines += ["", "## Done tasks with no traceability row", ""]
 if task_unmapped:
     for tid in task_unmapped:
@@ -164,13 +204,16 @@ for tag, txt, covering in sorted(mapped):
     lines.append(f"- `{tag}` -> {', '.join(sorted({c['proof'] for c in covering}))}")
 (root / "docs/specs/traceability-audit.md").write_text("\n".join(lines) + "\n")
 
-errors = len(unmapped) + len(dangling) + len(task_unmapped)
+errors = len(unmapped) + len(dangling) + len(task_unmapped) + len(doc_flagged)
 print(f"traceability_audit: {len(mapped)}/{len(required)} items mapped, {len(unmapped)} unmapped, "
-      f"{len(dangling)} dangling rows, {len(task_unmapped)} tasks without a row, {len(waivers)} waived")
+      f"{len(dangling)} dangling rows, {len(doc_flagged)} untagged doc proofs, {len(task_unmapped)} tasks without a row, "
+      f"{len(waivers)} waived")
 for tag, txt in unmapped:
     print(f"traceability_audit: UNMAPPED {tag}: {txt}")
 for r in dangling:
     print(f"traceability_audit: DANGLING {r['task']}: proof {r['proof']} not found")
+for r in doc_flagged:
+    print(f"traceability_audit: DOC PROOF {r['task']}: {r['proof']} (tag the item {DOC_TAG} or prove it with a test)")
 for tid in task_unmapped:
     print(f"traceability_audit: NO ROW {tid}")
 sys.exit(1 if errors else 0)
