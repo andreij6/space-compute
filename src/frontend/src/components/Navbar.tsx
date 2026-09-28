@@ -37,7 +37,7 @@ export function Navbar() {
       <div className={styles.inner}>
         <Link to="/" className={styles.brand} onClick={close}>
           <img src="/logo.svg" alt="Space Compute Logo" width={32} height={32} />
-          <span>Space Compute</span>
+          <span className={styles.brandText}>Space Compute</span>
         </Link>
 
         <nav aria-label="Primary" className={styles.links}>
@@ -50,7 +50,7 @@ export function Navbar() {
         </nav>
 
         <div className={styles.actions}>
-          <Link to="/spawn" className={buttonClass({ variant: 'primary' })}>
+          <Link to="/spawn" className={buttonClass({ variant: 'primary' }, styles.spawn)}>
             <PlusCircle size={16} aria-hidden />
             <span>Spawn AAA</span>
           </Link>

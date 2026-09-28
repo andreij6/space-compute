@@ -43,12 +43,13 @@
 
 .depositRow {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
 }
 
 .depositRow input {
-  flex: 1;
+  flex: 1 1 16rem;
 }
 
 .hint {

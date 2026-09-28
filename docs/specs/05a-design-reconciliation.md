@@ -96,3 +96,39 @@ In the table, "Brief" means `DESIGN_BRIEF.md` and `design-screens.json`, and "Mo
 - [ ] Compare the priority screens: Dashboard, Fuel & billing, Discovery detail, AAA profile, Activity & records, Landing.
 - [ ] Record every look/layout mismatch in §5 above before starting T9.2.
 - [ ] Decide on web fonts (self-host or system stack) against the 350 KB gz budget.
+
+## 7. Responsive decisions (T9.5)
+
+Mobile-first: base styles target the narrowest screen, `min-width` queries add the wider layout. Breakpoints: **480** (brand text), **640** (image-viewer hint), **768** (tablet: bottom bar off, admin side nav, compact `sm` controls), **900** (desktop primary nav). The target is no horizontal page scroll at **360 px**.
+
+| Area | Decision |
+|---|---|
+| Navigation | Below 768 px: the fixed bottom bar ("Quick" nav: Home, Museum, Spawn, Agent, Ranks) plus the menu drawer. The navbar's Spawn button is hidden there, because the bar already has Spawn. The brand text is hidden below 480 px, and the logo alt keeps the link name. Primary links show from 900 px. The bar and the footer pad for `env(safe-area-inset-bottom)` |
+| Tap targets | ≥ 44 px on mobile: buttons (`md` always 44; `sm` 44×44 below 768, then 32), tabs, inputs, Museum chips, drawer, bottom-bar, admin-nav and footer-list links, the menu button |
+| Tables | Horizontal scroll, not stacked cards. Each scroll wrapper is a focusable `role="region"` named by the table caption or section, so keyboard and screen-reader users can scroll it (axe `scrollable-region-focusable`). Header cells don't wrap. Stacked cards were rejected because they would change the `cell`/`columnheader` roles the e2e tests use |
+| Grids | Every `minmax(N px, 1fr)` with N ≥ 200 becomes `minmax(min(N px, 100%), 1fr)`, so no grid forces overflow. Long mono strings (`code`, `dd`, citation text, operator principals) use `overflow-wrap: anywhere`. Flex rows with two ends (toolbars, list items, data rows, the operator row, the deposit row, the fuel gauge) wrap |
+| Headings | `h1` and page titles scale with `clamp(2xl, 6vw, 3xl)` |
+| Citation block | The header and the copy button wrap. The citation text breaks anywhere. The verification badge stays in a `role="status"` live region |
+| Image viewer | When not zoomed, `touch-action: pan-x pan-y`, so a one-finger swipe scrolls the page and double-tap reaches `dblclick` (toggle 2×). When zoomed, `touch-action: none`, and a drag pans the image. Wheel zoom needs Ctrl/⌘ (a trackpad pinch sends ctrl+wheel), so it never traps page scroll. It uses a non-passive native listener, so `preventDefault` works. The zoom buttons are 44 px. The hint shows only at ≥ 640 px with hover. The image height is capped at `min(520px, 70vh)` |
+| Payment panel | Single column. The deposit account input and the copy button wrap. The amount, fee and busy/disabled rules are unchanged |
+| Admin | Below 768 px, the admin nav is a horizontally scrolling row of 44 px links. From 768 px (tablet), it is the 200 px side column and the content column scrolls tables in place |
+| Reduced motion | The tokens already zero `--duration-*`. A global `prefers-reduced-motion` rule also cuts every transition/animation to 0.01 ms and turns off smooth scroll |
+
+**Regression gates (these run in the final verify, not per task; owner 2026-09-28).**
+- `tests/e2e/visual.spec.ts`: `toHaveScreenshot` for every route (signed-out, spawn, owner, admin) at 390×844 and 1280×850. Dynamic data is masked. It also asserts that the page has no horizontal scroll at 360 px and that there are no tap targets under 44 px at 390 px. Create the baseline with `scripts/visual-baseline.sh --update` (skill `visual-baseline`) and commit it.
+- `scripts/lighthouse-a11y.sh`: accessibility ≥ 90 and performance ≥ 80 on Landing, the first real Discovery detail and Dashboard. Reports go to `docs/demos/T9.5/`.
+
+**Web fonts (the §6 open item).** Still the system stack. No font files are shipped, so the bundle and LCP don't change.
+
+## 8. Review of T9.2–T9.4 (Opus, T9.5)
+
+The money UI is correct: the fee is shown, units are ICP, buttons are busy/disabled while an op is pending, and a single `confirming` flag prevents a double submit. Other correct items: the citation fails closed; images are sha256-verified before render; every admin destructive action keeps typed confirmation; the draft legal banners are present; the e2e roles, labels and texts are unchanged. Defects fixed in the review commit:
+1. Dashboard (and Fuel) showed the cycles twice, in the gauge and in the `dd`. That broke `getByText(/T Cycles/)` in strict mode. The gauge no longer repeats the cycles.
+2. The citation verification badge had lost `role="status"`, so the async Verified/Unverified result wasn't announced. It is restored, with a unit test.
+3. The dossier's FITS links were rendered without a scheme check. They now go through `safeHref` (https, or the dossier's own origin), with a unit test.
+4. The image viewer's wheel `preventDefault` ran in a passive React listener (a no-op plus a console warning). `touch-action: none` also blocked page scroll on touch. The viewer hint used dim text on a translucent overlay (contrast not guaranteed).
+5. The heading order skipped a level (`h1` → `h3` on Discovery detail and in the citation block; `h4` in the footer).
+6. The Museum filter chips showed their selected state by colour only. They now have `aria-pressed`.
+7. Locked AAA badges used 45 % opacity on the whole card, text included, which failed AA.
+8. Scrollable table wrappers weren't keyboard-focusable.
+9. CSS module hygiene: admin pages imported `ConfirmAction.module.css` for their form fields. Those styles now live in `styles/adminShared.module.css`. The dead legacy classes and colour aliases in `index.css` were removed.

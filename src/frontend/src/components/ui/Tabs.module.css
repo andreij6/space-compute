@@ -12,6 +12,7 @@
 }
 
 .tab {
+  min-height: 2.75rem;
   padding: var(--space-2) var(--space-4);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;

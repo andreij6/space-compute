@@ -60,7 +60,7 @@ h1, h2, h3, h4 {
 }
 
 h1 {
-  font-size: var(--text-3xl);
+  font-size: clamp(var(--text-2xl), 6vw, var(--text-3xl));
   margin-bottom: var(--space-2);
 }
 
@@ -95,6 +95,9 @@ textarea {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.75rem;
+  min-height: 2.75rem;
+  max-width: 100%;
+  min-width: 0;
   transition: border-color var(--duration-fast) var(--easing-standard);
 }
 
@@ -138,11 +141,33 @@ dt {
 }
 
 dd {
+  overflow-wrap: anywhere;
   font-family: var(--font-mono);
   font-size: var(--text-md);
 }
 
 code {
+  overflow-wrap: anywhere;
   font-family: var(--font-mono);
   font-size: 0.9em;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -1,6 +1,8 @@
 .nav {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   gap: var(--space-1);
   padding: var(--space-3);
   background-color: var(--color-surface);
@@ -10,6 +12,10 @@
 }
 
 .link {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  white-space: nowrap;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
@@ -27,4 +33,16 @@
   color: var(--color-on-accent);
   background-color: var(--color-accent);
   font-weight: var(--weight-semibold);
+}
+
+@media (min-width: 768px) {
+  .nav {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  .link {
+    min-height: 0;
+    white-space: normal;
+  }
 }

@@ -1,5 +1,6 @@
 .gauge {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -9,7 +10,7 @@
 }
 
 .art {
-  width: 128px;
+  width: 96px;
   height: auto;
   flex-shrink: 0;
 }
@@ -49,4 +50,10 @@
 
 .paused .label {
   color: var(--color-text-muted);
+}
+
+@media (min-width: 768px) {
+  .art {
+    width: 128px;
+  }
 }

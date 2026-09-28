@@ -15,7 +15,7 @@
 
 .parties {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-5);
 }
@@ -52,6 +52,8 @@
 
 .citationHead {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--space-2);
@@ -72,4 +74,5 @@
   padding: var(--space-4);
   line-height: 1.6;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

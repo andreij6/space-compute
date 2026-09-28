@@ -5,7 +5,8 @@ import { chromium } from 'playwright';
 import { playAudit } from 'playwright-lighthouse';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
-const outDir = `${repoRoot}docs/demos/T6.10`;
+const outDir = `${repoRoot}docs/demos/T9.5`;
+const THRESHOLDS = { accessibility: 90, performance: 80 };
 mkdirSync(outDir, { recursive: true });
 
 function icp(args) {
@@ -57,18 +58,28 @@ async function signInAndSpawn(page, context, label) {
   await page.waitForURL(/\/dashboard$/, { timeout: 30_000 });
 }
 
-async function audit(page, path, name, thresholds) {
+async function audit(page, path, name) {
   await page.goto(`${baseURL}${path}`);
   await page.waitForLoadState('networkidle');
   const result = await playAudit({
     page,
     port: PORT,
-    thresholds,
+    thresholds: THRESHOLDS,
+    ignoreError: true,
     reports: { formats: { html: true, json: true }, directory: outDir, name },
   });
-  const a11y = Math.round(result.lhr.categories.accessibility.score * 100);
-  console.log(`${name}: accessibility ${a11y}`);
-  return a11y;
+  const scores = Object.fromEntries(
+    Object.keys(THRESHOLDS).map((k) => [k, Math.round(result.lhr.categories[k].score * 100)]),
+  );
+  console.log(`${name}: ${JSON.stringify(scores)}`);
+  return scores;
+}
+
+async function firstDiscoveryPath(page) {
+  await page.goto(`${baseURL}/discoveries`);
+  await page.waitForLoadState('networkidle');
+  const href = await page.locator('main a[href^="/d/"]').first().getAttribute('href', { timeout: 5_000 }).catch(() => null);
+  return href ?? '/d/SC-0000-000000';
 }
 
 async function main() {
@@ -78,24 +89,28 @@ async function main() {
   const results = {};
 
   const landing = await context.newPage();
-  results.landing = await audit(landing, '/', 'landing', { accessibility: 90 });
+  results.landing = await audit(landing, '/', 'landing');
   await landing.close();
 
   const detail = await context.newPage();
-  results.discoveryDetail = await audit(detail, '/d/SC-0000-000000', 'discovery-detail', { accessibility: 90 });
+  results.discoveryDetail = await audit(detail, await firstDiscoveryPath(detail), 'discovery-detail');
   await detail.close();
 
   const dashboardPage = await context.newPage();
   await signInAndSpawn(dashboardPage, context, 'e2e-lighthouse');
-  results.dashboard = await audit(dashboardPage, '/dashboard', 'dashboard', { accessibility: 90 });
+  results.dashboard = await audit(dashboardPage, '/dashboard', 'dashboard');
   await dashboardPage.close();
 
   await browser.close();
 
   console.log(JSON.stringify(results, null, 2));
-  const failed = Object.entries(results).filter(([, score]) => score < 90);
+  const failed = Object.entries(results).flatMap(([pageName, scores]) =>
+    Object.entries(THRESHOLDS)
+      .filter(([k, min]) => scores[k] < min)
+      .map(([k]) => `${pageName}.${k}=${scores[k]}`),
+  );
   if (failed.length > 0) {
-    console.error(`Below threshold: ${failed.map(([k, v]) => `${k}=${v}`).join(', ')}`);
+    console.error(`Below threshold: ${failed.join(', ')}`);
     process.exit(1);
   }
 }

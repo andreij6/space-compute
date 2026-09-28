@@ -8,6 +8,7 @@
 }
 
 .inner {
+  min-width: 0;
   max-width: var(--layout-max-width);
   margin: 0 auto;
   padding: var(--space-3) var(--space-4);
@@ -67,8 +68,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
   color: var(--color-text);
   background-color: var(--color-surface-raised);
   border: 1px solid var(--color-border);
@@ -85,6 +87,7 @@
 }
 
 .drawerLink {
+  min-height: 2.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -100,7 +103,22 @@
   gap: 0.65rem;
 }
 
+.brandText,
+.spawn {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .brandText {
+    display: inline;
+  }
+}
+
 @media (min-width: 768px) {
+  .spawn {
+    display: inline-flex;
+  }
+
   .inner {
     padding: var(--space-4) var(--space-6);
   }

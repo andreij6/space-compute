@@ -29,13 +29,14 @@
 .md {
   font-size: var(--text-sm);
   padding: 0.55rem 1.1rem;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
 }
 
 .sm {
   font-size: var(--text-xs);
   padding: 0.35rem 0.75rem;
-  min-height: 2rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
 }
 
 .primary {
@@ -76,4 +77,11 @@
 
 .ghost:hover:not(:disabled) {
   color: var(--color-text);
+}
+
+@media (min-width: 768px) {
+  .sm {
+    min-height: 2rem;
+    min-width: 2rem;
+  }
 }

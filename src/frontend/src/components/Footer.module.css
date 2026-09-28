@@ -1,7 +1,7 @@
 .footer {
   border-top: 1px solid var(--color-border);
   background-color: var(--color-surface);
-  padding: 2.5rem var(--space-4) 5rem;
+  padding: 2.5rem var(--space-4) calc(5rem + env(safe-area-inset-bottom));
 }
 
 .inner {
@@ -56,12 +56,15 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
 .list a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
   transition: color var(--duration-fast) var(--easing-standard);
 }
 
@@ -90,6 +93,14 @@
 }
 
 @media (min-width: 768px) {
+  .list {
+    gap: var(--space-2);
+  }
+
+  .list a {
+    min-height: 0;
+  }
+
   .footer {
     padding: var(--space-7) var(--space-6);
   }

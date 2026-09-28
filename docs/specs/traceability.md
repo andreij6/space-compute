@@ -341,6 +341,14 @@
 | 05 intro (CSS modules + design tokens): shared components Button, Card, Badge/TierInsignia, CategoryIcon, EmptyState (assets/states), FuelGauge (assets/fuel, 05 §3 thresholds), PageShell/Nav/Footer, DataTable, Tabs, Dialog, ConfirmAction render with the roles/labels/texts the e2e selectors rely on (vitest) | T9.1 | src/frontend/src/components/ui/ui.test.tsx |
 | T9.1 reconciliation of design sources (brief, screen inventory, assets, old mock) with the pending Claude Design comparison checklist [doc-proof] | T9.1 | docs/specs/05a-design-reconciliation.md |
 | T9.1 demo screenshot: dev-only /design component gallery [doc-proof] | T9.1 | docs/demos/T9.1/01_design_gallery.png |
+| 05 §3 Discovery detail data panel from the dossier (field/program, filters, RA/Dec, z ± error, mass, magnification, FITS links limited to https or same-origin, acknowledgment) (vitest) | T9.2 | src/frontend/src/lib/dossier.test.ts |
+| T9.2 image viewer zoom/pan clamping (vitest) | T9.2 | src/frontend/src/lib/imageViewer.test.ts |
+| T9.3 spawn avatar picker derives deterministic seeds; payment panel restyle keeps the amount, fee, busy and disabled rules (vitest) | T9.3 | src/frontend/src/lib/spawnFlow.test.ts |
+| T9.4 admin console restyle keeps typed confirmation on every destructive action (ConfirmAction, vitest) | T9.4 | src/frontend/src/components/ui/ui.test.tsx |
+| T9.5 review: the citation verification result is a `role="status"` live region, and Unverified is announced (vitest) | T9.5 | src/frontend/src/citation.test.tsx |
+| T9.5 visual-regression baseline: every route at 390×844 and 1280×850 with dynamic data masked; no horizontal scroll at 360 px; tap targets ≥ 44 px (Playwright; runs in the final verify) | T9.5 | src/frontend/tests/e2e/visual.spec.ts |
+| T9.5 Lighthouse accessibility ≥ 90 and performance ≥ 80 on Landing, Discovery detail and Dashboard; reports in docs/demos/T9.5 (runs in the final verify) | T9.5 | scripts/lighthouse-a11y.sh |
+| T9.5 responsive decisions and the review of T9.2–T9.4 [doc-proof] | T9.5 | docs/specs/05a-design-reconciliation.md |
 | 08 §2 S21: someone other than the owner or the owner's agent submitting through an AAA — foreign/expired/unsynced submitter rejected | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |
 | 08 §2 S22: tampered AAA code vouching for arbitrary callers — num_changes mismatch triggers re-verification | T2.9 | t2_9_verify_never_lifts_admin_suspension_and_checks_num_changes |
 | 08 §2 S23: stolen operator key — expired/unsynced operator rejected immediately | T2.8 | t2_8_foreign_expired_unsynced_submitter_rejected |
