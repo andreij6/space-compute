@@ -661,3 +661,20 @@ fn t7_2_load_200x100() {
 fn t7_2_load_20x20() {
     run_and_write(20, 20, Placement::App);
 }
+
+#[test]
+fn t7_12_storage_per_classification_and_flat_get_task_tail() {
+    let report = run(40, 70, Placement::App);
+    let rounds = &report.platform_stable_by_round;
+    let (mid_n, mid_stable, _) = rounds[rounds.len() / 2];
+    let (end_n, end_stable, _) = rounds[rounds.len() - 1];
+    let per = (end_stable - mid_stable) / u128::from(end_n - mid_n);
+    assert!(per <= 10 * 1024, "{per} B per classification");
+    let get_task = &report.stats["get_task"];
+    assert!(
+        get_task.platform_cost_p99 < 57_040_000,
+        "get_task p99 {}",
+        get_task.platform_cost_p99
+    );
+    write_json("app13_40x70_t7_12", serde_json::to_value(&report).unwrap());
+}

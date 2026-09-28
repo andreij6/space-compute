@@ -10,6 +10,7 @@ pub const REPLAY_CLEARING: u8 = 2;
 pub const COUNTERS_READY: u8 = 10;
 pub const AAA_STATUS_BASE: u8 = 20;
 pub const RETIRED_SUBJECTS: u8 = 30;
+pub const GOLD_INDEX_READY: u8 = 31;
 
 thread_local! {
     static META: RefCell<StableBTreeMap<u8, u64, Memory>> =

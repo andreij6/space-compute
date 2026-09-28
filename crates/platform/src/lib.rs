@@ -44,6 +44,7 @@ fn init() {
     })
     .expect("init config");
     meta::set(meta::COUNTERS_READY, 1);
+    meta::set(meta::GOLD_INDEX_READY, 1);
     timers::start();
 }
 
@@ -63,6 +64,10 @@ fn post_upgrade() {
         registry::backfill_status_counts();
         catalog::backfill_retired_count();
         meta::set(meta::COUNTERS_READY, 1);
+    }
+    if meta::get(meta::GOLD_INDEX_READY).is_none() {
+        catalog::backfill_gold_index();
+        meta::set(meta::GOLD_INDEX_READY, 1);
     }
     citations::rebuild();
     timers::start();

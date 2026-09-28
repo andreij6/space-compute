@@ -88,6 +88,30 @@ At the new values, 1,000 classifications cost $0.19, against KR4.4's target of �
 
 ## 7. Findings for follow-up (platform code, outside T7.3 scope)
 
-1. **Stable storage is about 44 KB per classification** (regression over 52 per-round samples; heap is flat). At the published 127k cycles/GiB/s, that is about **165M cycles per classification per year** on 13-node. That exceeds the 73.8M fee margin after about 5 months, so KR4.1 cannot hold long-term at this footprint. The content per classification is under 1 KB, so the footprint looks like overhead: candid-encoded `Unbounded` values with type tables across about 10 maps, plus the `SUBJECTS` rewrite on every tally. Shrinking it is cheaper for owners than pricing storage into the fee. With the storage cost included, `fee_submit_classification` would need about 200M, which happens to match the old estimate.
-2. **The `get_task` gold pick is a linear `SUBJECTS` scan** (`catalog::issue_task`). It is O(golds already seen / gold density), which explains the p95/p99 tail. At tier 5 (≥ 300 gold tasks), a gold `get_task` would scan about 1,900 subjects, roughly 400M+ instructions. The pool-exhausted fallback scans every subject. Every AAA also receives gold subjects in the same order, which makes them easy for colluding agents to share. Fix with a gold index and a random or per-AAA start. Then re-measure and lower `fee_get_task`.
+1. *(Resolved in T7.12, §8: the 44 KB was 8 MiB bucket first-touch; the marginal cost is ≈1.3 KB.)* **Stable storage is about 44 KB per classification** (regression over 52 per-round samples; heap is flat). At the published 127k cycles/GiB/s, that is about **165M cycles per classification per year** on 13-node. That exceeds the 73.8M fee margin after about 5 months, so KR4.1 cannot hold long-term at this footprint. The content per classification is under 1 KB, so the footprint looks like overhead: candid-encoded `Unbounded` values with type tables across about 10 maps, plus the `SUBJECTS` rewrite on every tally. Shrinking it is cheaper for owners than pricing storage into the fee. With the storage cost included, `fee_submit_classification` would need about 200M, which happens to match the old estimate.
+2. *(Resolved in T7.12, §8: gold index, mem 16.)* **The `get_task` gold pick is a linear `SUBJECTS` scan** (`catalog::issue_task`). It is O(golds already seen / gold density), which explains the p95/p99 tail. At tier 5 (≥ 300 gold tasks), a gold `get_task` would scan about 1,900 subjects, roughly 400M+ instructions. The pool-exhausted fallback scans every subject. Every AAA also receives gold subjects in the same order, which makes them easy for colluding agents to share. Fix with a gold index and a random or per-AAA start. Then re-measure and lower `fee_get_task`.
 3. `get_review_assignment` charges the full fee to tier-1 AAAs that get `NotEligible`. The AAA could check its tier before paying.
+
+## 8. T7.12 follow-up: storage per classification and the gold index
+
+**Where the 44 KB went.** The per-round samples in `load-test-T7.3.json` (`app13_40x70.platform_stable_by_round`) change only in whole 8 MiB steps: +6 buckets in round 1, +4 in round 2, +1 at 520 and 1,240 classifications, and +7 at 1,600 when reviews start. Each step is a `MemoryManager` first touch of another virtual memory (leases, seen-set, classifications, indexes, reviews...). About 19 × 8 MiB = 152 MiB of fixed cost was spread over 2,800 classifications. The real marginal cost was already small.
+
+Marginal stable bytes per classification, measured by `t7_12_steady_state_stable_bytes_per_classification_at_most_3_kib` (40 AAAs × 40 rounds through `issue_task` + `process_submission`, protocol v1 shape, 64 KiB page resolution):
+
+| mem | map | bytes / classification |
+|---|---|---|
+| 20 | `CLASSIFICATIONS` | 409 |
+| 41 | event log data | 409 |
+| 12 | `LEASES` | 204 (now pruned 7 days after expiry) |
+| 35 | per-AAA classification index | 81 |
+| 47 | per-AAA activity index | 81 |
+| 13 | seen-set | 40 |
+| 21 | per-subject classification index | 40 |
+| 44 | leaderboard | 40 |
+| | **total** | **≈1.3 KB** (≈1.1 KB once leases are pruned) |
+
+**Fix.** Fresh installs now use 1 MiB buckets (`memory::BUCKET_PAGES = 16`). A first touch costs 1 MiB instead of 8 MiB, so the fixed cost of the same run is about 19 MiB. Amortized over 2,800 classifications that is ≈7 KB + 1.3 KB ≈ 8.3 KB, and it tends to 1.3 KB as volume grows. An existing canister keeps its 8 MiB layout, because the bucket size is read from its header. Platform idle storage for a fresh install falls from ~300 MB to ~40 MB. Storage per classification-year falls from ~165M to **~4.9M cycles**, well inside the 73.8M fee margin. The record encoding was not changed: `Classification` (≤ 512 B with 7 answers) and `Event` are not worth a v2 migration at this size.
+
+**Gold `get_task`.** Mem 16 is a gold index of active gold subject ids, maintained on every subject write and backfilled once on upgrade. A gold pick starts at a random key and walks forward, wrapping, and skips subjects this AAA has already seen. The cost depends on the golds this AAA has seen, not on pool size. The pool-exhausted fallback uses the same index. The random start also gives each AAA a different gold order.
+
+**Still to measure** (owner rule: integration runs at the end): `t7_12_storage_per_classification_and_flat_get_task_tail` (`just load-test`) asserts second-half stable growth ≤ 10 KB/classification and get_task p99 below T7.3's 57.04M. Then `fee_get_task` can be lowered.

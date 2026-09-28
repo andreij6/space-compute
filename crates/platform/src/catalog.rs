@@ -130,6 +130,8 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory::get(memory::TASK_POOL)));
     static OPEN_LEASES: RefCell<StableBTreeMap<OpenLeaseKey, u64, Memory>> =
         RefCell::new(StableBTreeMap::init(memory::get(memory::OPEN_LEASES)));
+    static GOLD_SUBJECTS: RefCell<StableBTreeMap<u32, (), Memory>> =
+        RefCell::new(StableBTreeMap::init(memory::get(memory::GOLD_SUBJECTS)));
     static POOL_CURSOR: RefCell<u32> = const { RefCell::new(0) };
     static HOURLY_RATE_LIMITS: RefCell<std::collections::HashMap<Principal, (f64, u64)>> =
         RefCell::new(std::collections::HashMap::new());
@@ -299,11 +301,71 @@ fn is_retired(s: &Subject) -> bool {
 }
 
 fn put_subject(m: &mut StableBTreeMap<u32, Subject, Memory>, id: u32, s: Subject) {
+    index_gold(id, &s);
     let now = is_retired(&s);
     let before = m.insert(id, s).is_some_and(|old| is_retired(&old));
     if now != before {
         crate::meta::bump(crate::meta::RETIRED_SUBJECTS, now);
     }
+}
+
+fn index_gold(id: u32, s: &Subject) {
+    GOLD_SUBJECTS.with_borrow_mut(|g| {
+        if s.active && s.gold.is_some() {
+            g.insert(id, ());
+        } else {
+            g.remove(&id);
+        }
+    });
+}
+
+pub fn backfill_gold_index() {
+    SUBJECTS.with_borrow(|m| {
+        for e in m.iter() {
+            index_gold(*e.key(), &e.value());
+        }
+    });
+}
+
+fn pick_gold(aaa: Principal, rand: u32) -> Option<Subject> {
+    let id = GOLD_SUBJECTS.with_borrow(|g| {
+        let lo = g.first_key_value()?.0;
+        let hi = g.last_key_value()?.0;
+        let span = u64::from(hi - lo) + 1;
+        let mixed = rand.wrapping_mul(0x9E37_79B9).rotate_left(16);
+        let start = lo + (u64::from(mixed) % span) as u32;
+        g.range(start..)
+            .chain(g.range(..start))
+            .map(|e| *e.key())
+            .find(|&k| !has_seen(aaa, k))
+    })?;
+    get_subject(id)
+}
+
+pub const LEASE_RETENTION_NS: u64 = 7 * 86_400 * 1_000_000_000;
+
+pub fn prune_leases(now_ns: u64, max: usize) -> usize {
+    let cutoff = now_ns.saturating_sub(LEASE_RETENTION_NS);
+    let stale: Vec<(u64, Principal)> = LEASES.with_borrow(|m| {
+        let last = m.last_key_value().map(|(k, _)| k);
+        m.iter()
+            .take(max)
+            .map(|e| (*e.key(), e.value()))
+            .take_while(|(k, l)| l.expires_at < cutoff && Some(*k) != last)
+            .map(|(k, l)| (k, l.aaa))
+            .collect()
+    });
+    LEASES.with_borrow_mut(|m| {
+        for (k, _) in &stale {
+            m.remove(k);
+        }
+    });
+    OPEN_LEASES.with_borrow_mut(|m| {
+        for &(task_id, aaa) in &stale {
+            m.remove(&OpenLeaseKey { aaa, task_id });
+        }
+    });
+    stale.len()
 }
 
 pub fn backfill_retired_count() {
@@ -406,15 +468,7 @@ pub fn issue_task(
     let mut selected_subject: Option<Subject> = None;
 
     if want_gold {
-        SUBJECTS.with_borrow(|sub_map| {
-            for entry in sub_map.iter() {
-                let s = entry.value();
-                if s.active && s.gold.is_some() && !has_seen(aaa, s.ref_.subject_id) {
-                    selected_subject = Some(s);
-                    break;
-                }
-            }
-        });
+        selected_subject = pick_gold(aaa, rand_roll);
     }
 
     if selected_subject.is_none() {
@@ -436,15 +490,7 @@ pub fn issue_task(
     }
 
     if selected_subject.is_none() {
-        SUBJECTS.with_borrow(|sub_map| {
-            for entry in sub_map.iter() {
-                let s = entry.value();
-                if s.active && s.gold.is_some() && !has_seen(aaa, s.ref_.subject_id) {
-                    selected_subject = Some(s);
-                    break;
-                }
-            }
-        });
+        selected_subject = pick_gold(aaa, rand_roll);
     }
 
     let subject = selected_subject.ok_or(ApiError::NotFound)?;
@@ -861,5 +907,156 @@ mod tests {
         crate::meta::set(crate::meta::RETIRED_SUBJECTS, 42);
         backfill_retired_count();
         assert_eq!(retired_subjects_count(), 1);
+    }
+    fn gold_answer() -> Option<Vec<Answer>> {
+        Some(vec![Answer {
+            question_id: "q1".into(),
+            answer_id: "smooth".into(),
+        }])
+    }
+
+    fn seed(ids: impl Iterator<Item = u32>, gold: bool) {
+        let batch: Vec<SubjectInput> = ids
+            .map(|id| SubjectInput {
+                subject: sample_ref(id),
+                gold: if gold { gold_answer() } else { None },
+            })
+            .collect();
+        for chunk in batch.chunks(sc_types::limits::ADMIN_BATCH_MAX) {
+            add_subjects(chunk.to_vec()).unwrap();
+        }
+    }
+
+    fn open_params() -> Params {
+        Params {
+            max_open_leases_per_aaa: u16::MAX,
+            max_tasks_per_aaa_per_hour: 0,
+            ..Params::default()
+        }
+    }
+
+    fn roll(i: u32) -> u32 {
+        i.wrapping_mul(2_654_435_761).rotate_left(7) ^ 0x5bd1_e995
+    }
+
+    #[test]
+    fn t7_12_gold_index_tracks_active_gold_subjects_and_backfills() {
+        seed(1..=4, true);
+        seed(5..=6, false);
+        let indexed =
+            || GOLD_SUBJECTS.with_borrow(|g| g.iter().map(|e| *e.key()).collect::<Vec<_>>());
+        assert_eq!(indexed(), vec![1, 2, 3, 4]);
+        set_subject_active(2, false, 5).unwrap();
+        assert_eq!(indexed(), vec![1, 3, 4]);
+        set_subject_active(2, true, 5).unwrap();
+        GOLD_SUBJECTS.with_borrow_mut(|g| g.clear_new());
+        backfill_gold_index();
+        assert_eq!(indexed(), vec![1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn t7_12_gold_pick_never_repeats_for_an_aaa_then_falls_back_to_pool() {
+        add_protocol(sample_protocol(12)).unwrap();
+        seed(10_000..10_050, true);
+        seed(20_000..20_003, false);
+        let params = Params {
+            gold_rate_bp: 10_000,
+            calibration_gold_rate_bp: 10_000,
+            ..open_params()
+        };
+        let aaa = p(120);
+        let mut golds = std::collections::BTreeSet::new();
+        for i in 0..50 {
+            let t = issue_task(aaa, 100, &params, 12, 1 + i as u64, roll(i)).unwrap();
+            assert!(golds.insert(t.subject.subject_id));
+        }
+        assert_eq!(golds, (10_000..10_050).collect());
+        let fallback = issue_task(aaa, 100, &params, 12, 100, roll(50)).unwrap();
+        assert!((20_000..20_003).contains(&fallback.subject.subject_id));
+    }
+
+    #[test]
+    fn t7_12_gold_start_is_randomized_across_aaas() {
+        add_protocol(sample_protocol(13)).unwrap();
+        seed(1..=200, true);
+        let params = Params {
+            gold_rate_bp: 10_000,
+            ..open_params()
+        };
+        let mut hits = std::collections::BTreeMap::<u32, u32>::new();
+        for i in 0..400u32 {
+            let aaa = Principal::from_slice(&(1_000 + i).to_be_bytes());
+            let t = issue_task(aaa, 100, &params, 13, 1, roll(i)).unwrap();
+            *hits.entry(t.subject.subject_id).or_default() += 1;
+        }
+        assert!(
+            hits.len() >= 120,
+            "only {} distinct first golds",
+            hits.len()
+        );
+        assert!(*hits.values().max().unwrap() <= 10);
+    }
+
+    #[test]
+    fn t7_12_gold_rate_honors_calibration_then_steady_rate() {
+        add_protocol(sample_protocol(14)).unwrap();
+        seed(1..=500, true);
+        seed(1_001..=1_500, false);
+        let params = Params {
+            gold_rate_bp: 1_000,
+            calibration_gold_rate_bp: 4_000,
+            calibration_tasks: 50,
+            ..open_params()
+        };
+        let rate = |count: u32, salt: u32| {
+            let n = 2_000u32;
+            let golds = (0..n)
+                .filter(|&i| {
+                    let aaa = Principal::from_slice(&(salt + i).to_be_bytes());
+                    let t = issue_task(aaa, count, &params, 14, 1, roll(salt + i)).unwrap();
+                    t.subject.subject_id <= 500
+                })
+                .count() as u32;
+            golds * 10_000 / n
+        };
+        let calibrating = rate(10, 100_000);
+        let steady = rate(50, 200_000);
+        assert!((3_500..=4_500).contains(&calibrating), "{calibrating}");
+        assert!((700..=1_300).contains(&steady), "{steady}");
+    }
+
+    #[test]
+    fn t7_12_prune_drops_old_leases_but_keeps_latest_task_id_and_recent_ones() {
+        add_protocol(sample_protocol(15)).unwrap();
+        seed(1..=10, false);
+        let params = Params {
+            gold_rate_bp: 0,
+            calibration_gold_rate_bp: 0,
+            lease_task_secs: 100,
+            ..open_params()
+        };
+        let day = 86_400 * 1_000_000_000u64;
+        let old: Vec<u64> = (0..3u8)
+            .map(|i| {
+                issue_task(p(150 + i), 0, &params, 15, 1, 0)
+                    .unwrap()
+                    .task_id
+            })
+            .collect();
+        let recent = issue_task(p(160), 0, &params, 15, 10 * day, 0)
+            .unwrap()
+            .task_id;
+        let now = 10 * day;
+        assert_eq!(prune_leases(now, 2), 2);
+        assert_eq!(prune_leases(now, 100), 1);
+        assert_eq!(prune_leases(now, 100), 0);
+        assert!(old.iter().all(|t| get_lease(*t).is_none()));
+        assert!(get_lease(recent).is_some());
+        assert_eq!(OPEN_LEASES.with_borrow(|m| m.len()), 1);
+        assert_eq!(prune_leases(30 * day, 100), 0);
+        let next = issue_task(p(161), 0, &params, 15, 30 * day, 0)
+            .unwrap()
+            .task_id;
+        assert_eq!(next, recent + 1);
     }
 }

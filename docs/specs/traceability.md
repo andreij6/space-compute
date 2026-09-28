@@ -264,6 +264,15 @@
 | 01 §7: the same workload on a 34-node fiduciary subnet costs ×2.61–2.62 per call, confirming the 34/13 multiplier | T7.3 | t7_3_load_multiplier_10x20 |
 | 01 §7: every default fee ≥ max(2 × measured average, measured p99) of platform's own cost per call, and ≤ 1.5 × that requirement so owners are not overcharged | T7.3 | t7_3_default_fees_cover_measured_platform_cost_times_safety_factor |
 | 04 `get_quote_spawn`: the spawn quote uses the measured 500B creation fee, so a new AAA keeps ≥ `aaa_initial_cycles` after creation | T7.3 | t7_3_spawn_quote_covers_measured_creation_fee_and_initial_cycles |
+| 02 §3: marginal stable storage per classification (get_task + submit through every map) ≤ 3 KiB; measured ≈1.3 KB | T7.12 | t7_12_steady_state_stable_bytes_per_classification_at_most_3_kib |
+| 02 §3: candid-encoded `Classification` (7 answers, 64-char label), `Event::Classified` ≤ 512 B and `Lease` ≤ 128 B | T7.12 | t7_12_representative_records_encode_within_bounds |
+| 02 §3: fresh installs allocate 1 MiB `MemoryManager` buckets (first touch of a memory costs 1 MiB, not 8 MiB) | T7.12 | t7_12_fresh_install_first_touch_costs_one_mib_bucket_per_memory |
+| 02 §3: an existing 8 MiB-bucket layout still loads and grows after the bucket change | T7.12 | t7_12_existing_8mib_bucket_layout_still_loads_after_bucket_change |
+| 02 §3 mem 16: gold index holds exactly the active gold subjects and is backfilled once on upgrade | T7.12 | t7_12_gold_index_tracks_active_gold_subjects_and_backfills |
+| 02 §5.1: indexed gold pick never repeats a subject for an AAA, then falls back to the pool | T7.12 | t7_12_gold_pick_never_repeats_for_an_aaa_then_falls_back_to_pool |
+| 02 §5.1: gold pick starts at a random point, so AAAs do not share a gold order | T7.12 | t7_12_gold_start_is_randomized_across_aaas |
+| 02 §5.1: gold rate honors `calibration_gold_rate_bp` below `calibration_tasks`, then `gold_rate_bp` | T7.12 | t7_12_gold_rate_honors_calibration_then_steady_rate |
+| 02 §3 mem 12: the hourly timer prunes leases 7 days past expiry, keeps the newest task id and recent leases | T7.12 | t7_12_prune_drops_old_leases_but_keeps_latest_task_id_and_recent_ones |
 | 02 §11 #1: a registered AAA with the fee gets a task, submits it, receives a receipt; resubmitting returns duplicate = true, state unchanged | T2.7 | t2_7_registered_aaa_task_receipt_and_idempotent_duplicate |
 | 02 §11 #2: a non-AAA caller gets NotRegistered; an insufficient fee gets InsufficientFee | T2.3 | t2_3_never_same_subject_twice_and_pool_dispatch |
 | 02 §11 #3: the 5th classification retires a subject, never reissued; an AAA never sees the same subject twice | T2.7 | t2_7_fifth_classification_retires_and_seen_set_never_reissues |

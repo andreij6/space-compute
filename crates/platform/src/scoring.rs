@@ -1301,3 +1301,235 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod storage_tests {
+    use super::*;
+    use ic_stable_structures::Memory as _;
+    use sc_types::{AnswerOption, DiscoveryCategory, Question, SubjectRef};
+
+    const MAX_BYTES_PER_CLASSIFICATION: u64 = 3 * 1024;
+
+    type Opt = (&'static str, Option<&'static str>);
+
+    fn protocol_v1_shape() -> Protocol {
+        let spec: Vec<(&str, Vec<Opt>)> = vec![
+            (
+                "shape",
+                vec![
+                    ("smooth", Some("clumps")),
+                    ("featured", Some("edgeon")),
+                    ("compact", Some("odd")),
+                    ("artifact", None),
+                ],
+            ),
+            ("edgeon", vec![("yes", Some("clumps")), ("no", Some("bar"))]),
+            (
+                "bar",
+                vec![
+                    ("strong", Some("spiral")),
+                    ("weak", Some("spiral")),
+                    ("none", Some("spiral")),
+                ],
+            ),
+            (
+                "spiral",
+                vec![("yes", Some("clumps")), ("no", Some("clumps"))],
+            ),
+            (
+                "clumps",
+                vec![
+                    ("none", Some("merger")),
+                    ("few", Some("merger")),
+                    ("many", Some("merger")),
+                ],
+            ),
+            (
+                "merger",
+                vec![
+                    ("none", Some("odd")),
+                    ("minor", Some("odd")),
+                    ("major", Some("odd")),
+                ],
+            ),
+            (
+                "odd",
+                vec![
+                    ("none", None),
+                    ("arc", None),
+                    ("ring", None),
+                    ("other", None),
+                ],
+            ),
+        ];
+        Protocol {
+            version: 1,
+            questions: spec
+                .into_iter()
+                .map(|(id, answers)| Question {
+                    id: id.into(),
+                    prompt: format!("{id}?"),
+                    answers: answers
+                        .into_iter()
+                        .map(|(a, next)| AnswerOption {
+                            id: a.into(),
+                            label: a.into(),
+                            next: next.map(Into::into),
+                        })
+                        .collect(),
+                })
+                .collect(),
+            discovery_categories: vec![DiscoveryCategory {
+                id: "lens".into(),
+                label: "Lens".into(),
+                description: "Lens".into(),
+            }],
+            guidance_md: "g".into(),
+        }
+    }
+
+    fn walk(p: &Protocol, pick: usize) -> Vec<Answer> {
+        let mut out = vec![];
+        let mut q = &p.questions[0];
+        loop {
+            let o = &q.answers[pick % q.answers.len()];
+            out.push(Answer {
+                question_id: q.id.clone(),
+                answer_id: o.id.clone(),
+            });
+            match &o.next {
+                Some(n) => q = p.questions.iter().find(|x| &x.id == n).unwrap(),
+                None => break,
+            }
+        }
+        out
+    }
+
+    fn subject(id: u32) -> SubjectRef {
+        SubjectRef {
+            subject_id: id,
+            field: "ceers".into(),
+            ra_deg: 214.9,
+            dec_deg: 52.8,
+            image_url: format!("https://data.example.com/v1/ceers/{id}/rgb.png"),
+            image_sha256: vec![1; 32],
+            dossier_url: format!("https://data.example.com/v1/ceers/{id}/dossier.json"),
+            dossier_sha256: vec![2; 32],
+            data_version: 1,
+        }
+    }
+
+    fn stable_bytes() -> u64 {
+        (0..u8::MAX)
+            .map(|id| crate::memory::get(id).size() * 65_536)
+            .sum()
+    }
+
+    #[test]
+    fn t7_12_representative_records_encode_within_bounds() {
+        let p = protocol_v1_shape();
+        let answers = walk(&p, 1);
+        assert_eq!(answers.len(), 7);
+        let aaa = Principal::from_slice(&[7; 29]);
+        let c = Classification {
+            v: 1,
+            classification_id: u64::MAX,
+            aaa,
+            owner: aaa,
+            subject_id: u32::MAX,
+            task_id: u64::MAX,
+            answers,
+            observed_image_sha256: vec![1; 32],
+            image_mismatch: false,
+            discovery_seq: Some(u64::MAX),
+            is_gold: true,
+            gold_score: Some((7, 7)),
+            consensus_score: Some((7, 7)),
+            fee: u128::from(u64::MAX),
+            agent_label: Some("x".repeat(sc_types::limits::AGENT_LABEL_MAX)),
+            at: u64::MAX,
+            xp_awarded: 2,
+        };
+        let event = crate::events::Event {
+            v: 1,
+            id: u64::MAX,
+            at: u64::MAX,
+            aaa,
+            owner: aaa,
+            kind: crate::events::EventKind::Classified {
+                classification_id: u64::MAX,
+                subject_id: u32::MAX,
+                gold: Some((7, 7)),
+                fee: u64::MAX,
+            },
+        };
+        let lease = catalog::Lease {
+            v: 1,
+            aaa,
+            subject_id: u32::MAX,
+            issued_at: u64::MAX,
+            expires_at: u64::MAX,
+            consumed_by: Some(u64::MAX),
+        };
+        let len = |b: Vec<u8>| b.len();
+        assert!(len(candid::encode_one(&c).unwrap()) <= 512);
+        assert!(len(candid::encode_one(&event).unwrap()) <= 512);
+        assert!(len(candid::encode_one(&lease).unwrap()) <= 128);
+    }
+
+    #[test]
+    fn t7_12_steady_state_stable_bytes_per_classification_at_most_3_kib() {
+        let p = protocol_v1_shape();
+        catalog::add_protocol(p.clone()).unwrap();
+        let subjects: Vec<u32> = (1..=2_000).collect();
+        for chunk in subjects.chunks(sc_types::limits::ADMIN_BATCH_MAX) {
+            catalog::add_subjects(
+                chunk
+                    .iter()
+                    .map(|&id| catalog::SubjectInput {
+                        subject: subject(id),
+                        gold: (id % 10 == 0).then(|| walk(&p, 1)),
+                    })
+                    .collect(),
+            )
+            .unwrap();
+        }
+        let params = Params {
+            max_open_leases_per_aaa: 10,
+            max_tasks_per_aaa_per_hour: 0,
+            ..Params::default()
+        };
+        let mut now = 1_000_000_000_000u64;
+        let mut run = |rounds: std::ops::Range<u32>| {
+            let mut n = 0u64;
+            for round in rounds {
+                for a in 0..40u8 {
+                    let aaa = Principal::from_slice(&[a + 1; 29]);
+                    now += 1_000_000;
+                    let roll = (round * 40 + u32::from(a)).wrapping_mul(2_654_435_761);
+                    let t = catalog::issue_task(aaa, round, &params, 1, now, roll).unwrap();
+                    let gold = catalog::get_subject(t.subject.subject_id).unwrap().gold;
+                    let submission = ClassificationSubmission {
+                        task_id: t.task_id,
+                        answers: gold.unwrap_or_else(|| walk(&p, usize::from(a))),
+                        observed_image_sha256: vec![1; 32],
+                        discovery: None,
+                        agent_label: Some("claude-opus-5.5".into()),
+                        submitted_by: aaa,
+                    };
+                    process_submission(aaa, aaa, submission, &params, 1, now, 50_000_000).unwrap();
+                    n += 1;
+                }
+            }
+            n
+        };
+        run(0..2);
+        let before = stable_bytes();
+        let n = run(2..42);
+        let per = (stable_bytes() - before) / n;
+        assert!(
+            per <= MAX_BYTES_PER_CLASSIFICATION,
+            "{per} B per classification"
+        );
+    }
+}

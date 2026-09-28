@@ -80,10 +80,11 @@ type ReviewReceipt = record { review_id : nat64; xp_awarded : nat32; duplicate :
 | 7 | `StableBTreeMap` | `lowercase(name)` → `aaa` (name uniqueness, R-19) |
 | 10 | `StableBTreeMap` | `subject_id u32` → `Subject { ref, active, gold: Option<GoldAnswers>, tally_count u16 }` |
 | 11 | `StableBTreeMap` | `protocol_version u16` → `Protocol` |
-| 12 | `StableBTreeMap` | `task_id u64` → `Lease { aaa, subject_id, issued_at, expires_at, consumed_by: Option<u64> }` |
+| 12 | `StableBTreeMap` | `task_id u64` → `Lease { aaa, subject_id, issued_at, expires_at, consumed_by: Option<u64> }` (the hourly timer prunes leases 7 days past `expires_at`, up to 5,000 per run, never the newest task id) |
 | 13 | `StableBTreeMap` | `(aaa, subject_id)` → `()` (seen-set: an AAA never gets the same subject twice) |
 | 14 | `StableBTreeMap` | `subject_id` (active, non-retired, non-gold) → `()` (task pool) |
 | 15 | `StableBTreeMap` | `(aaa, task_id)` → `expires_at` (per-AAA open-lease index; removed on consume, swept on expiry) |
+| 16 | `StableBTreeMap` | `subject_id` (active gold) → `()` (gold index for `get_task`; maintained on every subject write, backfilled once on upgrade) |
 | 20 | `StableBTreeMap` | `classification_id u64` → `Classification { aaa, owner, subject_id, task_id, answers, discovery_seq: Option<u64>, is_gold, gold_score: Option<(u8,u8)>, fee, agent_label, at }` |
 | 21 | `StableBTreeMap` | `(subject_id, classification_id)` → `()` (per-subject index) |
 | 22 | `StableBTreeMap` | `subject_id` → `SubjectConsensus { v, subject_id, consensus: Vec<(question_id, answer_id)>, resolved_at }` (§5.5) |
@@ -108,6 +109,8 @@ type ReviewReceipt = record { review_id : nat64; xp_awarded : nat32; duplicate :
 | 52 | `StableLog` (52/53) | admin audit log `{ at, admin, method, args_digest, summary }` |
 | 54 | `StableBTreeMap` | `discovery_seq` → `()` (starvation: `awaiting_reviewers` flag, cleared when a reviewer appears or the discovery resolves) |
 | 55 | `StableBTreeMap` | `u8` → `u64` (META: replay cursor `{next event, batch, clearing}` while a replay runs; maintained counters per `AaaStatus` and retired subjects, backfilled once on upgrade) |
+
+Fresh installs use 1 MiB `MemoryManager` buckets (16 pages; caps total stable memory at 32 GiB). An existing canister keeps the bucket size stored in its header. Measured marginal storage is ≈1.3 KB per classification (T7.12).
 
 `AaaRecord { v, owner, name, avatar_seed, wasm_version, status: Installing|Active|Suspended|SelfManaged|Deleted, created_at, last_seen_at, last_cycles: nat, platform_is_controller: bool, verified_at, install_attempts, admin_suspended: bool }`. Every stored record carries `v: u8` (01 §6). `WasmMeta` also stores `module_sha256` (sha256 of the decompressed module, computed once at upload) so provenance checks never gunzip.
 
@@ -159,7 +162,7 @@ Common prelude, in order:
 ### 5.1 `get_task(submitted_by : opt principal) -> Result<Task, ApiError>`
 - `submitted_by` is the header argument of §5 step 6; when present it gets the same submitter check as `submit_classification`. (T2.9: optional until the AAA sends it; follow-up in `crates/aaa`.)
 - Fails if open leases for this AAA ≥ `max_open_leases_per_aaa` (`RateLimited`). Expired leases are swept first.
-- With probability `gold_rate_bp` (or `calibration_gold_rate_bp` while `classifications < calibration_tasks`), pick a gold subject not in the seen-set. Otherwise take the next subject in the task pool (mem 14) starting from a rotating cursor, skipping seen subjects. If the pool is exhausted for this AAA, fall back to gold; if that is exhausted too, return `NotFound` ("no work available").
+- With probability `gold_rate_bp` (or `calibration_gold_rate_bp` while `classifications < calibration_tasks`), pick a gold subject not in the seen-set: walk the gold index (mem 16) from a random start key, wrapping, skipping seen subjects (cost is O(log n) per step and independent of pool size). Otherwise take the next subject in the task pool (mem 14) starting from a rotating cursor, skipping seen subjects. If the pool is exhausted for this AAA, fall back to gold the same way; if that is exhausted too, return `NotFound` ("no work available").
 - Create a lease and add `(aaa, subject)` to the seen-set immediately, so a skipped task is not reissued.
 - Return a `Task` that includes the full `Protocol` of `current_protocol_version`. Gold tasks look identical to normal ones.
 

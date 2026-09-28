@@ -17,6 +17,7 @@ pub const LEASES: u8 = 12;
 pub const SEEN_SET: u8 = 13;
 pub const TASK_POOL: u8 = 14;
 pub const OPEN_LEASES: u8 = 15;
+pub const GOLD_SUBJECTS: u8 = 16;
 pub const CLASSIFICATIONS: u8 = 20;
 pub const SUBJECT_CLASSIFICATIONS: u8 = 21;
 pub const CONSENSUS: u8 = 22;
@@ -44,9 +45,15 @@ pub const AUDIT_DATA: u8 = 53;
 pub const AWAITING_REVIEWERS: u8 = 54;
 pub const META: u8 = 55;
 
+pub const BUCKET_PAGES: u16 = 16;
+
+fn manager<M: ic_stable_structures::Memory>(memory: M) -> MemoryManager<M> {
+    MemoryManager::init_with_bucket_size(memory, BUCKET_PAGES)
+}
+
 thread_local! {
     static MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
-        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+        RefCell::new(manager(DefaultMemoryImpl::default()));
 }
 
 pub fn get(id: u8) -> Memory {
@@ -73,4 +80,54 @@ macro_rules! candid_storable {
             }
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ic_stable_structures::{Memory as _, StableBTreeMap, VectorMemory};
+
+    const WASM_PAGE: u64 = 65_536;
+
+    #[test]
+    fn t7_12_fresh_install_first_touch_costs_one_mib_bucket_per_memory() {
+        let raw = VectorMemory::default();
+        let mm = manager(raw.clone());
+        let base = raw.size();
+        for id in [
+            LEASES,
+            SEEN_SET,
+            CLASSIFICATIONS,
+            EVENTS_DATA,
+            GOLD_SUBJECTS,
+        ] {
+            let mut m: StableBTreeMap<u32, u32, _> =
+                StableBTreeMap::init(mm.get(MemoryId::new(id)));
+            m.insert(1, 1);
+        }
+        let per_memory = (raw.size() - base) * WASM_PAGE / 5;
+        assert_eq!(per_memory, BUCKET_PAGES as u64 * WASM_PAGE);
+        assert!(per_memory <= 1 << 20);
+    }
+
+    #[test]
+    fn t7_12_existing_8mib_bucket_layout_still_loads_after_bucket_change() {
+        let raw = VectorMemory::default();
+        {
+            let old = MemoryManager::init(raw.clone());
+            let mut m: StableBTreeMap<u32, u32, _> =
+                StableBTreeMap::init(old.get(MemoryId::new(SUBJECTS)));
+            m.insert(7, 42);
+        }
+        let reopened = manager(raw.clone());
+        let mut m: StableBTreeMap<u32, u32, _> =
+            StableBTreeMap::init(reopened.get(MemoryId::new(SUBJECTS)));
+        assert_eq!(m.get(&7), Some(42));
+        let before = raw.size();
+        let mut other: StableBTreeMap<u32, u32, _> =
+            StableBTreeMap::init(reopened.get(MemoryId::new(LEASES)));
+        other.insert(1, 1);
+        m.insert(8, 43);
+        assert_eq!(raw.size() - before, 128);
+    }
 }
