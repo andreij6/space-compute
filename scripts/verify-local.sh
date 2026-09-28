@@ -38,12 +38,12 @@ ok "cargo test: $PASSED passed, 0 ignored"
 python3 scripts/coverage.py || fail "coverage below threshold"
 ok "coverage gates"
 
-if grep -rnE '\bdfx\b|fetchRootKey' crates frontend/ agent-kit tools --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=dist --exclude-dir=target --include='*.rs' --include='*.ts' --include='*.tsx' --include='*.py' 2>/dev/null | grep -q .; then
+if grep -rnE '\bdfx\b|fetchRootKey' crates src/frontend/ agent-kit tools --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=dist --exclude-dir=target --include='*.rs' --include='*.ts' --include='*.tsx' --include='*.py' 2>/dev/null | grep -q .; then
   fail "found dfx or fetchRootKey in source"
 fi
 ok "no dfx / fetchRootKey in source"
 
-if grep -rn 'dangerouslySetInnerHTML' frontend/src --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null | grep -q .; then
+if grep -rn 'dangerouslySetInnerHTML' src/frontend/src --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null | grep -q .; then
   fail "found dangerouslySetInnerHTML in frontend source; untrusted text must render as text only"
 fi
 ok "no dangerouslySetInnerHTML in frontend source"
@@ -58,10 +58,10 @@ if [ -d agent-kit/tests ]; then
   ok "pytest (agent-kit)"
 fi
 
-if [ -f frontend/package.json ]; then
-  (cd frontend && npm run -s typecheck && npm run -s lint && npm run -s test && npm run -s build) >/tmp/sc-frontend.log 2>&1 || { tail -30 /tmp/sc-frontend.log; false; } || fail "frontend checks"
+if [ -f src/frontend/package.json ]; then
+  (cd src/frontend && npm run -s typecheck && npm run -s lint && npm run -s test && npm run -s build) >/tmp/sc-frontend.log 2>&1 || { tail -30 /tmp/sc-frontend.log; false; } || fail "frontend checks"
   ok "frontend typecheck, lint, test, build"
-  (cd frontend && npm run -s coverage) >/tmp/sc-frontend-coverage.log 2>&1 || { tail -30 /tmp/sc-frontend-coverage.log; false; } || fail "frontend coverage below 80% lines on src/lib"
+  (cd src/frontend && npm run -s coverage) >/tmp/sc-frontend-coverage.log 2>&1 || { tail -30 /tmp/sc-frontend-coverage.log; false; } || fail "frontend coverage below 80% lines on src/lib"
   ok "frontend coverage (>= 80% lines on src/lib)"
   bash scripts/check-bundle-size.sh || fail "initial JS bundle exceeds 350 KiB gz"
   ok "frontend initial bundle size (<= 350 KiB gz)"
