@@ -48,7 +48,11 @@ just aaa-reproducible-check
 unrelated absolute directories (e.g. `/tmp/sc-aaa-repro-.../machine-a` and a
 deeply nested `.../machine-b/deeply/nested/checkout`), builds each with a
 different `$USER`/`$LANG` and an isolated `CARGO_HOME`/target, and fails
-loudly if `module_sha256` or `gz_sha256` differ. This is the "2 machines"
+loudly if `module_sha256` or `gz_sha256` differ. Each copy carries its own
+`scripts/` and Dockerfile. With a running Docker daemon build A is the pinned
+container and build B the native toolchain (container vs native); without
+Docker both are native and the script prints that it has no container-vs-native
+evidence. This is the "2 machines"
 acceptance check — an owner (or a second maintainer) runs this same script
 on their own machine and expects it to print the identical hashes below.
 It is not part of `just verify` (a full release build takes longer than the
