@@ -45,7 +45,11 @@ Every value-holding and stateful canister must have at least 2 controllers befor
 `scripts/treasury-watch.sh <env>` (`just watch-treasury <env>`) automates the treasury half of
 this: it adds `platform`/`payments`/`frontend`/`treasury` to the treasury canister's watch
 list (`admin_watch`) and adds `treasury` as a co-controller of `platform`/`payments`/`frontend`
-(needed for `canister_status` reads). It is idempotent — safe to re-run. The human backup
+(needed for `canister_status` reads). It is idempotent — safe to re-run. Like
+`deploy-env.sh` and `aaa-register.sh` it sources `scripts/icp-guard.sh`: `prod-deployer` is refused,
+anything but `local` needs `SC_ALLOW_MAINNET=1` plus a typed confirmation, and any icp call that
+fails or returns `Err` aborts the script. `aaa-register.sh` never approves a wasm whose upload
+failed, and for production requires the same module approved on staging >= 48 h earlier (09 §Release). The human backup
 controller is still added by hand:
 
 ```bash

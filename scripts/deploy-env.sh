@@ -15,18 +15,13 @@ case "$ENV" in
 esac
 
 DEPLOY_IDENTITY="${DEPLOY_IDENTITY:-}"
-[ -n "$DEPLOY_IDENTITY" ] || fail "set DEPLOY_IDENTITY explicitly (sc-deployer for local; a named release identity for staging/production) — never rely on the machine default (prod-deployer)"
-[ "$DEPLOY_IDENTITY" != "prod-deployer" ] || fail "refusing DEPLOY_IDENTITY=prod-deployer: it is the password-protected machine default, use a named release identity"
+source scripts/icp-guard.sh
+mainnet_guard "$ENV" "$DEPLOY_IDENTITY"
 ok "identity: $DEPLOY_IDENTITY"
 
 CANISTERS=(platform payments treasury frontend)
 
 if [ "$ENV" != "local" ]; then
-  [ "${SC_ALLOW_MAINNET:-}" = "1" ] || fail "refusing $ENV: rerun with SC_ALLOW_MAINNET=1 only when the owner asked this session"
-  echo "About to deploy to $ENV as $DEPLOY_IDENTITY. Type '$ENV' to confirm:"
-  read -r CONFIRM
-  [ "$CONFIRM" = "$ENV" ] || fail "confirmation mismatch, aborting"
-
   [ -z "$(git status --porcelain)" ] || fail "git tree is dirty, commit or stash before releasing"
   [ "$(git branch --show-current)" = "main" ] || fail "not on main"
   just verify || fail "just verify failed"
