@@ -10,6 +10,13 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+@media (max-width: 480px) {
+  .badge {
+    white-space: normal;
+  }
 }
 
 .neutral {
