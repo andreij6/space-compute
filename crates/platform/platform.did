@@ -8,6 +8,7 @@ type AaaPublic = record {
   xp : nat64;
   status : AaaStatus;
   name : text;
+  is_house : bool;
   badges : nat64;
   tier : nat8;
   next_tier_xp : nat64;
@@ -22,6 +23,7 @@ type AaaRecord = record {
   owner : principal;
   last_seen_at : nat64;
   name : text;
+  is_house : bool;
   wasm_version : nat32;
   platform_is_controller : bool;
   created_at : nat64;
@@ -45,10 +47,34 @@ type ActivityItem = record {
   owner : principal;
   kind : EventKind;
 };
+type AdminDiscoveryCard = record {
+  seq : nat64;
+  field : text;
+  status : DiscoveryStatus;
+  needed_reviews : nat8;
+  reviews_done : nat8;
+  is_honeypot : bool;
+  public_id : text;
+  starving : bool;
+  created_at : nat64;
+  corroborations : nat32;
+  subject_id : nat32;
+  category : text;
+  resolved_at : opt nat64;
+  discoverer_name : text;
+  discoverer_aaa : principal;
+};
 type AdminListAaasFilter = record {
   status : opt AaaStatus;
   owner : opt principal;
   name_prefix : opt text;
+};
+type AdminListDiscoveriesFilter = record {
+  field : opt text;
+  status : opt DiscoveryStatus;
+  starving : opt bool;
+  category : opt text;
+  honeypot : opt bool;
 };
 type AdminListSubjectsFilter = record {
   field : opt text;
@@ -241,6 +267,11 @@ type HoneypotSpec = record {
   rationale : text;
   category : text;
 };
+type HoneypotStat = record {
+  hits : nat32;
+  trials : nat32;
+  reviewer_aaa : principal;
+};
 type LeaderCursor = record {
   aaa : principal;
   rank : nat64;
@@ -273,8 +304,14 @@ type OperatorSetInput = record {
   operators : vec record { principal; opt nat64 };
 };
 type Overview = record {
+  cycles_burn_per_hour : int;
   current_protocol_version : nat16;
+  alerts : OverviewAlerts;
+  events_24h : nat64;
+  total_aaas : nat64;
+  current_wasm_version : opt nat32;
   cycles : nat;
+  stats : Stats;
   admins : vec principal;
   rng_seeded_at : opt nat64;
   payments_id : opt principal;
@@ -282,8 +319,15 @@ type Overview = record {
   paused : PauseFlags;
   audit_entries : nat64;
 };
-type Page = record { next_cursor : opt nat64; items : vec ActivityItem };
-type Page_1 = record { next_cursor : opt nat64; items : vec DiscoveryCard };
+type OverviewAlerts = record {
+  installing_aaas : nat64;
+  starving_discoveries : nat64;
+  suspended_aaas : nat64;
+  image_mismatches_24h : nat64;
+};
+type Page = record { next_cursor : opt nat64; items : vec AdminDiscoveryCard };
+type Page_1 = record { next_cursor : opt nat64; items : vec ActivityItem };
+type Page_2 = record { next_cursor : opt nat64; items : vec DiscoveryCard };
 type Params = record {
   claim_cell_arcsec : float64;
   max_tasks_per_aaa_per_hour : nat32;
@@ -329,19 +373,24 @@ type ReplayStatus = record {
 };
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : nat32; Err : ApiError };
-type Result_10 = variant { Ok : ReplayStatus; Err : ApiError };
-type Result_11 = variant { Ok : opt ReviewAssignment; Err : ApiError };
-type Result_12 = variant { Ok : Task; Err : ApiError };
-type Result_13 = variant { Ok : ClassificationReceipt; Err : ApiError };
-type Result_14 = variant { Ok : ReviewReceipt; Err : ApiError };
+type Result_10 = variant {
+  Ok : vec record { nat32; WasmMeta };
+  Err : ApiError;
+};
+type Result_11 = variant { Ok : Overview; Err : ApiError };
+type Result_12 = variant { Ok : ReplayStatus; Err : ApiError };
+type Result_13 = variant { Ok : opt ReviewAssignment; Err : ApiError };
+type Result_14 = variant { Ok : Task; Err : ApiError };
+type Result_15 = variant { Ok : ClassificationReceipt; Err : ApiError };
+type Result_16 = variant { Ok : ReviewReceipt; Err : ApiError };
 type Result_2 = variant { Ok : vec AuditEntry; Err : ApiError };
 type Result_3 = variant { Ok : AaaRecord; Err : ApiError };
-type Result_4 = variant { Ok : vec AaaRecord; Err : ApiError };
-type Result_5 = variant { Ok : vec principal; Err : ApiError };
-type Result_6 = variant { Ok : vec Protocol; Err : ApiError };
-type Result_7 = variant { Ok : vec Subject; Err : ApiError };
-type Result_8 = variant { Ok : vec record { nat32; WasmMeta }; Err : ApiError };
-type Result_9 = variant { Ok : Overview; Err : ApiError };
+type Result_4 = variant { Ok : vec HoneypotStat; Err : ApiError };
+type Result_5 = variant { Ok : vec AaaRecord; Err : ApiError };
+type Result_6 = variant { Ok : vec principal; Err : ApiError };
+type Result_7 = variant { Ok : Page; Err : ApiError };
+type Result_8 = variant { Ok : vec Protocol; Err : ApiError };
+type Result_9 = variant { Ok : vec Subject; Err : ApiError };
 type ReviewAssignment = record {
   subject : SubjectRef;
   lease_expires_at_ns : nat64;
@@ -429,18 +478,22 @@ service : () -> {
   admin_approve_wasm : (nat32) -> (Result);
   admin_audit_log : (opt nat64, nat32) -> (Result_2) query;
   admin_get_aaa : (principal) -> (Result_3) query;
-  admin_list_aaas : (AdminListAaasFilter, opt nat64, nat32) -> (Result_4) query;
-  admin_list_admins : () -> (Result_5) query;
-  admin_list_protocols : () -> (Result_6) query;
-  admin_list_subjects : (AdminListSubjectsFilter, opt nat64, nat32) -> (
+  admin_honeypot_stats : () -> (Result_4) query;
+  admin_list_aaas : (AdminListAaasFilter, opt nat64, nat32) -> (Result_5) query;
+  admin_list_admins : () -> (Result_6) query;
+  admin_list_discoveries : (AdminListDiscoveriesFilter, opt nat64, nat32) -> (
       Result_7,
     ) query;
-  admin_list_wasms : () -> (Result_8) query;
-  admin_overview : () -> (Result_9) query;
+  admin_list_protocols : () -> (Result_8) query;
+  admin_list_subjects : (AdminListSubjectsFilter, opt nat64, nat32) -> (
+      Result_9,
+    ) query;
+  admin_list_wasms : () -> (Result_10) query;
+  admin_overview : () -> (Result_11) query;
   admin_pause : (PauseFlags) -> (Result);
   admin_remove_admin : (principal) -> (Result);
   admin_rename_aaa : (principal, text, text) -> (Result);
-  admin_replay_progression : (nat64, nat32) -> (Result_10);
+  admin_replay_progression : (nat64, nat32) -> (Result_12);
   admin_retry_install : (principal) -> (Result);
   admin_set_current_protocol : (nat16) -> (Result);
   admin_set_params : (Params) -> (Result);
@@ -461,19 +514,19 @@ service : () -> {
   get_lease : (nat64) -> (opt Lease) query;
   get_params : () -> (Params) query;
   get_protocol : (nat16) -> (opt Protocol) query;
-  get_review_assignment : (opt principal) -> (Result_11);
+  get_review_assignment : (opt principal) -> (Result_13);
   get_stats : () -> (Stats) query;
   get_subject : (nat32) -> (opt Subject) query;
   get_subject_consensus : (nat32) -> (opt SubjectConsensus) query;
-  get_task : (opt principal) -> (Result_12);
+  get_task : (opt principal) -> (Result_14);
   heartbeat : (Heartbeat) -> (Result);
-  list_aaa_activity : (principal, opt nat64, nat32) -> (Page) query;
+  list_aaa_activity : (principal, opt nat64, nat32) -> (Page_1) query;
   list_aaa_credits : (ListAaaCreditsArgs) -> (CreditPage) query;
-  list_discoveries : (ListFilter, opt nat64, nat32) -> (Page_1) query;
+  list_discoveries : (ListFilter, opt nat64, nat32) -> (Page_2) query;
   list_subject_classifications : (nat32) -> (vec Classification) query;
   register_aaa : (RegisterArgs) -> (Result);
-  submit_classification : (ClassificationSubmission) -> (Result_13);
-  submit_review : (ReviewSubmission) -> (Result_14);
+  submit_classification : (ClassificationSubmission) -> (Result_15);
+  submit_review : (ReviewSubmission) -> (Result_16);
   sync_operators : (OperatorSetInput) -> (Result);
   update_aaa_profile : (UpdateAaaProfileArgs) -> (Result);
   upgrade_aaa : (principal) -> (Result);

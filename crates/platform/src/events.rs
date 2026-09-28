@@ -162,6 +162,37 @@ pub fn get_event(id: u64) -> Option<Event> {
     LOG.with_borrow(|log| log.get(id))
 }
 
+const RECENT_ACTIVITY_SCAN_MAX: u64 = 5_000;
+
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct RecentActivity {
+    pub events: u64,
+    pub image_mismatches: u64,
+}
+
+pub fn recent_activity(now: u64, window_ns: u64) -> RecentActivity {
+    let cutoff = now.saturating_sub(window_ns);
+    let total = LOG.with_borrow(|log| log.len());
+    let mut out = RecentActivity::default();
+    LOG.with_borrow(|log| {
+        let mut scanned = 0u64;
+        let mut i = total;
+        while i > 0 && scanned < RECENT_ACTIVITY_SCAN_MAX {
+            i -= 1;
+            scanned += 1;
+            let Some(ev) = log.get(i) else { break };
+            if ev.at < cutoff {
+                break;
+            }
+            out.events += 1;
+            if matches!(ev.kind, EventKind::ImageMismatch { .. }) {
+                out.image_mismatches += 1;
+            }
+        }
+    });
+    out
+}
+
 pub fn list_aaa_activity(aaa: Principal, cursor: Option<u64>, limit: u32) -> Page<ActivityItem> {
     let limit = sc_types::limits::page_limit(limit) as usize;
     let max_id = cursor.unwrap_or(u64::MAX);

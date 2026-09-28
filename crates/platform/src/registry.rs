@@ -48,6 +48,7 @@ pub struct AaaRecord {
     pub verified_at: u64,
     pub install_attempts: u8,
     pub admin_suspended: bool,
+    pub is_house: bool,
 }
 
 crate::candid_storable!(AaaRecord);
@@ -345,6 +346,7 @@ pub fn pre_register_aaa(
         verified_at: 0,
         install_attempts: 1,
         admin_suspended: false,
+        is_house: false,
     };
     AAA_REGISTRY.with_borrow_mut(|m| m.insert(args.canister_id, record));
     AAA_OWNERS.with_borrow_mut(|m| m.insert(args.owner, args.canister_id));
@@ -830,6 +832,25 @@ pub fn rename_aaa(aaa: Principal, new_name: String) -> Result<(), ApiError> {
         }
         None => Err(ApiError::NotFound),
     })
+}
+
+pub fn set_house(aaa: Principal, is_house: bool) -> Result<(), ApiError> {
+    AAA_REGISTRY.with_borrow_mut(|m| match m.get(&aaa) {
+        Some(mut rec) => {
+            rec.is_house = is_house;
+            m.insert(aaa, rec);
+            Ok(())
+        }
+        None => Err(ApiError::NotFound),
+    })
+}
+
+pub fn count_by_status(status: AaaStatus) -> u64 {
+    AAA_REGISTRY.with_borrow(|m| m.iter().filter(|e| e.value().status == status).count() as u64)
+}
+
+pub fn total_aaas() -> u64 {
+    AAA_REGISTRY.with_borrow(|m| m.len())
 }
 
 pub fn increment_install_attempts(canister_id: &Principal) -> Result<u8, ApiError> {
@@ -1559,6 +1580,16 @@ mod tests {
         ));
         record_update_profile(canister, args("ProfAaa3"), 1 + HOUR_NS).unwrap();
         assert_eq!(get_aaa(&canister).unwrap().name, "ProfAaa3");
+        assert!(is_approved_module_hash(&hash));
+    }
+
+    #[test]
+    fn t4_10_count_by_status_and_total_aaas() {
+        let owner = p(160);
+        let canister = p(161);
+        let hash = registered(owner, canister, "CountedAaa", 1);
+        assert!(count_by_status(AaaStatus::Active) >= 1);
+        assert!(total_aaas() >= 1);
         assert!(is_approved_module_hash(&hash));
     }
 

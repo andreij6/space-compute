@@ -9,6 +9,7 @@ pub mod discoveries;
 pub mod events;
 mod guard;
 mod memory;
+mod metrics;
 pub mod progression;
 pub mod registry;
 pub mod reviews;
@@ -16,17 +17,17 @@ mod rng;
 pub mod scoring;
 mod timers;
 
-use api::Overview;
+use api::{AdminDiscoveryCard, Overview};
 use audit::AuditEntry;
 use candid::Principal;
 use catalog::{AdminListSubjectsFilter, Lease, Subject, SubjectInput};
 use config::{Params, PauseFlags};
-use discoveries::{DiscoveryCard, DiscoveryView};
+use discoveries::{AdminListDiscoveriesFilter, DiscoveryCard, DiscoveryView};
 use registry::{
     AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput, RegisterArgs,
     UpdateAaaProfileArgs, WasmMeta,
 };
-use reviews::HoneypotSpec;
+use reviews::{HoneypotSpec, HoneypotStat};
 use sc_types::ApiError;
 
 #[ic_cdk::init]

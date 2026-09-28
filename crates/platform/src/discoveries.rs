@@ -238,6 +238,15 @@ pub struct ListFilter {
     pub status: Option<DiscoveryStatus>,
 }
 
+#[derive(CandidType, Deserialize, Clone, Debug, Default)]
+pub struct AdminListDiscoveriesFilter {
+    pub status: Option<DiscoveryStatus>,
+    pub category: Option<String>,
+    pub field: Option<String>,
+    pub starving: Option<bool>,
+    pub honeypot: Option<bool>,
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct DiscoveryCard {
     pub public_id: String,
@@ -330,6 +339,60 @@ pub fn list(
             }
             if let Some(status) = filter.status {
                 if d.status != status {
+                    continue;
+                }
+            }
+            matches.push(d);
+        }
+    });
+    let next_cursor = if exhausted { None } else { Some(last_seq) };
+    (matches, next_cursor)
+}
+
+pub fn admin_list(
+    filter: &AdminListDiscoveriesFilter,
+    cursor: Option<u64>,
+    limit: u32,
+    mut field_of: impl FnMut(u32) -> Option<String>,
+    mut is_starving: impl FnMut(u64) -> bool,
+) -> (Vec<Discovery>, Option<u64>) {
+    let limit = sc_types::limits::page_limit(limit) as usize;
+    let upper = cursor.unwrap_or(u64::MAX);
+    let mut matches = Vec::new();
+    let mut examined = 0usize;
+    let mut last_seq = 0u64;
+    let mut exhausted = true;
+    DISCOVERIES.with_borrow(|m| {
+        for entry in m.range(..upper).rev() {
+            if examined >= LIST_SCAN_MAX || matches.len() >= limit {
+                exhausted = false;
+                break;
+            }
+            last_seq = *entry.key();
+            examined += 1;
+            let d = entry.value();
+            if let Some(status) = filter.status {
+                if d.status != status {
+                    continue;
+                }
+            }
+            if let Some(honeypot) = filter.honeypot {
+                if d.is_honeypot != honeypot {
+                    continue;
+                }
+            }
+            if let Some(cat) = &filter.category {
+                if &d.category != cat {
+                    continue;
+                }
+            }
+            if let Some(field) = &filter.field {
+                if field_of(d.subject_id).as_ref() != Some(field) {
+                    continue;
+                }
+            }
+            if let Some(starving) = filter.starving {
+                if is_starving(d.seq) != starving {
                     continue;
                 }
             }
@@ -542,6 +605,67 @@ mod tests {
         assert_eq!(count_by_queue_status(0), 1);
         assert_eq!(count_by_queue_status(1), 1);
         assert_eq!(count_by_queue_status(QUEUE_HONEYPOT), 1);
+    }
+
+    #[test]
+    fn t4_10_admin_list_sees_under_review_and_honeypots_and_filters_by_field_and_starving() {
+        const NOW: u64 = 1_790_467_200_000_000_000;
+        let under_review = make(p(60), p(61), DiscoveryStatus::UnderReview, NOW);
+        let confirmed = make(p(62), p(63), DiscoveryStatus::Confirmed, NOW + 1);
+        let honeypot = create_honeypot(1, "lens".into(), "r".into(), Vote::Disagree, NOW + 2);
+
+        let field_of = |_subject_id: u32| Some("ceers".to_string());
+        let is_starving = |seq: u64| seq == under_review.seq;
+
+        let (all, _) = admin_list(
+            &AdminListDiscoveriesFilter::default(),
+            None,
+            100,
+            field_of,
+            is_starving,
+        );
+        let ids: Vec<String> = all.iter().map(|d| d.public_id.clone()).collect();
+        assert!(ids.contains(&under_review.public_id));
+        assert!(ids.contains(&confirmed.public_id));
+        assert!(!all.iter().any(|d| d.seq == honeypot.seq && !d.is_honeypot));
+
+        let (honeypots_only, _) = admin_list(
+            &AdminListDiscoveriesFilter {
+                honeypot: Some(true),
+                ..Default::default()
+            },
+            None,
+            100,
+            field_of,
+            is_starving,
+        );
+        assert_eq!(honeypots_only.len(), 1);
+        assert!(honeypots_only[0].is_honeypot);
+
+        let (starving_only, _) = admin_list(
+            &AdminListDiscoveriesFilter {
+                starving: Some(true),
+                ..Default::default()
+            },
+            None,
+            100,
+            field_of,
+            is_starving,
+        );
+        assert_eq!(starving_only.len(), 1);
+        assert_eq!(starving_only[0].seq, under_review.seq);
+
+        let (no_field, _) = admin_list(
+            &AdminListDiscoveriesFilter {
+                field: Some("nope".into()),
+                ..Default::default()
+            },
+            None,
+            100,
+            |_| None,
+            is_starving,
+        );
+        assert!(no_field.is_empty());
     }
 
     #[test]

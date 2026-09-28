@@ -218,6 +218,3 @@
 | 02 §9: admin_overview/admin_list_aaas/admin_list_discoveries are admin-gated, paged (limit ≤100, cursor), and admin_overview reflects live suspensions | T4.10 | t4_10_admin_read_apis_are_paged_admin_only_and_reflect_state |
 | 02 §9: every admin_* update method in platform.did writes an AuditEntry (audit on every mutation) | T4.10 | t4_10_every_admin_mutation_writes_an_audit_entry |
 | 02 §9: admin_honeypot_stats per-reviewer accuracy and admin_list_discoveries surface honeypots | T4.10 | t4_10_admin_read_apis_are_paged_admin_only_and_reflect_state |
-| 02 §9: admin_rename_aaa renames the live AaaRecord/AaaPublic but a confirmed citation keeps discoverer_name_at_time frozen | T4.11 | t4_11_renamed_aaa_keeps_historical_citation_name |
-| 02 §9: name blocklist (case-fold + basic leetspeak) rejects registration and update_aaa_profile, but admin_rename_aaa can override it for moderation | T4.11 | t4_11_name_blocklist_blocks_registration_and_profile_update_but_not_admin_rename |
-| 02 §9: admin_set_house marks a team AAA "house"; it keeps progressing but is excluded from get_leaderboard | T4.11 | t4_11_house_aaas_are_labeled_and_excluded_from_the_leaderboard |

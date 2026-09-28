@@ -10,8 +10,14 @@ const RETRY: Duration = Duration::from_secs(30);
 
 pub fn start() {
     ic_cdk_timers::set_timer(Duration::ZERO, reseed());
+    ic_cdk_timers::set_timer(Duration::ZERO, sample_cycles());
     ic_cdk_timers::set_timer_interval(HOURLY, reseed);
     ic_cdk_timers::set_timer_interval(HOURLY, starvation_sweep);
+    ic_cdk_timers::set_timer_interval(HOURLY, sample_cycles);
+}
+
+async fn sample_cycles() {
+    crate::metrics::sample(ic_cdk::api::time(), ic_cdk::api::canister_cycle_balance());
 }
 
 async fn starvation_sweep() {

@@ -5,20 +5,32 @@ use serde::Deserialize;
 
 use crate::audit::{self, AuditEntry};
 use crate::catalog::{self, AdminListSubjectsFilter, Lease, Subject, SubjectInput};
+use crate::claims;
 use crate::config::{self, Params, PauseFlags};
-use crate::discoveries::{self, DiscoveryCard, DiscoveryView, ReviewView};
+use crate::discoveries::{
+    self, AdminListDiscoveriesFilter, DiscoveryCard, DiscoveryView, ReviewView,
+};
 use crate::events;
 use crate::guard::CallerGuard;
+use crate::metrics;
 use crate::progression;
 use crate::registry::{
-    self, AaaRecord, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput,
+    self, AaaRecord, AaaStatus, AdminListAaasFilter, CheckNameResult, Heartbeat, OperatorSetInput,
     RegisterArgs, UpdateAaaProfileArgs, WasmMeta,
 };
-use crate::reviews::{self, HoneypotSpec};
+use crate::reviews::{self, HoneypotSpec, HoneypotStat};
 use crate::rng;
 use crate::scoring;
 
-#[derive(CandidType, Deserialize, Clone, Debug)]
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub struct OverviewAlerts {
+    pub installing_aaas: u64,
+    pub suspended_aaas: u64,
+    pub starving_discoveries: u64,
+    pub image_mismatches_24h: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
 pub struct Overview {
     pub admins: Vec<Principal>,
     pub payments_id: Option<Principal>,
@@ -26,8 +38,14 @@ pub struct Overview {
     pub paused: PauseFlags,
     pub current_protocol_version: u16,
     pub cycles: u128,
+    pub cycles_burn_per_hour: i128,
     pub rng_seeded_at: Option<u64>,
     pub audit_entries: u64,
+    pub stats: progression::Stats,
+    pub total_aaas: u64,
+    pub events_24h: u64,
+    pub current_wasm_version: Option<u32>,
+    pub alerts: OverviewAlerts,
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
@@ -284,20 +302,103 @@ fn admin_audit_log(cursor: Option<u64>, limit: u32) -> Result<Vec<AuditEntry>, A
     Ok(audit::page(cursor, limit))
 }
 
+const DAY_NS: u64 = 24 * 3_600 * 1_000_000_000;
+
 #[ic_cdk::query]
 fn admin_overview() -> Result<Overview, ApiError> {
     require_admin()?;
     let c = config::get();
+    let now = ic_cdk::api::time();
+    let cycles = ic_cdk::api::canister_cycle_balance();
+    let activity = events::recent_activity(now, DAY_NS);
     Ok(Overview {
         admins: c.admins,
         payments_id: c.payments_id,
         params: c.params,
         paused: c.paused,
         current_protocol_version: c.current_protocol_version,
-        cycles: ic_cdk::api::canister_cycle_balance(),
+        cycles,
+        cycles_burn_per_hour: metrics::burn_per_hour(now, cycles),
         rng_seeded_at: rng::seeded_at(),
         audit_entries: audit::len(),
+        stats: progression::get_stats(),
+        total_aaas: registry::total_aaas(),
+        events_24h: activity.events,
+        current_wasm_version: registry::latest_approved_wasm().map(|(v, _, _)| v),
+        alerts: OverviewAlerts {
+            installing_aaas: registry::count_by_status(AaaStatus::Installing),
+            suspended_aaas: registry::count_by_status(AaaStatus::Suspended),
+            starving_discoveries: reviews::awaiting_count(),
+            image_mismatches_24h: activity.image_mismatches,
+        },
     })
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub struct AdminDiscoveryCard {
+    pub public_id: String,
+    pub seq: u64,
+    pub subject_id: u32,
+    pub field: String,
+    pub category: String,
+    pub status: discoveries::DiscoveryStatus,
+    pub is_honeypot: bool,
+    pub discoverer_aaa: Principal,
+    pub discoverer_name: String,
+    pub reviews_done: u8,
+    pub needed_reviews: u8,
+    pub corroborations: u32,
+    pub starving: bool,
+    pub created_at: u64,
+    pub resolved_at: Option<u64>,
+}
+
+#[ic_cdk::query]
+fn admin_list_discoveries(
+    filter: AdminListDiscoveriesFilter,
+    cursor: Option<u64>,
+    limit: u32,
+) -> Result<events::Page<AdminDiscoveryCard>, ApiError> {
+    require_admin()?;
+    let (items, next_cursor) = discoveries::admin_list(
+        &filter,
+        cursor,
+        limit,
+        |subject_id| catalog::get_subject(subject_id).map(|s| s.ref_.field),
+        reviews::is_awaiting_reviewers,
+    );
+    let cards = items
+        .iter()
+        .map(|d| AdminDiscoveryCard {
+            public_id: d.public_id.clone(),
+            seq: d.seq,
+            subject_id: d.subject_id,
+            field: catalog::get_subject(d.subject_id)
+                .map(|s| s.ref_.field)
+                .unwrap_or_default(),
+            category: d.category.clone(),
+            status: d.status,
+            is_honeypot: d.is_honeypot,
+            discoverer_aaa: d.discoverer_aaa,
+            discoverer_name: d.discoverer_name_at_time.clone(),
+            reviews_done: reviews::reviews_of(d.seq).len() as u8,
+            needed_reviews: d.needed_reviews,
+            corroborations: claims::corroborations(d.seq).len() as u32,
+            starving: reviews::is_awaiting_reviewers(d.seq),
+            created_at: d.created_at,
+            resolved_at: d.resolved_at,
+        })
+        .collect();
+    Ok(events::Page {
+        items: cards,
+        next_cursor,
+    })
+}
+
+#[ic_cdk::query]
+fn admin_honeypot_stats() -> Result<Vec<HoneypotStat>, ApiError> {
+    require_admin()?;
+    Ok(reviews::honeypot_stats())
 }
 
 #[ic_cdk::query]
