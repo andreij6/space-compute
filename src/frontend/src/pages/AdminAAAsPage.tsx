@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Principal } from '@icp-sdk/core/principal';
-import { AdminNav } from '../components/AdminNav';
+import { AdminPageShell } from '../components/AdminPageShell';
 import { ConfirmAction } from '../components/ConfirmAction';
+import { Button } from '../components/ui/Button';
 import { useAuth } from '../auth';
 import { platformActor } from '../ic';
 import { unwrapAdmin } from '../lib/admin';
+import card from '../components/ui/Card.module.css';
+import table from '../components/ui/DataTable.module.css';
+import shared from '../styles/adminShared.module.css';
+import confirmStyles from '../components/ConfirmAction.module.css';
 
 export const AdminAAAsPage: React.FC = () => {
   const { identity } = useAuth();
@@ -57,61 +62,62 @@ export const AdminAAAsPage: React.FC = () => {
   });
 
   return (
-    <div>
-      <h1>AAAs directory</h1>
-      <AdminNav />
-
-      <label>
+    <AdminPageShell title="AAAs directory">
+      <label className={confirmStyles.field}>
         Search by name prefix
-        <input value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
+        <input className={confirmStyles.input} value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
       </label>
 
       {list.isPending && <p>Loading AAAs…</p>}
-      {list.isError && <p role="alert">{list.error.message}</p>}
+      {list.isError && <p role="alert" className={shared.alert}>{list.error.message}</p>}
 
       {list.data && (
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Owner</th>
-              <th>Status</th>
-              <th>Suspended</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.data.items.map((aaa) => (
-              <tr key={aaa.owner.toText()}>
-                <td>
-                  <button type="button" onClick={() => setSelected(aaa.owner.toText())}>
-                    {aaa.name}
-                  </button>
-                </td>
-                <td>{aaa.owner.toText()}</td>
-                <td>{aaa.status}</td>
-                <td>{aaa.admin_suspended ? 'yes' : 'no'}</td>
-              </tr>
-            ))}
-            {list.data.items.length === 0 && (
+        <div className={table.wrap}>
+          <table className={table.table}>
+            <thead>
               <tr>
-                <td colSpan={4}>No AAAs match.</td>
+                <th scope="col">Name</th>
+                <th scope="col">Owner</th>
+                <th scope="col">Status</th>
+                <th scope="col">Suspended</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.data.items.map((aaa) => (
+                <tr key={aaa.owner.toText()}>
+                  <td>
+                    <Button variant="ghost" size="sm" onClick={() => setSelected(aaa.owner.toText())}>
+                      {aaa.name}
+                    </Button>
+                  </td>
+                  <td>{aaa.owner.toText()}</td>
+                  <td>{aaa.status}</td>
+                  <td>{aaa.admin_suspended ? 'yes' : 'no'}</td>
+                </tr>
+              ))}
+              {list.data.items.length === 0 && (
+                <tr>
+                  <td colSpan={4} className={table.empty}>
+                    No AAAs match.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {selected && (
-        <section aria-label="AAA detail">
-          <h2>{selected}</h2>
+        <section aria-label="AAA detail" className={card.card}>
+          <h2 className={card.title}>{selected}</h2>
           {detail.isPending && <p>Loading detail…</p>}
-          {detail.isError && <p role="alert">{detail.error.message}</p>}
+          {detail.isError && <p role="alert" className={shared.alert}>{detail.error.message}</p>}
           {detail.data && (
             <dl>
               <dt>Status</dt>
               <dd>{detail.data.status}</dd>
               <dt>House AAA</dt>
-              <dd>
+              <dd className={shared.row}>
                 {detail.data.is_house ? 'yes' : 'no'}{' '}
                 <ConfirmAction
                   label={detail.data.is_house ? 'unset house' : 'set house'}
@@ -130,10 +136,10 @@ export const AdminAAAsPage: React.FC = () => {
           )}
 
           {detail.data && !detail.data.admin_suspended && (
-            <p>
-              <label>
+            <p className={shared.formRow}>
+              <label className={confirmStyles.field}>
                 Suspension reason
-                <input value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} />
+                <input className={confirmStyles.input} value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} />
               </label>
               <ConfirmAction
                 label="suspend"
@@ -144,12 +150,12 @@ export const AdminAAAsPage: React.FC = () => {
             </p>
           )}
           {detail.data && detail.data.admin_suspended && (
-            <p>
+            <p className={shared.actions}>
               <ConfirmAction label="unsuspend" phrase={detail.data.name} disabled={unsuspend.isPending} onConfirm={() => unsuspend.mutate()} />
             </p>
           )}
           {detail.data && (
-            <p>
+            <p className={shared.actions}>
               <ConfirmAction
                 label="retry install"
                 phrase={detail.data.name}
@@ -159,12 +165,12 @@ export const AdminAAAsPage: React.FC = () => {
             </p>
           )}
           {(suspend.isError || unsuspend.isError || retryInstall.isError || setHouse.isError) && (
-            <p role="alert">
+            <p role="alert" className={shared.alert}>
               {suspend.error?.message ?? unsuspend.error?.message ?? retryInstall.error?.message ?? setHouse.error?.message}
             </p>
           )}
         </section>
       )}
-    </div>
+    </AdminPageShell>
   );
 };

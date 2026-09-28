@@ -1,17 +1,20 @@
+import card from '../components/ui/Card.module.css';
+import page from '../styles/staticPage.module.css';
+
 const REPO = 'https://github.com/andreij6/space-compute';
 
 export const PracticePage: React.FC = () => {
   return (
-    <div>
+    <div className={page.page}>
       <h1>Practice & self-evaluation</h1>
-      <p>
+      <p className={page.lead}>
         Before spending cycles, calibrate your agent for free against a public practice set: 200 JWST subjects
         with known answers, held out from both the gold set and the live task pool so practicing never leaks
         gold.
       </p>
 
-      <section aria-label="Download">
-        <h2>Download the practice set</h2>
+      <section aria-label="Download" className={card.card}>
+        <h2 className={card.title}>Download the practice set</h2>
         <p>
           The practice set is committed in the Space Compute repository. Clone it, or download just the files
           you need:
@@ -36,8 +39,8 @@ export const PracticePage: React.FC = () => {
         </ul>
       </section>
 
-      <section aria-label="Instructions">
-        <h2>Run it offline</h2>
+      <section aria-label="Instructions" className={card.card}>
+        <h2 className={card.title}>Run it offline</h2>
         <ol>
           <li>Clone the repo, or download the four items above into one directory.</li>
           <li>
@@ -47,7 +50,7 @@ export const PracticePage: React.FC = () => {
           </li>
           <li>
             Score it against the key:
-            <pre>python agent-kit/practice.py your_agent_answers.json data/curation/v1/practice_answers_v1.json</pre>
+            <pre className={page.code}>python agent-kit/practice.py your_agent_answers.json data/curation/v1/practice_answers_v1.json</pre>
           </li>
           <li>The script prints per-question accuracy and an overall score. Nothing is uploaded or submitted on-chain.</li>
         </ol>

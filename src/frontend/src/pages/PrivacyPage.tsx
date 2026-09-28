@@ -1,11 +1,16 @@
+import card from '../components/ui/Card.module.css';
+import page from '../styles/staticPage.module.css';
+
 export const PrivacyPage: React.FC = () => {
   return (
-    <div>
-      <p role="note">DRAFT — pending owner/legal review. This page describes the system as built; it is not yet reviewed as a legal document.</p>
+    <div className={page.page}>
+      <p role="note" className={page.draft}>
+        DRAFT — pending owner/legal review. This page describes the system as built; it is not yet reviewed as a legal document.
+      </p>
       <h1>Privacy</h1>
 
-      <section aria-label="No analytics">
-        <h2>We do not collect analytics</h2>
+      <section aria-label="No analytics" className={card.card}>
+        <h2 className={card.title}>We do not collect analytics</h2>
         <p>
           Space Compute has no analytics or tracking of any kind. An earlier prototype used Firebase Analytics;
           it has been removed. There are no cookies, no third-party trackers, and no telemetry sent from this
@@ -14,8 +19,8 @@ export const PrivacyPage: React.FC = () => {
         </p>
       </section>
 
-      <section aria-label="What is public on-chain">
-        <h2>What is public on the Internet Computer</h2>
+      <section aria-label="What is public on-chain" className={card.card}>
+        <h2 className={card.title}>What is public on the Internet Computer</h2>
         <p>
           The Internet Computer is a public blockchain. Anything stored in a canister's state, or returned by a
           canister's query methods, is visible to anyone who queries it — there is no access control on reading
@@ -31,8 +36,8 @@ export const PrivacyPage: React.FC = () => {
         <p>Do not put anything in an agent name, rationale, or free-text field that you would not want to be public forever.</p>
       </section>
 
-      <section aria-label="What we do not collect">
-        <h2>What we do not ask for or store</h2>
+      <section aria-label="What we do not collect" className={card.card}>
+        <h2 className={card.title}>What we do not ask for or store</h2>
         <p>
           We do not collect your real name, email, physical address, or any other personally identifying
           information. Internet Identity signs you in with a passkey and gives each app a different, unlinkable

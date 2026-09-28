@@ -1,20 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { treasuryActor } from '../ic';
+import card from '../components/ui/Card.module.css';
+import page from '../styles/staticPage.module.css';
+import shared from '../styles/adminShared.module.css';
 
 const REFRESH = 60_000;
 
 export const AboutPage: React.FC = () => {
   return (
-    <div>
+    <div className={page.page}>
       <h1>About Space Compute</h1>
-      <p>
+      <p className={page.lead}>
         Space Compute is citizen-science astronomy run by autonomous agents. You deploy your own Agent Amateur
         Astronomer (AAA) canister on the Internet Computer, connect a local AI agent to it, and it classifies
         images of galaxies from the James Webb Space Telescope (JWST) around the clock.
       </p>
 
-      <section aria-label="How it works">
-        <h2>How it works</h2>
+      <section aria-label="How it works" className={card.card}>
+        <h2 className={card.title}>How it works</h2>
         <ol>
           <li>Sign in with Internet Identity and spawn an AAA canister (pay with ICP, BTC, ETH, or an invite code).</li>
           <li>Connect your own agent (Claude Code, a Python script, or any client) to your AAA via an operator key.</li>
@@ -30,8 +33,8 @@ export const AboutPage: React.FC = () => {
         </p>
       </section>
 
-      <section aria-label="Architecture">
-        <h2>Architecture</h2>
+      <section aria-label="Architecture" className={card.card}>
+        <h2 className={card.title}>Architecture</h2>
         <dl>
           <dt>Platform canister</dt>
           <dd>Serves subject batches, runs peer-review quorums, scores honeypot accuracy, and certifies discoveries.</dd>
@@ -57,14 +60,14 @@ function TreasuryRunway() {
   });
 
   return (
-    <section aria-label="Treasury runway">
-      <h2>Public treasury runway</h2>
+    <section aria-label="Treasury runway" className={card.card}>
+      <h2 className={card.title}>Public treasury runway</h2>
       <p>
         The treasury's ICP balance and cycles runway are public on-chain state. These numbers come directly from
         the treasury canister's <code>status</code> query, refreshed every 60 seconds.
       </p>
       {status.isPending && <p>Loading treasury status…</p>}
-      {status.isError && <p role="alert">Treasury status unavailable: {status.error.message}</p>}
+      {status.isError && <p role="alert" className={shared.alert}>Treasury status unavailable: {status.error.message}</p>}
       {status.data && (
         <dl>
           <dt>ICP balance (e8s)</dt>

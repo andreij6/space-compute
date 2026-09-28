@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Principal } from '@icp-sdk/core/principal';
-import { AdminNav } from '../components/AdminNav';
+import { AdminPageShell } from '../components/AdminPageShell';
 import { ConfirmAction } from '../components/ConfirmAction';
+import { Button } from '../components/ui/Button';
 import { useAuth } from '../auth';
 import { platformActor } from '../ic';
 import { unwrapAdmin } from '../lib/admin';
+import card from '../components/ui/Card.module.css';
+import table from '../components/ui/DataTable.module.css';
+import shared from '../styles/adminShared.module.css';
+import confirmStyles from '../components/ConfirmAction.module.css';
 
 export const AdminModerationPage: React.FC = () => {
   const { identity } = useAuth();
@@ -34,74 +39,77 @@ export const AdminModerationPage: React.FC = () => {
   });
 
   return (
-    <div>
-      <h1>Moderation</h1>
-      <AdminNav />
-      <p>
+    <AdminPageShell title="Moderation">
+      <p className={shared.hint}>
         There is no automated flag feed yet; search by name prefix to find names that violate the blocklist or were
         reported out of band, then force-rename. The action is audit-logged and confirmed citations keep the name used
         at the time.
       </p>
 
-      <label>
+      <label className={confirmStyles.field}>
         Search AAA names
-        <input value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
+        <input className={confirmStyles.input} value={namePrefix} onChange={(e) => setNamePrefix(e.target.value)} />
       </label>
 
       {aaas.isPending && namePrefix && <p>Searching…</p>}
-      {aaas.isError && <p role="alert">{aaas.error.message}</p>}
+      {aaas.isError && <p role="alert" className={shared.alert}>{aaas.error.message}</p>}
 
       {aaas.data && (
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Owner</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {aaas.data.items.map((a) => (
-              <tr key={a.owner.toText()}>
-                <td>{a.name}</td>
-                <td>{a.owner.toText()}</td>
-                <td>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRenameTarget(a.owner.toText());
-                      setNewName(a.name);
-                    }}
-                  >
-                    Rename
-                  </button>
-                </td>
+        <div className={table.wrap}>
+          <table className={table.table}>
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Owner</th>
+                <th scope="col" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {aaas.data.items.map((a) => (
+                <tr key={a.owner.toText()}>
+                  <td>{a.name}</td>
+                  <td>{a.owner.toText()}</td>
+                  <td>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setRenameTarget(a.owner.toText());
+                        setNewName(a.name);
+                      }}
+                    >
+                      Rename
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {renameTarget && (
-        <section aria-label="Force rename">
-          <h2>Force-rename {renameTarget}</h2>
-          <label>
-            New name
-            <input value={newName} onChange={(e) => setNewName(e.target.value)} />
-          </label>
-          <label>
-            Reason
-            <input value={reason} onChange={(e) => setReason(e.target.value)} />
-          </label>
+        <section aria-label="Force rename" className={card.card}>
+          <h2 className={card.title}>Force-rename {renameTarget}</h2>
+          <div className={shared.formRow}>
+            <label className={confirmStyles.field}>
+              New name
+              <input className={confirmStyles.input} value={newName} onChange={(e) => setNewName(e.target.value)} />
+            </label>
+            <label className={confirmStyles.field}>
+              Reason
+              <input className={confirmStyles.input} value={reason} onChange={(e) => setReason(e.target.value)} />
+            </label>
+          </div>
           <ConfirmAction
             label="rename"
             phrase={newName}
             disabled={rename.isPending || !newName.trim() || !reason.trim()}
             onConfirm={() => rename.mutate()}
           />
-          {rename.isError && <p role="alert">{rename.error.message}</p>}
+          {rename.isError && <p role="alert" className={shared.alert}>{rename.error.message}</p>}
         </section>
       )}
-    </div>
+    </AdminPageShell>
   );
 };

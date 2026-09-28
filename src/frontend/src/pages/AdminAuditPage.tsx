@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { AdminNav } from '../components/AdminNav';
+import { AdminPageShell } from '../components/AdminPageShell';
 import { useAuth } from '../auth';
 import { platformActor, paymentsActor } from '../ic';
 import { mergeAuditLogs, unwrapAdmin } from '../lib/admin';
+import table from '../components/ui/DataTable.module.css';
+import shared from '../styles/adminShared.module.css';
 
 export const AdminAuditPage: React.FC = () => {
   const { identity } = useAuth();
@@ -19,42 +21,44 @@ export const AdminAuditPage: React.FC = () => {
   const merged = platformLog.data && paymentsLog.data ? mergeAuditLogs(platformLog.data, paymentsLog.data.items) : null;
 
   return (
-    <div>
-      <h1>Audit log</h1>
-      <AdminNav />
-      <p>Merged, append-only trail of every admin mutation on the platform and payments canisters.</p>
+    <AdminPageShell title="Audit log">
+      <p className={shared.hint}>Merged, append-only trail of every admin mutation on the platform and payments canisters.</p>
 
       {(platformLog.isPending || paymentsLog.isPending) && <p>Loading audit log…</p>}
-      {platformLog.isError && <p role="alert">{platformLog.error.message}</p>}
-      {paymentsLog.isError && <p role="alert">{paymentsLog.error.message}</p>}
+      {platformLog.isError && <p role="alert" className={shared.alert}>{platformLog.error.message}</p>}
+      {paymentsLog.isError && <p role="alert" className={shared.alert}>{paymentsLog.error.message}</p>}
 
       {merged && (
-        <table>
-          <thead>
-            <tr>
-              <th>At</th>
-              <th>Admin</th>
-              <th>Method</th>
-              <th>Summary</th>
-            </tr>
-          </thead>
-          <tbody>
-            {merged.map((entry, i) => (
-              <tr key={`${entry.admin.toText()}-${entry.at.toString()}-${i}`}>
-                <td>{new Date(Number(entry.at / 1_000_000n)).toISOString()}</td>
-                <td>{entry.admin.toText()}</td>
-                <td>{entry.method}</td>
-                <td>{entry.summary}</td>
-              </tr>
-            ))}
-            {merged.length === 0 && (
+        <div className={table.wrap}>
+          <table className={table.table}>
+            <thead>
               <tr>
-                <td colSpan={4}>No audit entries yet.</td>
+                <th scope="col">At</th>
+                <th scope="col">Admin</th>
+                <th scope="col">Method</th>
+                <th scope="col">Summary</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {merged.map((entry, i) => (
+                <tr key={`${entry.admin.toText()}-${entry.at.toString()}-${i}`}>
+                  <td>{new Date(Number(entry.at / 1_000_000n)).toISOString()}</td>
+                  <td>{entry.admin.toText()}</td>
+                  <td>{entry.method}</td>
+                  <td>{entry.summary}</td>
+                </tr>
+              ))}
+              {merged.length === 0 && (
+                <tr>
+                  <td colSpan={4} className={table.empty}>
+                    No audit entries yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+    </AdminPageShell>
   );
 };

@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Principal } from '@icp-sdk/core/principal';
-import { AdminNav } from '../components/AdminNav';
+import { AdminPageShell } from '../components/AdminPageShell';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { ParamsEditor } from '../components/ParamsEditor';
+import { Button } from '../components/ui/Button';
 import { useAuth } from '../auth';
 import { platformActor, paymentsActor, treasuryActor } from '../ic';
 import { canRemoveAdmin, unwrapAdmin } from '../lib/admin';
 import type { Params as PlatformParams } from '../bindings/platform';
 import type { Features, Params as PaymentsParams } from '../bindings/payments';
+import card from '../components/ui/Card.module.css';
+import shared from '../styles/adminShared.module.css';
+import confirmStyles from '../components/ConfirmAction.module.css';
 
 function AdminList({
   title,
@@ -27,11 +31,11 @@ function AdminList({
 }) {
   const [newAdmin, setNewAdmin] = useState('');
   return (
-    <div>
+    <div className={card.card}>
       <h3>{title}</h3>
-      <ul>
+      <ul className={shared.detailList}>
         {admins.map((p) => (
-          <li key={p.toText()}>
+          <li key={p.toText()} className={shared.row}>
             {p.toText()}{' '}
             <ConfirmAction
               label="remove"
@@ -42,20 +46,22 @@ function AdminList({
           </li>
         ))}
       </ul>
-      <label>
-        New admin principal
-        <input value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} />
-      </label>
-      <button
-        type="button"
-        disabled={adding || !newAdmin.trim()}
-        onClick={() => {
-          onAdd(Principal.fromText(newAdmin.trim()));
-          setNewAdmin('');
-        }}
-      >
-        Add admin
-      </button>
+      <div className={shared.formRow}>
+        <label className={confirmStyles.field}>
+          New admin principal
+          <input className={confirmStyles.input} value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} />
+        </label>
+        <Button
+          variant="secondary"
+          disabled={adding || !newAdmin.trim()}
+          onClick={() => {
+            onAdd(Principal.fromText(newAdmin.trim()));
+            setNewAdmin('');
+          }}
+        >
+          Add admin
+        </Button>
+      </div>
     </div>
   );
 }
@@ -117,14 +123,11 @@ export const AdminSettingsPage: React.FC = () => {
   });
 
   return (
-    <div>
-      <h1>Settings, feature flags & admins</h1>
-      <AdminNav />
-
-      <section aria-label="Platform params">
-        <h2>Platform params</h2>
+    <AdminPageShell title="Settings, feature flags & admins">
+      <section aria-label="Platform params" className={card.card}>
+        <h2 className={card.title}>Platform params</h2>
         {platformOverview.isPending && <p>Loading…</p>}
-        {platformOverview.isError && <p role="alert">{platformOverview.error.message}</p>}
+        {platformOverview.isError && <p role="alert" className={shared.alert}>{platformOverview.error.message}</p>}
         {platformOverview.data && (
           <ParamsEditor
             base={platformOverview.data.params}
@@ -136,10 +139,10 @@ export const AdminSettingsPage: React.FC = () => {
         )}
       </section>
 
-      <section aria-label="Payments params">
-        <h2>Payments params</h2>
+      <section aria-label="Payments params" className={card.card}>
+        <h2 className={card.title}>Payments params</h2>
         {paymentsOverview.isPending && <p>Loading…</p>}
-        {paymentsOverview.isError && <p role="alert">{paymentsOverview.error.message}</p>}
+        {paymentsOverview.isError && <p role="alert" className={shared.alert}>{paymentsOverview.error.message}</p>}
         {paymentsOverview.data && (
           <ParamsEditor
             base={paymentsOverview.data.params}
@@ -150,12 +153,12 @@ export const AdminSettingsPage: React.FC = () => {
         )}
       </section>
 
-      <section aria-label="Feature flags (ICP-only MVP: card/BTC/ETH stay pause-only)">
-        <h2>Feature flags</h2>
+      <section aria-label="Feature flags (ICP-only MVP: card/BTC/ETH stay pause-only)" className={card.card}>
+        <h2 className={card.title}>Feature flags</h2>
         {paymentsOverview.data && (
           <>
             {(['card', 'btc', 'eth', 'sponsored_spawn'] as const).map((flag) => (
-              <p key={flag}>
+              <p key={flag} className={shared.row}>
                 {flag}: {paymentsOverview.data.features[flag] ? 'enabled' : 'disabled'}{' '}
                 <ConfirmAction
                   label={paymentsOverview.data.features[flag] ? `disable ${flag}` : `enable ${flag}`}
@@ -167,13 +170,13 @@ export const AdminSettingsPage: React.FC = () => {
                 />
               </p>
             ))}
-            {setFeatures.isError && <p role="alert">{setFeatures.error.message}</p>}
+            {setFeatures.isError && <p role="alert" className={shared.alert}>{setFeatures.error.message}</p>}
           </>
         )}
       </section>
 
-      <section aria-label="Admins">
-        <h2>Admins</h2>
+      <section aria-label="Admins" className={card.card}>
+        <h2 className={card.title}>Admins</h2>
         {platformOverview.data && (
           <AdminList
             title="Platform admins"
@@ -205,6 +208,6 @@ export const AdminSettingsPage: React.FC = () => {
           />
         )}
       </section>
-    </div>
+    </AdminPageShell>
   );
 };

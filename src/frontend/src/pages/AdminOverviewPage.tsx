@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AdminNav } from '../components/AdminNav';
+import { AdminPageShell } from '../components/AdminPageShell';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { useAuth } from '../auth';
 import { platformActor, paymentsActor } from '../ic';
 import { unwrapAdmin } from '../lib/admin';
 import type { PauseFlags as PlatformPauseFlags } from '../bindings/platform';
 import type { PauseFlags as PaymentsPauseFlags } from '../bindings/payments';
+import card from '../components/ui/Card.module.css';
+import shared from '../styles/adminShared.module.css';
 
 export const AdminOverviewPage: React.FC = () => {
   const { identity } = useAuth();
@@ -33,16 +35,13 @@ export const AdminOverviewPage: React.FC = () => {
   const payments = paymentsOverview.data;
 
   return (
-    <div>
-      <h1>Admin overview</h1>
-      <AdminNav />
-
+    <AdminPageShell title="Admin overview">
       {(platformOverview.isPending || paymentsOverview.isPending) && <p>Loading overview…</p>}
-      {platformOverview.isError && <p role="alert">{platformOverview.error.message}</p>}
-      {paymentsOverview.isError && <p role="alert">{paymentsOverview.error.message}</p>}
+      {platformOverview.isError && <p role="alert" className={shared.alert}>{platformOverview.error.message}</p>}
+      {paymentsOverview.isError && <p role="alert" className={shared.alert}>{paymentsOverview.error.message}</p>}
 
       {platform && (
-        <dl>
+        <dl className={card.card}>
           <dt>Active AAAs</dt>
           <dd>{platform.total_aaas.toString()}</dd>
           <dt>Platform cycles</dt>
@@ -55,7 +54,7 @@ export const AdminOverviewPage: React.FC = () => {
       )}
 
       {payments && (
-        <dl>
+        <dl className={card.card}>
           <dt>Failed payment ops</dt>
           <dd>{payments.failed_ops.toString()}</dd>
           <dt>Stuck payment ops</dt>
@@ -66,10 +65,10 @@ export const AdminOverviewPage: React.FC = () => {
       )}
 
       {platform && (
-        <section aria-label="Platform circuit breakers">
-          <h2>Platform circuit breakers</h2>
+        <section aria-label="Platform circuit breakers" className={card.card}>
+          <h2 className={card.title}>Platform circuit breakers</h2>
           {(['tasks', 'reviews', 'spawns'] as const).map((flag) => (
-            <p key={flag}>
+            <p key={flag} className={shared.row}>
               {flag}: {platform.paused[flag] ? 'paused' : 'active'}{' '}
               <ConfirmAction
                 label={platform.paused[flag] ? `unpause ${flag}` : `pause ${flag}`}
@@ -79,15 +78,15 @@ export const AdminOverviewPage: React.FC = () => {
               />
             </p>
           ))}
-          {platformPause.isError && <p role="alert">{platformPause.error.message}</p>}
+          {platformPause.isError && <p role="alert" className={shared.alert}>{platformPause.error.message}</p>}
         </section>
       )}
 
       {payments && (
-        <section aria-label="Payments circuit breakers">
-          <h2>Payments circuit breakers (non-ICP flows stay pause-only)</h2>
+        <section aria-label="Payments circuit breakers" className={card.card}>
+          <h2 className={card.title}>Payments circuit breakers (non-ICP flows stay pause-only)</h2>
           {(['topup', 'auto_topup', 'spawn', 'non_icp'] as const).map((flag) => (
-            <p key={flag}>
+            <p key={flag} className={shared.row}>
               {flag}: {payments.paused[flag] ? 'paused' : 'active'}{' '}
               <ConfirmAction
                 label={payments.paused[flag] ? `unpause ${flag}` : `pause ${flag}`}
@@ -97,9 +96,9 @@ export const AdminOverviewPage: React.FC = () => {
               />
             </p>
           ))}
-          {paymentsPause.isError && <p role="alert">{paymentsPause.error.message}</p>}
+          {paymentsPause.isError && <p role="alert" className={shared.alert}>{paymentsPause.error.message}</p>}
         </section>
       )}
-    </div>
+    </AdminPageShell>
   );
 };

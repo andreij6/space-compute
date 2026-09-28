@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ConfirmAction } from './ConfirmAction';
 import { parseRecordEdits, recordDiff, textFromRecord } from '../lib/admin';
+import confirmStyles from './ConfirmAction.module.css';
+import shared from '../styles/adminShared.module.css';
 
 export interface ParamsEditorProps<T extends object> {
   base: T;
@@ -17,16 +19,16 @@ export function ParamsEditor<T extends object>({ base, onSave, saving, error, fl
   const parsed = parseRecordEdits(base, edited, floatKeys);
   return (
     <div>
-      {Object.keys(edited).map((key) => (
-        <p key={key}>
-          <label>
+      <div className={shared.formRow}>
+        {Object.keys(edited).map((key) => (
+          <label key={key} className={confirmStyles.field}>
             {key}
-            <input value={edited[key]} onChange={(e) => setEdited({ ...edited, [key]: e.target.value })} />
+            <input className={confirmStyles.input} value={edited[key]} onChange={(e) => setEdited({ ...edited, [key]: e.target.value })} />
           </label>
-        </p>
-      ))}
+        ))}
+      </div>
       {diff.length > 0 && (
-        <ul aria-label="Params diff preview">
+        <ul aria-label="Params diff preview" className={shared.detailList}>
           {diff.map(([key, before, after]) => (
             <li key={key}>
               {key}: {before} → {after}
@@ -35,7 +37,7 @@ export function ParamsEditor<T extends object>({ base, onSave, saving, error, fl
         </ul>
       )}
       {!parsed.ok && (
-        <div role="alert">
+        <div role="alert" className={shared.alert}>
           <ul aria-label="Params errors">
             {parsed.errors.map((e) => (
               <li key={e}>{e}</li>
@@ -49,7 +51,7 @@ export function ParamsEditor<T extends object>({ base, onSave, saving, error, fl
         disabled={saving || diff.length === 0 || !parsed.ok}
         onConfirm={() => parsed.ok && onSave(parsed.value)}
       />
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert" className={shared.alert}>{error}</p>}
     </div>
   );
 }
