@@ -1,4 +1,4 @@
-import { AaaAgent, ActivityRecord, Discovery, TreasuryRunway } from './types';
+import { Discovery, TreasuryRunway } from './types';
 
 export const mockDiscoveries: Discovery[] = [
   {
@@ -147,26 +147,6 @@ export const mockDiscoveries: Discovery[] = [
   }
 ];
 
-export const mockOwnerAaa: AaaAgent = {
-  id: 'aaa-7718',
-  name: 'OrionSurveyor-01',
-  canisterId: 'rrkah-fqaaa-aaaaa-aaaaq-cai',
-  ownerPrincipal: '2vxsx-fae7a-3x67w-5o67o-4a4g6-p46a2-yquaa-aaaaa-cai',
-  tier: 3,
-  tierTitle: 'Astrophotometrist',
-  xp: 4850,
-  nextTierXp: 7500,
-  status: 'active',
-  fuelDaysRemaining: 24,
-  fuelCycles: '14.8 TCycles',
-  lastActive: '3 minutes ago',
-  goldAccuracy: 98.4,
-  classificationsCount: 3840,
-  discoveriesCount: 7,
-  reviewsCount: 420,
-  avatarSeed: 'orion-7718',
-};
-
 export const mockLeaderboard = [
   { rank: 1, name: 'NovaSeeker-01', tier: 5, tierTitle: 'Principal Investigator', xp: 24800, discoveries: 28, reviews: 3120, accuracy: 99.2, owner: 'astronomer_dan' },
   { rank: 2, name: 'ChandraEye-02', tier: 5, tierTitle: 'Principal Investigator', xp: 21540, discoveries: 24, reviews: 2850, accuracy: 98.9, owner: 'hubble_fan' },
@@ -176,53 +156,6 @@ export const mockLeaderboard = [
   { rank: 6, name: 'PulsarProbe', tier: 3, tierTitle: 'Astrophotometrist', xp: 4410, discoveries: 5, reviews: 380, accuracy: 97.9, owner: 'sarah_stargaze' },
   { rank: 7, name: 'StarlightTracker', tier: 2, tierTitle: 'Sky Cartographer', xp: 2100, discoveries: 2, reviews: 180, accuracy: 97.2, owner: 'cosmos_fan' },
   { rank: 8, name: 'AstroLens-Beta', tier: 1, tierTitle: 'Stargazer', xp: 850, discoveries: 1, reviews: 65, accuracy: 96.5, owner: 'quantum_leap' }
-];
-
-export const mockActivityRecords: ActivityRecord[] = [
-  {
-    id: 'act-9921',
-    type: 'classification',
-    subjectId: 'CEERS-U-10822',
-    timestamp: '2026-09-27 01:48 UTC',
-    decision: 'Smooth Elliptical / Inactive',
-    confidence: 0.98,
-    xpEarned: 15,
-    rationale: 'Symmetric de Vaucouleurs profile with no detectable spiral arms or tidal disruption in F200W band.',
-    status: 'accepted'
-  },
-  {
-    id: 'act-9920',
-    type: 'review',
-    subjectId: 'SC-2026-000215',
-    timestamp: '2026-09-26 22:15 UTC',
-    decision: 'Agree: Detached Collision Ring',
-    confidence: 0.95,
-    xpEarned: 25,
-    rationale: 'Verified ring symmetry and offset companion morphology consistent with high-velocity transit.',
-    status: 'accepted'
-  },
-  {
-    id: 'act-9918',
-    type: 'discovery',
-    subjectId: 'SC-2026-000230',
-    timestamp: '2026-09-26 14:02 UTC',
-    decision: 'Flagged: Extended Tidal Filament',
-    confidence: 0.91,
-    xpEarned: 100,
-    rationale: 'Low surface brightness filament detected across 4-sigma threshold spanning toward dwarf system.',
-    status: 'pending'
-  },
-  {
-    id: 'act-9915',
-    type: 'classification',
-    subjectId: 'COSMOS-W-44102',
-    timestamp: '2026-09-26 09:30 UTC',
-    decision: 'Two-Arm Spiral with Nuclear Bar',
-    confidence: 0.94,
-    xpEarned: 15,
-    rationale: 'Clear logarithmic spiral morphology with prominent central bar feature.',
-    status: 'accepted'
-  }
 ];
 
 export const mockTreasury: TreasuryRunway = {

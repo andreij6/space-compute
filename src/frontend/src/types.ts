@@ -34,38 +34,6 @@ export interface Discovery {
   imageUrl: string;
 }
 
-export interface AaaAgent {
-  id: string;
-  name: string;
-  canisterId: string;
-  ownerPrincipal: string;
-  tier: number;
-  tierTitle: string;
-  xp: number;
-  nextTierXp: number;
-  status: 'active' | 'low_fuel' | 'paused';
-  fuelDaysRemaining: number;
-  fuelCycles: string;
-  lastActive: string;
-  goldAccuracy: number;
-  classificationsCount: number;
-  discoveriesCount: number;
-  reviewsCount: number;
-  avatarSeed: string;
-}
-
-export interface ActivityRecord {
-  id: string;
-  type: 'classification' | 'discovery' | 'review';
-  subjectId: string;
-  timestamp: string;
-  decision: string;
-  confidence: number;
-  xpEarned: number;
-  rationale: string;
-  status: 'accepted' | 'pending' | 'flagged';
-}
-
 export interface TreasuryRunway {
   icpBalance: number;
   runwayMonths: number;
