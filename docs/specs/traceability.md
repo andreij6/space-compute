@@ -293,6 +293,23 @@
 | 05 §2 row 1b: the footer runway is `treasury.status.projected_runway_months` (Playwright) | T6 review | src/frontend/tests/e2e/discovery.spec.ts |
 | 05 §3 connect: step 1 is `icp identity new sc-operator-<date>` (no plaintext storage); revoke failures are shown (vitest + Playwright) | T6 review | src/frontend/tests/e2e/connect-records.spec.ts |
 | 05 §3 wallet: payments exposes no spender-subaccount query, so the client derivation is pinned to the Rust `derive_subaccount` formula for spawn/topup/auto (vitest; backend gap noted) | T6 review | src/frontend/src/lib/spenderSubaccount.test.ts |
+| 02 §7 R-12: `list_aaa_activity` returns a redacted `ActivityKind` (no seq, honeypot flag or gold score); flags and live reviews of unresolved discoveries are shown only to the AAA/owner/admin; honeypot scores never; `get_event` is admin-only | T4.6 review | t4_6_r12_public_activity_hides_live_discoveries_honeypots_and_gold |
+| 02 §7 R-12 (PocketIC): a stranger's activity hides the UnderReview flag and a live review, the owner still sees both, and every `get_event` returns None to the stranger | T4.6 review | t4_6_under_review_hidden_from_strangers_visible_to_owner_and_discoverer |
+| 02 §7 R-12 (PocketIC): a honeypot review and its immediate score never reach a stranger | T4.6 review | t4_6_honeypots_never_appear_in_discoveries_leaderboard_or_citations |
+| 02 §8.2 replay: events recorded mid-replay are applied exactly once (live apply is skipped while the stable cursor is active) | T4.3 review | t4_3_replay_applies_events_recorded_mid_replay_exactly_once |
+| 02 §8.2 replay: a second or non-zero-start replay is rejected; the from-0 clear is batched | T4.3 review | t4_3_replay_rejects_second_and_non_zero_start_and_batches_clear |
+| 02 §8.2 replay (PocketIC): the cursor survives an upgrade mid-replay, post_upgrade resumes it, and a mid-replay classification lands once | T4.3 review | t7_1_replay_survives_upgrade_mid_replay_and_applies_mid_replay_events_once |
+| 02 §8.2: `TierChanged`/`BadgeAwarded` are emitted live on change, never during a replay | T4.3 review | t4_3_tier_and_badge_changes_emit_events_live_but_not_on_replay |
+| 02 §8.2/§8.3: classification and review fees count toward `cycles_contributed`, so citation credits are real | T4.3 review | t4_5_citation_credits_every_reviewer_with_cycles_and_subject |
+| 02 §6.4/§8.2: each corroborator of a Confirmed discovery gets +5 XP (`CorroborationConfirmed`) and a Corroborator credit in `list_aaa_credits` | T4.9 review | t4_9_confirmed_corroborators_get_5_xp_and_a_credit |
+| 02 §6.4 L-032: a stored claim without an exact position falls back to a same-cell match; legacy f64 positions decode as Some | T4.9 review | t4_9_l032_claim_without_exact_position_falls_back_to_same_cell_match |
+| 02 §9: `admin_list_aaas`/`admin_list_subjects` page by key cursor (bounded scan) | T4.10 review | t4_10_admin_list_aaas_pages_by_key_cursor_with_filters |
+| 02 §9: subject key-cursor paging; retired-subject counter maintained in stable memory and backfilled once | T4.10 review | t4_10_subjects_page_by_key_cursor_and_retired_counter_is_maintained |
+| 02 §7/§9: `get_stats`/`admin_overview` status counts are maintained counters (mem 55) with a one-time upgrade backfill | T4.10 review | t4_10_status_counters_track_transitions_and_backfill_agrees |
+| 02 §9: `admin_honeypot_stats` walks the honeypot queue, not every review | T4.10 review | t4_10_honeypot_stats_track_per_reviewer_accuracy |
+| 02 §8.3: `get_citation` returns `citation_candid`, the exact bytes whose sha256 is the certified leaf; Rust vector exported for the frontend | T4.5 review | t4_5_citation_candid_bytes_hash_to_the_certified_leaf |
+| 02 §8.3: the committed `citation-vector.json` fixture matches Rust `candid::encode_one` | T4.5 review | t4_5_citation_vector_fixture_matches_rust_encoding |
+| 04: payments `post_upgrade` backfills the ops indexes once (`indexes_backfilled` flag), not on every upgrade | T5.19 review | t5_19_backfill_indexes_runs_only_once |
 | 07 §7 #1: 5,000 subjects rendered, hashed and uploaded; the manifest verifies (random 1% re-download hashes match) | T1.7 | test_t1_7_committed_manifest_and_qa_meet_acceptance |
 | 07 §7 #2: >= 2,000 gold subjects (or the documented fallback); 120 honeypots | T1.5 | test_t1_5_committed_v1_selection_meets_acceptance |
 | 07 §7 #3: a human spot-check of 40 random dossiers finds no wrong target, wrong WCS or missing band | T1.7 | test_t1_7_committed_manifest_and_qa_meet_acceptance |
