@@ -56,11 +56,18 @@ fi
 if [ -f frontend/package.json ]; then
   (cd frontend && npm run -s typecheck && npm run -s lint && npm run -s test && npm run -s build) >/tmp/sc-frontend.log 2>&1 || { tail -30 /tmp/sc-frontend.log; false; } || fail "frontend checks"
   ok "frontend typecheck, lint, test, build"
+  (cd frontend && npm run -s coverage) >/tmp/sc-frontend-coverage.log 2>&1 || { tail -30 /tmp/sc-frontend-coverage.log; false; } || fail "frontend coverage below 80% lines on src/lib"
+  ok "frontend coverage (>= 80% lines on src/lib)"
 fi
 
 if [ -f scripts/traceability.py ]; then
   python3 scripts/traceability.py || fail "traceability"
   ok "traceability"
+fi
+
+if [ -f scripts/traceability_audit.py ]; then
+  python3 scripts/traceability_audit.py || fail "traceability audit: unmapped acceptance item"
+  ok "traceability audit"
 fi
 
 echo -e "${GREEN}All local gates passed.${NC}"

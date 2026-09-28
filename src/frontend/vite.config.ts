@@ -11,5 +11,13 @@ export default defineConfig({
   ],
   server: { port: 3000 },
   build: { outDir: 'dist', sourcemap: true },
-  test: { include: ['src/**/*.test.ts'] },
+  test: {
+    include: ['src/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/lib/**'],
+      reporter: ['text', 'json-summary'],
+      thresholds: { lines: 80 },
+    },
+  },
 });
