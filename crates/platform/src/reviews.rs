@@ -206,6 +206,46 @@ pub fn is_awaiting_reviewers(seq: u64) -> bool {
     AWAITING.with_borrow(|m| m.contains_key(&seq))
 }
 
+pub fn awaiting_count() -> u64 {
+    AWAITING.with_borrow(|m| m.len())
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct HoneypotStat {
+    pub reviewer_aaa: Principal,
+    pub trials: u32,
+    pub hits: u32,
+}
+
+pub fn honeypot_stats() -> Vec<HoneypotStat> {
+    let mut by_reviewer: std::collections::BTreeMap<Principal, (u32, u32)> =
+        std::collections::BTreeMap::new();
+    REVIEWS.with_borrow(|m| {
+        for entry in m.iter() {
+            let r = entry.value();
+            let Some(d) = discoveries::get(r.discovery_seq) else {
+                continue;
+            };
+            if !d.is_honeypot {
+                continue;
+            }
+            let stat = by_reviewer.entry(r.reviewer_aaa).or_insert((0, 0));
+            stat.0 += 1;
+            if d.honeypot_truth == Some(r.vote) {
+                stat.1 += 1;
+            }
+        }
+    });
+    by_reviewer
+        .into_iter()
+        .map(|(reviewer_aaa, (trials, hits))| HoneypotStat {
+            reviewer_aaa,
+            trials,
+            hits,
+        })
+        .collect()
+}
+
 pub fn apply_starvation(
     candidates: &[(Principal, Principal)],
     params: &Params,
@@ -1096,6 +1136,71 @@ mod tests {
     }
 
     #[test]
+    fn t4_10_honeypot_stats_track_per_reviewer_accuracy() {
+        subject(60, true);
+        let spec = HoneypotSpec {
+            subject_id: 60,
+            category: "lens".into(),
+            rationale: "a lens on a clean elliptical".into(),
+            truth: Vote::Disagree,
+        };
+        add_honeypots(vec![spec], NOW).unwrap();
+        let mut pr = params();
+        pr.honeypot_rate_bp = 10_000;
+        let hit = p(70);
+        let miss = p(71);
+        tier2(hit);
+        tier2(miss);
+        let hp1 = assign(hit, p(170), &pr, 1, NOW, 0).unwrap().unwrap();
+        submit(
+            hit,
+            p(170),
+            sub(hp1.assignment_id, Vote::Disagree),
+            &pr,
+            1,
+            NOW,
+            5,
+        )
+        .unwrap();
+        let hp2 = assign(miss, p(171), &pr, 1, NOW, 0).unwrap().unwrap();
+        submit(
+            miss,
+            p(171),
+            sub(hp2.assignment_id, Vote::Agree),
+            &pr,
+            1,
+            NOW,
+            5,
+        )
+        .unwrap();
+
+        let stats = honeypot_stats();
+        let hit_stat = stats.iter().find(|s| s.reviewer_aaa == hit).unwrap();
+        assert_eq!((hit_stat.trials, hit_stat.hits), (1, 1));
+        let miss_stat = stats.iter().find(|s| s.reviewer_aaa == miss).unwrap();
+        assert_eq!((miss_stat.trials, miss_stat.hits), (1, 0));
+    }
+
+    #[test]
+    fn t4_10_awaiting_count_matches_starvation_index() {
+        assert_eq!(awaiting_count(), 0);
+        let mut d = discovery(1, p(80), p(180), NOW);
+        d.needed_reviews = 5;
+        discoveries::update(&d);
+        let pr = params();
+        for n in 81..=82u8 {
+            tier2(p(n));
+            let owner = p(100 + (n - 81));
+            let id = assign_id(p(n), owner, NOW).unwrap();
+            submit(p(n), owner, sub(id, Vote::Agree), &pr, 1, NOW, 5).unwrap();
+        }
+        let edge = NOW + 7 * 86_400 * SEC;
+        apply_starvation(&[(p(80), p(180))], &pr, 1, edge);
+        assert_eq!(awaiting_count(), 1);
+        assert!(is_awaiting_reviewers(d.seq));
+    }
+
+    #[test]
     fn t4_4_resolution_path_is_synchronous_within_one_message() {
         let _: fn(_, _, _, _, _, _, _) -> Result<ReviewReceipt, ApiError> = submit;
         let _: fn(_, _, _, _) = resolve;
@@ -1232,5 +1337,42 @@ mod tests {
             DiscoveryStatus::Rejected
         );
         assert!(!is_awaiting_reviewers(d2.seq));
+    }
+
+    proptest::proptest! {
+        #![proptest_config(proptest::prelude::ProptestConfig { failure_persistence: None, ..proptest::prelude::ProptestConfig::default() })]
+
+        #[test]
+        fn t4_8_prop_decide_never_flips_once_resolved(
+            votes in proptest::collection::vec((proptest::bool::ANY, 1u32..50_000), 0..20),
+            needed in 1u8..10,
+            extra in 0u32..50_000,
+        ) {
+            let votes: Vec<(Vote, u32)> = votes
+                .into_iter()
+                .map(|(agree, w)| (if agree { Vote::Agree } else { Vote::Disagree }, w))
+                .collect();
+            let reviews_max = u16::from(needed);
+
+            match decide(&votes, needed, reviews_max) {
+                Decision::Resolve(DiscoveryStatus::Confirmed) => {
+                    let mut more = votes.clone();
+                    more.push((Vote::Agree, extra));
+                    proptest::prop_assert_ne!(
+                        decide(&more, needed, reviews_max),
+                        Decision::Resolve(DiscoveryStatus::Rejected)
+                    );
+                }
+                Decision::Resolve(DiscoveryStatus::Rejected) => {
+                    let mut more = votes.clone();
+                    more.push((Vote::Disagree, extra));
+                    proptest::prop_assert_ne!(
+                        decide(&more, needed, reviews_max),
+                        Decision::Resolve(DiscoveryStatus::Confirmed)
+                    );
+                }
+                _ => {}
+            }
+        }
     }
 }

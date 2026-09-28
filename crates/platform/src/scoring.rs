@@ -1236,4 +1236,68 @@ mod tests {
         assert_eq!(closed.discovery_id, None);
         assert_eq!(discoveries::count(), 2);
     }
+
+    proptest::proptest! {
+        #![proptest_config(proptest::prelude::ProptestConfig { failure_persistence: None, ..proptest::prelude::ProptestConfig::default() })]
+
+        #[test]
+        fn t4_8_prop_every_walked_protocol_path_validates(
+            depth in 1usize..=5,
+            raw in proptest::collection::vec(proptest::prelude::any::<u8>(), 64),
+        ) {
+            let mut bytes = raw.into_iter();
+            let mut next_byte = move || bytes.next().unwrap_or(0);
+
+            let mut questions = Vec::new();
+            for i in 0..depth {
+                let width = 1 + (next_byte() % 3) as usize;
+                let is_last = i + 1 == depth;
+                let answers: Vec<AnswerOption> = (0..width)
+                    .map(|a| {
+                        let continues = !is_last && next_byte() % 2 == 0;
+                        AnswerOption {
+                            id: format!("a{a}"),
+                            label: format!("Answer {a}"),
+                            next: continues.then(|| format!("q{}", i + 1)),
+                        }
+                    })
+                    .collect();
+                questions.push(Question {
+                    id: format!("q{i}"),
+                    prompt: format!("Q{i}"),
+                    answers,
+                });
+            }
+            let proto = Protocol {
+                version: 1,
+                questions,
+                discovery_categories: vec![],
+                guidance_md: String::new(),
+            };
+
+            let mut path = Vec::new();
+            let mut current = 0usize;
+            loop {
+                let q = &proto.questions[current];
+                let choice = (next_byte() as usize) % q.answers.len();
+                let opt = &q.answers[choice];
+                path.push(Answer {
+                    question_id: q.id.clone(),
+                    answer_id: opt.id.clone(),
+                });
+                match &opt.next {
+                    Some(next_id) => {
+                        current = proto
+                            .questions
+                            .iter()
+                            .position(|qq| &qq.id == next_id)
+                            .unwrap();
+                    }
+                    None => break,
+                }
+            }
+
+            proptest::prop_assert_eq!(validate_answers(&proto, &path), Ok(()));
+        }
+    }
 }

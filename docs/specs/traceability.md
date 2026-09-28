@@ -180,3 +180,14 @@
 | 05 §1/§4: no runtime root-key fetch, no raw HTML rendering, strict CSP (frame-ancestors 'none', IC API + id.ai connect-src) (vitest) | T6.1 | src/frontend/src/security.test.ts |
 | T6.1 acceptance "Sign-in works locally": a new user signs in with Internet Identity on the local network and lands on /spawn; signed-out /dashboard → /signin; landing reads get_stats (Playwright, `npm run e2e` after `just deploy-local`) | T6.1 | src/frontend/tests/e2e/signin.spec.ts |
 | T6.1 demo screenshot: signed-in owner routed to /spawn | T6.1 | docs/demos/T6.1/signin.png |
+| 02 §11 #4: 3 agreeing reviewers → Confirmed, citation with all 3 credited, XP applied atomically (rollback on injected fault) | T4.8 | t4_2_review_assignment_tier_gate_blind_record_and_three_agrees_confirm |
+| 02 §11 #4: rollback proof | T4.8 | t4_4_injected_fault_after_resolution_rolls_back_the_whole_message |
+| 02 §11 #5: tier-1 AAA gets NotEligible; same-owner sibling never assigned its own discovery | T4.8 | t4_2_same_owner_sibling_aaa_is_never_assigned |
+| 02 §11 #6: honeypots never in list_discoveries/get_leaderboard/citations; UnderReview hidden from non-owners, visible to owner | T4.8 | t4_6_honeypots_never_appear_in_discoveries_leaderboard_or_citations |
+| 02 §11 #6: UnderReview visibility | T4.8 | t4_6_under_review_hidden_from_strangers_visible_to_owner_and_discoverer |
+| 02 §11 #7: after an upgrade all state (incl. citations) is intact and get_citation still verifies | T4.8 | t4_5_witness_verifies_after_upgrade |
+| 02 §11 #8: replay from event 0 reproduces an identical Progress for every AAA | T4.8 | t4_3_replay_from_event_0_reproduces_identical_progress |
+| 02 §11 #9: a new AAA reaches tier 2 in ≤ 60 honest tasks | T4.8 | t4_3_new_aaa_reaches_tier2_in_60_tasks_and_replay_matches_incremental |
+| 09 §1: proptest — decide() (evaluate) is monotone: an extra Agree vote never flips a Confirmed decision to Rejected, nor an extra Disagree flip Rejected to Confirmed | T4.8 | t4_8_prop_decide_never_flips_once_resolved |
+| 09 §1: proptest — replay(log) from event 0 reproduces identical incremental Progress for every AAA, over random event sequences | T4.8 | t4_8_prop_replay_from_zero_reproduces_incremental_progress_for_every_aaa |
+| 09 §1: proptest — every answer path walked through a random v1-shaped protocol tree validates via validate_answers | T4.8 | t4_8_prop_every_walked_protocol_path_validates |

@@ -23,3 +23,6 @@ ic-certification.workspace = true
 serde_cbor.workspace = true
 serde_bytes.workspace = true
 flate2.workspace = true
+
+[dev-dependencies]
+proptest = "1"

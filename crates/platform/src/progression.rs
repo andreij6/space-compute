@@ -74,6 +74,7 @@ pub struct AaaPublic {
     pub badges: u64,
     pub counters: AaaCounters,
     pub created_at: u64,
+    pub is_house: bool,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -270,7 +271,10 @@ pub fn apply_event(ev: &Event) {
         });
     }
 
-    if p.tier >= 2 {
+    let is_house = crate::registry::get_aaa(&ev.aaa)
+        .map(|r| r.is_house)
+        .unwrap_or(false);
+    if p.tier >= 2 && !is_house {
         LEADERBOARD_MAP.with_borrow_mut(|m| {
             m.insert(
                 LeaderboardKey {
@@ -305,7 +309,26 @@ pub fn get_aaa_public(aaa: &Principal) -> Option<AaaPublic> {
             reviews: p.reviews,
         },
         created_at: rec.created_at,
+        is_house: rec.is_house,
     })
+}
+
+pub fn sync_leaderboard_house(aaa: Principal, is_house: bool) {
+    let p = get_progress(&aaa);
+    if p.tier < 2 {
+        return;
+    }
+    let key = LeaderboardKey {
+        inverted_xp: u64::MAX - p.xp,
+        aaa,
+    };
+    LEADERBOARD_MAP.with_borrow_mut(|m| {
+        if is_house {
+            m.remove(&key);
+        } else {
+            m.insert(key, ());
+        }
+    });
 }
 
 pub fn get_leaderboard(cursor: Option<LeaderCursor>, limit: u32) -> LeaderPage {
@@ -805,6 +828,60 @@ mod tests {
     }
 
     #[test]
+    fn t4_11_house_aaas_follow_progress_but_are_excluded_from_leaderboard() {
+        use sha2::Digest;
+        let blob = vec![9, 8, 7];
+        let _ =
+            crate::registry::upload_wasm(300, blob.clone(), sha2::Sha256::digest(&blob).to_vec());
+        let _ = crate::registry::approve_wasm(300, 1);
+
+        let aaa = Principal::from_slice(&[230, 1]);
+        let owner = Principal::from_slice(&[230, 2]);
+        crate::registry::pre_register_aaa(
+            &crate::registry::RegisterArgs {
+                canister_id: aaa,
+                owner,
+                name: "House-One".into(),
+                avatar_seed: 1,
+            },
+            1_000,
+        )
+        .unwrap();
+        crate::registry::set_house(aaa, true).unwrap();
+
+        for i in 1..=25 {
+            apply_event(&Event {
+                v: 1,
+                id: i,
+                at: 1_000 + i,
+                aaa,
+                owner,
+                kind: EventKind::Classified {
+                    classification_id: i,
+                    subject_id: i as u32,
+                    gold: Some((2, 2)),
+                    fee: 0,
+                },
+            });
+        }
+        let p = get_progress(&aaa);
+        assert!(p.tier >= 2);
+        assert!(get_leaderboard(None, 100)
+            .items
+            .iter()
+            .all(|row| row.aaa != aaa));
+        assert!(get_aaa_public(&aaa).unwrap().is_house);
+
+        crate::registry::set_house(aaa, false).unwrap();
+        sync_leaderboard_house(aaa, false);
+        assert!(get_leaderboard(None, 100)
+            .items
+            .iter()
+            .any(|row| row.aaa == aaa));
+        assert!(!get_aaa_public(&aaa).unwrap().is_house);
+    }
+
+    #[test]
     fn t4_3_new_aaa_reaches_tier2_within_60_honest_tasks() {
         let aaa = Principal::from_slice(&[201, 202, 203]);
         let owner = Principal::from_slice(&[204, 205, 206]);
@@ -941,5 +1018,99 @@ mod tests {
         assert_eq!(get_progress(&aaa_2), expected_2);
         assert_eq!(get_progress(&admin), Progress::default());
         assert_eq!(get_leaderboard(None, 100), expected_lb);
+    }
+
+    fn t4_8_event_kind_strategy() -> impl proptest::strategy::Strategy<Value = EventKind> {
+        use proptest::prelude::*;
+        prop_oneof![
+            (0u8..=4, 0u8..=4).prop_map(|(a, b)| {
+                let (hits, trials) = (a.min(b), a.max(b));
+                EventKind::Classified {
+                    classification_id: 0,
+                    subject_id: 0,
+                    gold: Some((hits, trials)),
+                    fee: 0,
+                }
+            }),
+            Just(EventKind::Classified {
+                classification_id: 0,
+                subject_id: 0,
+                gold: None,
+                fee: 0,
+            }),
+            Just(EventKind::ReviewSubmitted {
+                review_id: 0,
+                seq: 0,
+                honeypot: false,
+                fee: 0,
+            }),
+            any::<bool>().prop_map(|matched| EventKind::ReviewScored {
+                review_id: 0,
+                matched,
+            }),
+            Just(EventKind::DiscoveryFlagged { seq: 0 }),
+            any::<bool>().prop_map(|confirmed| EventKind::DiscoveryResolved {
+                seq: 0,
+                outcome: if confirmed { "Confirmed" } else { "Rejected" }.into(),
+            }),
+            (0u64..1_000_000_000u64).prop_map(|amount| EventKind::CyclesContributed {
+                amount: amount as u128
+            }),
+        ]
+    }
+
+    static T4_8_NEXT_CASE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+    fn t4_8_unique_principal(marker: u8) -> Principal {
+        let n = T4_8_NEXT_CASE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Principal::from_slice(&[
+            marker,
+            (n >> 24) as u8,
+            (n >> 16) as u8,
+            (n >> 8) as u8,
+            n as u8,
+        ])
+    }
+
+    proptest::proptest! {
+        #![proptest_config(proptest::prelude::ProptestConfig { failure_persistence: None, cases: 64, ..proptest::prelude::ProptestConfig::default() })]
+
+        #[test]
+        fn t4_8_prop_replay_from_zero_reproduces_incremental_progress_for_every_aaa(
+            events_a in proptest::collection::vec(t4_8_event_kind_strategy(), 0..12),
+            events_b in proptest::collection::vec(t4_8_event_kind_strategy(), 0..12),
+        ) {
+            let aaa_a = t4_8_unique_principal(210);
+            let owner_a = t4_8_unique_principal(211);
+            let aaa_b = t4_8_unique_principal(212);
+            let owner_b = t4_8_unique_principal(213);
+
+            let mut at = 1u64;
+            for kind in &events_a {
+                crate::events::record_event(at, aaa_a, owner_a, kind.clone());
+                at += 1;
+            }
+            for kind in &events_b {
+                crate::events::record_event(at, aaa_b, owner_b, kind.clone());
+                at += 1;
+            }
+            crate::events::record_event(
+                at,
+                t4_8_unique_principal(214),
+                Principal::anonymous(),
+                EventKind::Admin { method: "noop".into() },
+            );
+
+            let incremental_a = get_progress(&aaa_a);
+            let incremental_b = get_progress(&aaa_b);
+
+            let mut status = replay(0, REPLAY_BATCH_MAX);
+            while !status.done {
+                status = replay(status.next_event_id, REPLAY_BATCH_MAX);
+            }
+
+            proptest::prop_assert_eq!(get_progress(&aaa_a), incremental_a);
+            proptest::prop_assert_eq!(get_progress(&aaa_b), incremental_b);
+        }
     }
 }
