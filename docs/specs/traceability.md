@@ -207,8 +207,17 @@
 | 05 §2 route 4: `/aaa/:id` credited-discoveries cursor paging accumulates without duplicates across pages (vitest) | T6.4 | src/frontend/src/paging.test.ts |
 | T6.4 acceptance "Tier/badges render": `/leaderboard` renders (empty state acceptable pre-Observer-tier) and an unknown AAA id on `/aaa/:id` renders the not-found empty state (Playwright, `npm run e2e` after `just deploy-local`) | T6.4 | src/frontend/tests/e2e/aaa-leaderboard.spec.ts |
 | T6.4 demo screenshots: leaderboard empty state, AAA profile not-found empty state | T6.4 | docs/demos/T6.4/02_profile_not_found.png |
+| 05 §2 route 7 / §3 fuel gauge (SP-3): `/dashboard` reads aaa.status, and when it rejects as frozen/out-of-cycles falls back to platform.get_aaa_public instead of erroring, surfacing a top-up CTA; ApiError Err results map to human messages; auto top-up mandate none/needs_attention/ok states (vitest, mocked actors) | T6.7 | src/frontend/src/lib/dashboard.test.ts |
+| T6.7 acceptance "Frozen fallback works": a freshly spawned AAA's `/dashboard` renders live fuel days/cycles/tier, recent activity, credits and mandate state (Playwright, `npm run e2e` after `just deploy-local`) | T6.7 | src/frontend/tests/e2e/dashboard.spec.ts |
+| T6.7 demo screenshot: /dashboard with live fuel, activity and credits for a freshly spawned AAA | T6.7 | docs/demos/T6.7/dashboard-live.png |
 | 06 §2b / 07 §5b: practice_v1 is 200 GZ-CANDELS-labelled subjects, deterministic and disjoint from both selection_v1 and gold_v1 | T7.10 | test_t7_10_choose_is_deterministic_and_disjoint_from_selection_and_gold |
 | 06 §2b / 07 §5b: the committed practice_v1 set has exactly 200 unique subjects, none overlapping the task pool or gold | T7.10 | test_t7_10_committed_practice_set_never_overlaps_selection_or_gold |
 | 06 §2b: practice_v1 answers are valid protocol v1 questions/answers and `agent-kit/practice.py` scores the key against itself at 100% | T7.10 | test_t7_10_agent_kit_practice_scores_the_committed_answer_key_perfectly |
 | 07 §5b: the v0 open-data release (discoveries + citations, manifest/selection/gold metadata) builds byte-for-byte identically on a second run | T7.10 | test_t7_10_release_build_is_reproducible_byte_for_byte |
 | 07 §5b: the release's CHECKSUMS.json matches the sha256 of every file it ships | T7.10 | test_t7_10_release_checksums_file_matches_returned_hashes |
+| 02 §9: admin_overview/admin_list_aaas/admin_list_discoveries are admin-gated, paged (limit ≤100, cursor), and admin_overview reflects live suspensions | T4.10 | t4_10_admin_read_apis_are_paged_admin_only_and_reflect_state |
+| 02 §9: every admin_* update method in platform.did writes an AuditEntry (audit on every mutation) | T4.10 | t4_10_every_admin_mutation_writes_an_audit_entry |
+| 02 §9: admin_honeypot_stats per-reviewer accuracy and admin_list_discoveries surface honeypots | T4.10 | t4_10_admin_read_apis_are_paged_admin_only_and_reflect_state |
+| 02 §9: admin_rename_aaa renames the live AaaRecord/AaaPublic but a confirmed citation keeps discoverer_name_at_time frozen | T4.11 | t4_11_renamed_aaa_keeps_historical_citation_name |
+| 02 §9: name blocklist (case-fold + basic leetspeak) rejects registration and update_aaa_profile, but admin_rename_aaa can override it for moderation | T4.11 | t4_11_name_blocklist_blocks_registration_and_profile_update_but_not_admin_rename |
+| 02 §9: admin_set_house marks a team AAA "house"; it keeps progressing but is excluded from get_leaderboard | T4.11 | t4_11_house_aaas_are_labeled_and_excluded_from_the_leaderboard |

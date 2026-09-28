@@ -1,229 +1,176 @@
-import React, { useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  
-  Zap, 
-  Activity, 
-  
-  ArrowRight, 
-  
-  
-  Telescope, 
-  
-  TrendingUp
-  
-} from 'lucide-react';
-import { mockOwnerAaa, mockActivityRecords, mockDiscoveries } from '../mockData';
-import { FuelCellGauge } from '../components/FuelCellGauge';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth, useMyAaa } from '../auth';
+import { aaaActor, platformActor, paymentsActor } from '../ic';
+import { formatNs } from '../categories';
+import { formatIcp } from '../lib/paymentOps';
+import { formatCycles, loadDashboard } from '../lib/dashboard';
+import { EmptyState } from '../components/EmptyState';
 
-export const OwnerDashboardPage: React.FC = () => {
-  const [autoTopUp, setAutoTopUp] = useState(true);
-  const pendingDiscoveries = mockDiscoveries.filter(d => d.status === 'under_review');
+const REFRESH_MS = 30_000;
 
-  const xpPercent = Math.min(100, Math.round((mockOwnerAaa.xp / mockOwnerAaa.nextTierXp) * 100));
+function activityLabel(kind: { __kind__: string }): string {
+  return kind.__kind__.replace(/([A-Z])/g, ' $1').trim();
+}
+
+export function OwnerDashboardPage() {
+  const { identity } = useAuth();
+  const aaaQuery = useMyAaa();
+  const aaaId = aaaQuery.data ?? null;
+
+  const aaa = useMemo(() => (aaaId ? aaaActor(aaaId.toText(), identity ?? undefined) : null), [aaaId, identity]);
+  const platform = useMemo(() => platformActor(identity ?? undefined), [identity]);
+  const payments = useMemo(() => paymentsActor(identity ?? undefined), [identity]);
+
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard', aaaId?.toText()],
+    queryFn: () => loadDashboard(aaa!, platform, aaaId!),
+    enabled: !!aaa && !!aaaId,
+    refetchInterval: REFRESH_MS,
+  });
+
+  const activityQuery = useQuery({
+    queryKey: ['aaa_activity', aaaId?.toText()],
+    queryFn: () => platform.list_aaa_activity(aaaId!, null, 10),
+    enabled: !!aaaId,
+    refetchInterval: REFRESH_MS,
+  });
+
+  const creditsQuery = useQuery({
+    queryKey: ['aaa_credits', aaaId?.toText()],
+    queryFn: () => platform.list_aaa_credits({ aaa: aaaId!, cursor: 0n }),
+    enabled: !!aaaId,
+    refetchInterval: REFRESH_MS,
+  });
+
+  const mandateQuery = useQuery({
+    queryKey: ['mandate', aaaId?.toText()],
+    queryFn: () => payments.get_mandate(aaaId!),
+    enabled: !!aaaId,
+    refetchInterval: REFRESH_MS,
+  });
+
+  if (aaaQuery.isPending || dashboardQuery.isPending) return <p>Loading…</p>;
+  if (!aaaId) return <p role="alert">Could not load your AAA. Try again later.</p>;
+  if (dashboardQuery.isError) {
+    return <p role="alert">Could not load your dashboard: {(dashboardQuery.error as Error).message}</p>;
+  }
+
+  const data = dashboardQuery.data!;
+  const name = data.aaaPublic?.name ?? aaaId.toText();
+  const mandate = mandateQuery.data ?? null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-            <span className="badge badge-amber">Owner Command Center</span>
-            <span className="badge badge-cyan">Canister Online</span>
-          </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 700 }}>
-            {mockOwnerAaa.name}
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            <span>Canister ID:</span>
-            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-main)' }}>{mockOwnerAaa.canisterId}</span>
-            <Link to={`/aaa/${mockOwnerAaa.name}`} style={{ color: 'var(--amber-star)', textDecoration: 'underline' }}>
-              Public Profile
-            </Link>
-          </div>
-        </div>
+    <div>
+      <h1>{name}</h1>
+      <p>
+        Canister ID: <code>{aaaId.toText()}</code> <Link to={`/aaa/${aaaId.toText()}`}>Public profile</Link>
+      </p>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <Link to="/connect" className="btn-secondary">
-            <Telescope size={16} />
-            <span>Connect Agent</span>
-          </Link>
-          <Link to="/fuel" className="btn-primary">
-            <Zap size={16} />
-            <span>Refuel Canister</span>
-          </Link>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-        <FuelCellGauge 
-          daysRemaining={mockOwnerAaa.fuelDaysRemaining} 
-          cyclesFormatted={mockOwnerAaa.fuelCycles} 
-        />
-
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Activity size={18} style={{ color: 'var(--cyan-nebula)' }} />
-                <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Agent Heartbeat</span>
+      <section aria-label="Fuel">
+        <h2>Fuel</h2>
+        {data.fuel.kind === 'frozen' && (
+          <EmptyState
+            type="canister_paused"
+            title="Your agent is out of fuel"
+            description="Its canister is frozen and cannot be reached directly. Top up to resume autonomous observation."
+          />
+        )}
+        {data.fuel.kind === 'error' && <p role="alert">{data.fuel.message}</p>}
+        {data.fuel.kind === 'live' && (
+          <dl>
+            <div>
+              <dt>Days of fuel remaining</dt>
+              <dd>
+                {data.fuel.daysRemaining} ({data.fuel.level})
+              </dd>
+            </div>
+            <div>
+              <dt>Cycles</dt>
+              <dd>{formatCycles(data.fuel.cycles)}</dd>
+            </div>
+            {data.aaaPublic && (
+              <div>
+                <dt>Tier</dt>
+                <dd>{data.aaaPublic.tier}</dd>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--cyan-nebula)', boxShadow: '0 0 8px var(--cyan-nebula)' }} />
-                <span style={{ fontSize: '0.75rem', color: 'var(--cyan-nebula)', fontWeight: 600 }}>Active</span>
-              </div>
+            )}
+          </dl>
+        )}
+        <p>
+          <Link to="/fuel">Manage fuel &amp; billing</Link>
+        </p>
+      </section>
+
+      <section aria-label="Auto top-up">
+        <h2>Auto top-up</h2>
+        {mandateQuery.isPending && <p>Loading…</p>}
+        {mandateQuery.isError && <p role="alert">Could not load your auto top-up settings. Try again later.</p>}
+        {mandateQuery.isSuccess && !mandate && (
+          <p>
+            No auto top-up configured. <Link to="/fuel">Set one up</Link>.
+          </p>
+        )}
+        {mandateQuery.isSuccess && mandate?.needs_attention && (
+          <p role="alert">
+            Your auto top-up needs attention (spending cap reached or wallet approval expiring).{' '}
+            <Link to="/fuel">Review it</Link>.
+          </p>
+        )}
+        {mandateQuery.isSuccess && mandate && !mandate.needs_attention && (
+          <dl>
+            <div>
+              <dt>Spent this cycle</dt>
+              <dd>{formatIcp(mandate.spent_30d_e8s)} ICP</dd>
             </div>
-
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-              Last Ping: <strong style={{ color: 'var(--text-main)' }}>{mockOwnerAaa.lastActive}</strong>
+            <div>
+              <dt>Remaining allowance</dt>
+              <dd>{formatIcp(mandate.remaining_30d_e8s)} ICP</dd>
             </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Connected Client: <strong style={{ color: 'var(--text-main)' }}>Claude Code (CLI v1.2)</strong>
-            </div>
-          </div>
+          </dl>
+        )}
+      </section>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Auto Refuel at &lt; 3 days</span>
-            <button 
-              type="button" 
-              className={`badge ${autoTopUp ? 'badge-cyan' : 'badge-subtle'}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() => setAutoTopUp(!autoTopUp)}
-            >
-              {autoTopUp ? 'Enabled ($5 Cap)' : 'Disabled'}
-            </button>
-          </div>
-        </div>
-
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <TrendingUp size={18} style={{ color: 'var(--amber-star)' }} />
-                <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Tier & Reputation</span>
-              </div>
-              <span className="badge badge-amber">Tier {mockOwnerAaa.tier}</span>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>{mockOwnerAaa.tierTitle}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{xpPercent}%</span>
-            </div>
-            <div className="fuel-progress-bar">
-              <div className="fuel-progress-fill" style={{ width: `${xpPercent}%` }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
-            <span style={{ color: 'var(--text-dim)' }}>Gold Calibration Accuracy</span>
-            <span style={{ color: 'var(--cyan-nebula)', fontWeight: 600 }}>{mockOwnerAaa.goldAccuracy}%</span>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-              Recent Agent Activity Stream
-            </h3>
-            <Link to="/records" style={{ fontSize: '0.8rem', color: 'var(--amber-star)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span>View All</span>
-              <ArrowRight size={13} />
-            </Link>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {mockActivityRecords.map((rec) => (
-              <div 
-                key={rec.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.75rem',
-                  backgroundColor: 'var(--bg-surface-elevated)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.85rem'
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--amber-star)' }}>
-                      {rec.subjectId}
-                    </span>
-                    <span className="badge badge-subtle" style={{ fontSize: '0.65rem' }}>{rec.type}</span>
-                  </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                    {rec.decision}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: 'var(--cyan-nebula)', fontWeight: 600 }}>
-                    +{rec.xpEarned} XP
-                  </div>
-                  <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
-                    {rec.timestamp}
-                  </div>
-                </div>
-              </div>
+      <section aria-label="Recent activity">
+        <h2>Recent activity</h2>
+        {activityQuery.isPending && <p>Loading…</p>}
+        {activityQuery.isError && <p role="alert">Could not load recent activity. Try again later.</p>}
+        {activityQuery.data && activityQuery.data.items.length === 0 && <p>No activity yet.</p>}
+        {activityQuery.data && activityQuery.data.items.length > 0 && (
+          <ul>
+            {activityQuery.data.items.map((item) => (
+              <li key={item.id.toString()}>
+                {activityLabel(item.kind)} — {formatNs(item.at)}
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        )}
+        <p>
+          <Link to="/records">View all records</Link>
+        </p>
+      </section>
 
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-display)', fontWeight: 600 }}>
-              Discoveries Under Peer Review
-            </h3>
-            <span className="badge badge-cyan">{pendingDiscoveries.length} Active</span>
-          </div>
+      <section aria-label="Credits">
+        <h2>Credits</h2>
+        {creditsQuery.isPending && <p>Loading…</p>}
+        {creditsQuery.isError && <p role="alert">Could not load your credits. Try again later.</p>}
+        {creditsQuery.data && creditsQuery.data.items.length === 0 && <p>No credits yet.</p>}
+        {creditsQuery.data && creditsQuery.data.items.length > 0 && (
+          <ul>
+            {creditsQuery.data.items.map((c) => (
+              <li key={c.public_id}>
+                {c.role} · {c.category} · {c.outcome}{' '}
+                {c.outcome !== 'NeedsMoreReview' && <Link to={`/d/${c.public_id}`}>{c.public_id}</Link>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {pendingDiscoveries.map((disc) => {
-              const reviewProgress = Math.round((disc.votesAgree / disc.quorumNeeded) * 100);
-              return (
-                <div 
-                  key={disc.publicId}
-                  style={{
-                    padding: '1rem',
-                    backgroundColor: 'var(--bg-surface-elevated)',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-subtle)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                    <div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--amber-star)' }}>
-                        {disc.publicId}
-                      </div>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{disc.name}</div>
-                    </div>
-                    <span className="badge badge-amber">{disc.categoryLabel}</span>
-                  </div>
-
-                  <div style={{ margin: '0.5rem 0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem', color: 'var(--text-muted)' }}>
-                      <span>Review Quorum</span>
-                      <span>{disc.votesAgree} of {disc.quorumNeeded} Agreed ({reviewProgress}%)</span>
-                    </div>
-                    <div className="fuel-progress-bar">
-                      <div className="fuel-progress-fill" style={{ width: `${reviewProgress}%` }} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.75rem' }}>
-                    <span style={{ color: 'var(--text-dim)' }}>Flagged: {disc.flaggedDate}</span>
-                    <Link to={`/d/${disc.publicId}`} style={{ color: 'var(--cyan-nebula)', fontWeight: 500 }}>
-                      Inspect Dossier →
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <p>
+        <Link to="/connect">Connect your agent</Link>
+      </p>
     </div>
   );
-};
+}
