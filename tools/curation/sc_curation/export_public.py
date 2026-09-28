@@ -2,6 +2,7 @@ import argparse
 import json
 import re
 import subprocess
+import time
 from pathlib import Path
 
 CANISTER = "platform"
@@ -88,8 +89,12 @@ def parse_candid(text: str):
 
 def call(method: str, args: str, network: str = "local", identity: str = "anonymous"):
     cmd = ["icp", "canister", "call", CANISTER, method, args, "-e", network, "--identity", identity, "--query", "--json"]
-    out = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return parse_candid(json.loads(out.stdout)["response_candid"])
+    for attempt in range(5):
+        out = subprocess.run(cmd, capture_output=True, text=True)
+        if out.returncode == 0:
+            return parse_candid(json.loads(out.stdout)["response_candid"])
+        time.sleep(2 ** attempt)
+    raise RuntimeError(f"{method}{args} failed: {out.stderr.strip()}")
 
 
 def fetch_discoveries(caller=call, network: str = "local", page_size: int = 100) -> list[dict]:
